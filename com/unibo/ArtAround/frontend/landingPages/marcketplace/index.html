@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pagina 3D Background</title>
+
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js"></script>
+
+    <style>
+        /* Reset di base per rimuovere margini indesiderati */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body,
+        html {
+            height: 100%;
+            font-family: 'Arial', sans-serif;
+            background-color: #0a0a0a;
+            /* Sfondo scuro di fallback */
+            overflow: hidden;
+            /* Evita barre di scorrimento se il modello sfora */
+        }
+
+        /* --- STILE DEL MODELLO 3D DI SFONDO --- */
+        model-viewer {
+            position: fixed;
+            /* Fissato allo schermo */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            /* IMPORTANTE: Lo spinge sopra il body ma sotto l'overlay */
+            /* Opzionale: un colore di sfondo per il viewer stesso se il modello non riempie tutto */
+            background-color: #121212;
+            --poster-color: transparent;
+            /* Rimuove il "flash" bianco durante il caricamento */
+        }
+
+        /* --- STILE DEL CONTENITORE OVERLAY (Testo e Bottoni) --- */
+        .overlay-container {
+            position: relative;
+            z-index: 2;
+            /* Necessario per stare sopra il fixed background */
+            height: 100vh;
+            /* Altezza 100% della finestra */
+            width: 100%;
+
+            /* Usiamo Flexbox per centrare tutto facilmente */
+            display: flex;
+            flex-direction: column;
+            /* Dispone gli elementi in colonna (uno sotto l'altro) */
+            justify-content: center;
+            /* Centra verticalmente */
+            align-items: center;
+            /* Centra orizzontalmente */
+
+            color: white;
+            /* Testo bianco */
+        }
+
+        /* Stile del Titolo */
+        h1 {
+            font-size: 3rem;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            margin-bottom: 40px;
+            /* Spazio tra testo e bottone */
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.7);
+            /* Ombra per leggere meglio sullo sfondo */
+
+            /* Posizionamento specifico in alto */
+            position: absolute;
+            top: 30px;
+        }
+
+        /* Stile del Pulsante ENTER */
+        .enter-button {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            background-color: transparent;
+            /* Sfondo trasparente */
+            border: 2px solid white;
+            /* Bordo bianco */
+            border-radius: 30px;
+            /* Angoli arrotondati */
+            cursor: pointer;
+            /* Cambia il cursore al passaggio del mouse */
+            transition: all 0.3s ease;
+            /* Animazione fluida per l'hover */
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Effetto quando passi il mouse sul pulsante */
+        .enter-button:hover {
+            background-color: white;
+            color: black;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            /* Bagliore bianco */
+        }
+    </style>
+</head>
+
+<body>
+
+    <model-viewer src="../../res/Sketchfab_2021_07_22_10_21_53.glb" alt="Sfondo 3D" auto-rotate camera-controls
+        disable-zoom interaction-prompt="none" shadow-intensity="1" camera-orbit="45deg 50deg 2.5m">
+    </model-viewer>
+
+
+    <div class="overlay-container">
+        <h1>3d Web Page</h1>
+        <button class="enter-button">ENTER</button>
+    </div>
+
+
+    <script>
+        // Semplice script per far fare qualcosa al bottone
+        const button = document.querySelector('.enter-button');
+        button.addEventListener('click', () => {
+            alert("Benvenuto! (Qui potresti reindirizzare a un'altra pagina)");
+            // Esempio di redirect:
+            // window.location.href = "tua-pagina-principale.html";
+        });
+    </script>
+
+</body>
+
+</html>
