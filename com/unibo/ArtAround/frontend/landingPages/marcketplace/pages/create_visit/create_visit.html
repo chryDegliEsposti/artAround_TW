@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtAround - Crea Visita</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../home/style.css"> 
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="../home/home_museum_owner.html" class="logo">ArtAround <span
+                style="font-size: 0.8em; opacity: 0.7;">Owner</span></a>
+        <div class="menu-toggle">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../home/home_user.html">Home</a></li>
+            <li><a href="../museum_map/index.html">Mappa</a></li>
+            <li><a href="../create_visit/create_visit.html">Crea Visita</a></li>
+            <li><a href="../insert_museum/insert_museum.html">Inserisci Museo</a></li>
+            <li><a href="../index/index.html">Landing</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h1>Crea Nuova Visita</h1>
+
+        <form id="visit-form">
+            <div class="form-group">
+                <label for="museum-select">Seleziona Museo</label>
+                <input type="text" id="museum-select" name="museum" list="museum-list" placeholder="nome museo ..."
+                    required>
+                <datalist id="museum-list">
+                </datalist>
+                <p class="messagge"></p>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Titolo Visita</label>
+                <input type="text" id="title" name="title" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descrizione</label>
+                <textarea id="description" name="description" rows="3"></textarea>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="price">Prezzo (€)</label>
+                    <input type="number" id="price" name="price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="duration">Durata (min)</label>
+                    <input type="number" id="duration" name="duration">
+                </div>
+            </div>
+
+            <div class="items-selection-section">
+                <h2>Seleziona Opere</h2>
+                <p class="hint">Seleziona le opere da includere nella visita nell'ordine desiderato.</p>
+
+                <div class="items-container">
+                    <div class="available-items">
+                        <h3>Opere Disponibili</h3>
+                        <ul id="available-items-list" class="items-list">
+                            <li class="empty-msg">Seleziona un museo per vedere le opere.</li>
+                        </ul>
+                    </div>
+
+                    <div class="selected-items">
+                        <h3>Opere Selezionate</h3>
+                        <ul id="selected-items-list" class="items-list">
+                            <li class="empty-msg">Nessuna opera selezionata.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">Crea Visita</button>
+        </form>
+    </main>
+
+    <script src="../home/script.js"></script> 
+    <script src="script.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtAround - Inserisci Museo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../home/style.css"> 
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <nav class="navbar">
+        <a href="../home/home_museum_owner.html" class="logo">ArtAround <span
+                style="font-size: 0.8em; opacity: 0.7;">Owner</span></a>
+        <div class="menu-toggle">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+        <ul class="nav-links">
+            <li><a href="../home/home_user.html">Home</a></li>
+            <li><a href="../museum_map/index.html">Mappa</a></li>
+            <li><a href="../create_visit/create_visit.html">Crea Visita</a></li>
+            <li><a href="../insert_museum/insert_museum.html">Inserisci Museo</a></li>
+            <li><a href="../index/index.html">Landing</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <h1>Inserisci Nuovo Museo</h1>
+
+        <form id="museum-form">
+            <div class="form-group" style="position: relative;">
+                <label for="nome">Nome Museo</label>
+                <input type="text" id="nome" name="title" required>
+                <ul id="museum-suggestions" class="suggestions-list"></ul>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descrizione</label>
+                <textarea id="description" name="description" rows="4"></textarea>
+            </div>
+
+            <div class="form-group" style="position: relative;">
+                <label for="address">Indirizzo</label>
+                <input type="text" id="address" name="address" autocomplete="off">
+                <ul id="address-suggestions" class="suggestions-list"></ul>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="lat">Latitudine</label>
+                    <input type="number" step="any" id="lat" name="lat">
+                </div>
+                <div class="form-group">
+                    <label for="lon">Longitudine</label>
+                    <input type="number" step="any" id="lon" name="lon">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="webSite">Sito Web</label>
+                <input type="url" id="webSite" name="webSite">
+            </div>
+
+            <div class="form-group">
+                <label for="mapLink">Link Mappa</label>
+                <input type="url" id="mapLink" name="mapLink">
+            </div>
+
+            <div class="items-section">
+                <h2>Opere d'Arte</h2>
+                <button type="button" id="add-item-btn" class="btn-secondary">Aggiungi Opera</button>
+                <ul id="items-list" class="items-list">
+                    
+                </ul>
+            </div>
+
+            <button type="submit" class="btn-primary">Crea Museo</button>
+        </form>
+    </main>
+
+    
+    <div id="item-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Aggiungi Opera</h2>
+            <form id="item-form">
+                <div class="form-group">
+                    <label for="item-title">Titolo Opera</label>
+                    <input type="text" id="item-title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="item-author">Autore</label>
+                    <input type="text" id="item-author" required>
+                </div>
+
+                <div class="form-group checkbox-group">
+                    <input type="checkbox" id="generate-ai" name="generate-ai">
+                    <label for="generate-ai" style="display: inline; margin-left: 0.5rem;">Genera descrizioni con
+                        AI</label>
+                </div>
+
+                <div id="manual-descriptions">
+                    <div class="form-group">
+                        <label for="item-desc-short">Descrizione Breve (Facile)</label>
+                        <textarea id="item-desc-short" rows="2"></textarea>
+                    </div>
+                    
+                </div>
+
+                <button type="submit" class="btn-primary">Aggiungi alla Lista</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../home/script.js"></script> 
+    <script src="script.js"></script>
+</body>
+
+</html>

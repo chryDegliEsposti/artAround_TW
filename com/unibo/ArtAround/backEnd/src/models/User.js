@@ -2,10 +2,9 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // TODO:Ricorda di hashare la password!
+    password: { type: String, required: true }, 
     username: { type: String, required: true },
     payment_card_number: { type: String },
-    payment_card_cvv: { type: String },
     payment_card_exp: { type: Date },
     role: {
         type: String,
