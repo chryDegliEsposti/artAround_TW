@@ -39,6 +39,18 @@ async function fetchMuseums() {
     }
 }
 
+async function fetchWikidata(wikidataId) {
+    try {
+        const response = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${wikidataId}.json`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.entities[wikidataId];
+    } catch (error) {
+        console.error(`Error fetching Wikidata for ${wikidataId}:`, error);
+        return null;
+    }
+}
+
 async function populate() {
     try {
         await mongoose.connect('mongodb://localhost:27017/artaround');
@@ -52,7 +64,28 @@ async function populate() {
             if (!el.tags || !el.tags.name) continue;
 
             const title = el.tags.name;
-            const description = el.tags.description || el.tags['description:it'] || el.tags['description:en'] || 'Descrizione non disponibile.';
+            const wikidataId = el.tags.wikidata;
+
+            let wikiData = null;
+            if (wikidataId) {
+                wikiData = await fetchWikidata(wikidataId);
+            }
+
+            let description = el.tags.description || el.tags['description:it'] || el.tags['description:en'];
+            let imageLink = el.tags.image;
+            if (!description && wikiData) {
+                description = wikiData.descriptions?.it?.value || wikiData.descriptions?.en?.value;
+            }
+
+            if (!description) description = 'Descrizione non disponibile.';
+
+            if (!imageLink && wikiData) {
+                // P18 is the image property
+                const p18 = wikiData.claims?.P18?.[0]?.mainsnak?.datavalue?.value;
+                if (p18) {
+                    imageLink = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(p18)}`;
+                }
+            }
 
 
             let addressParts = [];
@@ -60,7 +93,18 @@ async function populate() {
             if (el.tags['addr:housenumber']) addressParts.push(el.tags['addr:housenumber']);
             if (el.tags['addr:postcode']) addressParts.push(el.tags['addr:postcode']);
             if (el.tags['addr:city']) addressParts.push(el.tags['addr:city']);
-            const address = addressParts.join(', ') || 'Indirizzo non disponibile';
+
+            let address = addressParts.join(', ');
+
+            if (!address && wikiData) {
+                // P6375 is street address
+                const p6375 = wikiData.claims?.P6375?.[0]?.mainsnak?.datavalue?.value?.text;
+                if (p6375) {
+                    address = p6375;
+                }
+            }
+
+            if (!address) address = 'Indirizzo non disponibile';
 
             const webSite = el.tags.website || el.tags['contact:website'] || el.tags.url || '';
             const mapLink = `https://www.openstreetmap.org/${el.type}/${el.id}`;
@@ -79,6 +123,8 @@ async function populate() {
                 lon,
                 webSite,
                 mapLink,
+                imageLink,
+                wikidataId,
                 location: {
                     type: 'Point',
                     coordinates: [lon, lat]

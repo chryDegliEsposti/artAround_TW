@@ -1,4 +1,3 @@
-
 form {
     max-width: 800px;
     margin: 0 auto;
@@ -130,13 +129,48 @@ textarea:focus {
 
 .modal-content {
     background-color: var(--color-bg);
-    margin: 10% auto;
+    margin: 5% auto;
+    /* Reduced top margin to fit taller content */
     padding: 2rem;
     border: 1px solid var(--color-accent-1);
     border-radius: 15px;
-    width: 90%;
-    max-width: 500px;
+    width: 95%;
+    /* Wider */
+    max-width: 1000px;
+    /* Much wider max-width */
+    max-height: 90vh;
+    /* Prevent going off-screen vertically */
+    overflow-y: auto;
+    /* Scrollable if too tall */
     position: relative;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.descriptions-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 1rem;
+}
+
+.desc-cell {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.desc-cell textarea {
+    min-height: 80px;
+    /* Ensure 3-4 lines are visible */
+    resize: vertical;
+}
+
+/* Responseiveness for grid */
+@media (max-width: 768px) {
+    .descriptions-grid {
+        grid-template-columns: 1fr;
+        /* Stack on mobile */
+    }
 }
 
 .close-modal {
@@ -166,7 +200,7 @@ textarea:focus {
     max-height: 200px;
     overflow-y: auto;
     display: none;
-    
+
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
@@ -183,5 +217,5 @@ textarea:focus {
 
 .suggestions-list li:hover {
     background-color: rgba(103, 125, 183, 0.2);
-    
+
 }

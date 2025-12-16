@@ -17,7 +17,8 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('Fetching museums...');
             const PORT = 5000;
             const response = await fetch(`http://localhost:5000/api/museums`);
-            const museums = await response.json();
+            const data = await response.json();
+            const museums = data.museums;
             museumsData = museums;
 
             museums.forEach(museum => {

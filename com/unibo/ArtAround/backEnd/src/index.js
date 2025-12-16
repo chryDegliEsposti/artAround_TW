@@ -29,6 +29,7 @@ app.use('/api/items', itemsRoute);
 app.use('/api/visits', visitsRoute);
 app.use('/api/ai', aiRoute);
 app.use('/api/quiz-sessions', quizSessionRoutes);
+app.use('/api/authors', require('./routes/AuthorsAPI'));
 
 
 app.get('/', (req, res) => {

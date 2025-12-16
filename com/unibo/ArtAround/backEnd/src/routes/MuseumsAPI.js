@@ -53,12 +53,27 @@ router.get('/nearby', async (req, res) => {
 router.get('/', async (req, res) => {
     try {
         const searchText = req.query.q || '';
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 30;
+        const skip = (page - 1) * limit;
 
-        const foundMuseums = await museums.find({
-            title: { $regex: searchText, $options: 'i' } //i per case insesitive
+        const query = {
+            title: { $regex: searchText, $options: 'i' }
+        };
+
+        const totalMuseums = await museums.countDocuments(query);
+        const totalPages = Math.ceil(totalMuseums / limit);
+
+        const foundMuseums = await museums.find(query)
+            .skip(skip)
+            .limit(limit);
+
+        res.json({
+            museums: foundMuseums,
+            currentPage: page,
+            totalPages: totalPages,
+            totalMuseums: totalMuseums
         });
-
-        res.json(foundMuseums);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
@@ -72,7 +87,6 @@ router.post('/', async (req, res) => {
     try {
         const { items, ...museumData } = req.body;
 
-        // 1. Create and save the Museum
         const museum = new museums(museumData);
         if (museumData.lat && museumData.lon) {
             museum.location = {

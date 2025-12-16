@@ -36,7 +36,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const response = await fetch(`http://localhost:5000/api/museums?q=${query}`);
-            const museums = await response.json();
+            const data = await response.json();
+            const museums = data.museums;
+
+            console.log(museums);
 
             titleSuggestions.innerHTML = '';
             museums.forEach(museum => {
@@ -148,36 +151,223 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    const aiCheckbox = document.getElementById('generate-ai');
-    const manualDescriptions = document.getElementById('manual-descriptions');
 
-    aiCheckbox.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            manualDescriptions.style.display = 'none';
-        } else {
-            manualDescriptions.style.display = 'block';
+    // --- STEP NAVIGATION ---
+    const step1 = document.getElementById('modal-step-1');
+    const step2 = document.getElementById('modal-step-2');
+    const btnNext = document.getElementById('btn-next-step');
+    const btnPrev = document.getElementById('btn-prev-step');
+
+    btnNext.onclick = () => {
+        if (!document.getElementById('item-title').value) {
+            alert('Inserisci il titolo dell\'opera.');
+            return;
+        }
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+    };
+
+    btnPrev.onclick = () => {
+        step2.style.display = 'none';
+        step1.style.display = 'block';
+    };
+
+    addItemBtn.onclick = () => {
+        modal.style.display = "block";
+        // Reset steps
+        step1.style.display = 'block';
+        step2.style.display = 'none';
+        itemForm.reset();
+    };
+
+
+    // --- AUTHOR AUTOCOMPLETE & AI ---
+    const authorInput = document.getElementById('item-author');
+    const authorSuggestions = document.getElementById('author-suggestions');
+    const generateAuthorAiCheckbox = document.getElementById('generate-author-ai');
+    const authorDescShort = document.getElementById('author-desc-short');
+    const authorDescLong = document.getElementById('author-desc-long');
+
+    let authorDebounceTimer;
+
+    authorInput.addEventListener('input', function () {
+        const query = this.value;
+        clearTimeout(authorDebounceTimer);
+
+        if (query.length < 2) {
+            authorSuggestions.style.display = 'none';
+            return;
+        }
+
+        authorDebounceTimer = setTimeout(async () => {
+            try {
+                const response = await fetch(`http://localhost:5000/api/authors?q=${query}`);
+                const authors = await response.json();
+
+                authorSuggestions.innerHTML = '';
+                if (authors.length > 0) {
+                    authors.forEach(author => {
+                        const li = document.createElement('li');
+                        li.textContent = author.name;
+                        li.onclick = () => {
+                            authorInput.value = author.name;
+                            // Populate descriptions if available
+                            authorDescShort.value = author.descriptionShort || '';
+                            authorDescLong.value = author.descriptionLong || '';
+                            authorSuggestions.style.display = 'none';
+                        };
+                        authorSuggestions.appendChild(li);
+                    });
+                    authorSuggestions.style.display = 'block';
+                } else {
+                    authorSuggestions.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error fetching authors:', error);
+            }
+        }, 300);
+    });
+
+    // Close suggestions on click outside
+    document.addEventListener('click', (e) => {
+        if (e.target !== authorInput && !authorSuggestions.contains(e.target)) {
+            authorSuggestions.style.display = 'none';
         }
     });
+
+    // AI Generation for Author
+    generateAuthorAiCheckbox.addEventListener('change', async (e) => {
+        if (e.target.checked) {
+            const authorName = authorInput.value;
+            if (!authorName) {
+                alert('Inserisci il nome dell\'autore prima di generare.');
+                e.target.checked = false;
+                return;
+            }
+
+            try {
+                authorDescShort.placeholder = "Generazione in corso...";
+                authorDescLong.placeholder = "Generazione in corso...";
+
+                const response = await fetch(`http://localhost:5000/api/ai/generate_author_description/${encodeURIComponent(authorName)}`);
+                const data = await response.json();
+
+                if (data) {
+                    authorDescShort.value = data.descriptionShort || '';
+                    authorDescLong.value = data.descriptionLong || '';
+                }
+            } catch (error) {
+                console.error("AI Error:", error);
+                alert("Errore nella generazione AI.");
+            } finally {
+                authorDescShort.placeholder = "";
+                authorDescLong.placeholder = "";
+            }
+        }
+    });
+
+    // AI Generation for Item Descriptions
+    const generateItemAiBtn = document.getElementById('generate-descriptions-ai-btn');
+    generateItemAiBtn.onclick = async () => {
+        const itemTitle = document.getElementById('item-title').value;
+        // Author might be in the second step, but we try to get it if available, or ask user.
+        // Since the UI splits them, maybe we can peek at the second step input or just send what we have.
+        // Actually, the user fills Author in Step 2. So at Step 1, Author is unknown if we strictly follow order.
+        // Let's try to generate with just Title. The prompt handles "unknown" author.
+
+        if (!itemTitle) {
+            alert('Inserisci almeno il titolo per generare le descrizioni.');
+            return;
+        }
+
+        const authorName = document.getElementById('item-author').value; // Might be empty
+
+        try {
+            // Set placeholders
+            const levels = ['easy', 'medium', 'hard'];
+            const lengths = ['short', 'medium', 'long'];
+            levels.forEach(lvl => {
+                lengths.forEach(len => {
+                    const id = `desc_${len}_${lvl}`;
+                    document.getElementById(id).placeholder = "Generazione in corso...";
+                    document.getElementById(id).value = "";
+                });
+            });
+
+            const response = await fetch('http://localhost:5000/api/ai/generate_item_descriptions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ title: itemTitle, author: authorName })
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const descriptions = await response.json();
+
+            // Fill textareas
+            Object.keys(descriptions).forEach(key => {
+                // key format: description_short_easy -> we id: desc_short_easy
+                // need to map keys if they differ. 
+                // key: description_short_easy. ID: desc_short_easy.
+                const id = key.replace('description_', 'desc_');
+                const element = document.getElementById(id);
+                if (element) {
+                    element.value = descriptions[key];
+                }
+            });
+
+        } catch (error) {
+            console.error("AI Generation Error:", error);
+            alert("Errore nella generazione delle descrizioni.");
+        } finally {
+            // Clear placeholders
+            const levels = ['easy', 'medium', 'hard'];
+            const lengths = ['short', 'medium', 'long'];
+            levels.forEach(lvl => {
+                lengths.forEach(len => {
+                    const id = `desc_${len}_${lvl}`;
+                    document.getElementById(id).placeholder = "";
+                });
+            });
+        }
+    };
 
 
     itemForm.addEventListener('submit', (e) => {
         e.preventDefault();
 
-        const isAiGenerated = aiCheckbox.checked;
+        // Collect 9 descriptions
+        const descriptions = {};
+        const levels = ['easy', 'medium', 'hard'];
+        const lengths = ['short', 'medium', 'long'];
+
+        levels.forEach(lvl => {
+            lengths.forEach(len => {
+                const id = `desc_${len}_${lvl}`;
+                descriptions[`description_${len}_${lvl}`] = document.getElementById(id).value;
+            });
+        });
+
+        const authorData = {
+            name: authorInput.value,
+            descriptionShort: authorDescShort.value,
+            descriptionLong: authorDescLong.value
+        };
 
         const newItem = {
             title: document.getElementById('item-title').value,
-            authorName: document.getElementById('item-author').value,
-            generateAI: isAiGenerated,
-            description_short_easy: isAiGenerated ? null : document.getElementById('item-desc-short').value
-
+            authorName: authorData.name,
+            authorDescriptionShort: authorData.descriptionShort, // Pass these to backend to update/create author
+            authorDescriptionLong: authorData.descriptionLong,
+            ...descriptions
         };
 
         items.push(newItem);
         renderItems();
 
         itemForm.reset();
-        manualDescriptions.style.display = 'block';
         modal.style.display = "none";
     });
 
