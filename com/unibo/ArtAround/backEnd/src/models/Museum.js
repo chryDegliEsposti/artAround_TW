@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const MuseumSchema = new mongoose.Schema({
-    title: { type: String, required: true },
+    name: { type: String, required: true },
     description: { type: String },
     address: { type: String },
     webSite: { type: String },
