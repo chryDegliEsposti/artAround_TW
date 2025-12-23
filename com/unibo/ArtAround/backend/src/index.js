@@ -5,7 +5,8 @@ const authRouter = require("./routes/auth.routes");
 const usersRouter = require("./routes/users.routes");   
 const visitsRouter = require("./routes/visits.routes"); 
 const mongoose = require('mongoose');
-
+const errorsMiddleware = require('./middlewares/errors.middleware');
+const cookieParser = require('cookie-parser');
 
 //DB connection
 const dbConnection = async () => {
@@ -22,11 +23,16 @@ const dbConnection = async () => {
 const app = express();
 
 //app configurations 
+app.use(express.json()); //per leggere req body in formato json
+app.use(express.urlencoded({ extended: false })); //easier gestione form html 
+app.use(cookieParser()); 
+
 const PORT = process.env.PORT || 3000;
 app.use("/api/v1/auth", authRouter); 
 app.use("/api/v1/users", usersRouter); 
 app.use("/api/v1/visits", visitsRouter);
 
+app.use(errorsMiddleware);
 
 /*
 // Dati mock (poi sostituisci con database)
