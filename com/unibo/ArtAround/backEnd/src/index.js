@@ -19,6 +19,7 @@ mongoose.connect('mongodb://localhost:27017/artaround')
 const museumsRoute = require('./routes/MuseumsAPI');
 const itemsRoute = require('./routes/ItemsAPI');
 const visitsRoute = require('./routes/VisitsAPI');
+const navRoute = require('./routes/NavAPI');
 const aiRoute = require('./routes/AI_API');
 
 const quizSessionRoutes = require('./routes/QuizSessionsAPI');
@@ -27,6 +28,7 @@ const quizSessionRoutes = require('./routes/QuizSessionsAPI');
 app.use('/api/museums', museumsRoute);
 app.use('/api/items', itemsRoute);
 app.use('/api/visits', visitsRoute);
+app.use('/api/nav', navRoute);
 app.use('/api/ai', aiRoute);
 app.use('/api/quiz-sessions', quizSessionRoutes);
 app.use('/api/authors', require('./routes/AuthorsAPI'));
