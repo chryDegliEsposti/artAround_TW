@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const errorsMiddleware = require('./middlewares/errors.middleware');
 const cookieParser = require('cookie-parser');
 
+
 //DB connection
 const dbConnection = async () => {
     try {
@@ -47,10 +48,10 @@ app.get("/", (req, res) => {
 });
 
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 
-    dbConnection();
+    //await dbConnection();
 });
 
 

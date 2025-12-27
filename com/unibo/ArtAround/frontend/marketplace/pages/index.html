@@ -1,40 +1,257 @@
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Marketplace & Editor</title>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtAround</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"></script>
-        <script src="https://cdn.tailwindcss.com"></script>
-    </head>
+</head>
+
+<body class="bg-white min-h-screen">
     
-    <body>
-        <header class="bg-white shadow">
-            <div class="flex mx-auto px-4 py-6">
-                <h1 class="text-3xl font-bold">🖼️ Marketplace & Editor</h1>
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-50 bg-gray-100 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="text-white text-xs">AA</i>
+                    </div>
+                    <span class="text-l sm:text-xl lg:text-2xl font-bold text-gray-800 hover:text-purple-600" >Marketplace</span>
+                </div>
+
+                <!-- Menu Desktop -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="#" class="text-gray-600 hover:text-purple-600">Home</a>
+                    <a href="#" class="text-gray-600 hover:text-purple-600">Arte</a>
+                    <a href="#" class="text-gray-600 hover:text-purple-600">Collezioni</a>
+                    <a href="#" class="text-gray-600 hover:text-purple-600">Chi Siamo</a>
+                </div>
+
+                <!-- Bottoni -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <button class="px-4 py-2 text-gray-700 hover:text-purple-600">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <button class="px-4 py-2 text-gray-700 hover:text-purple-600">
+                        Accedi
+                    </button>
+                    <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+                        Registrati
+                    </button>
+                </div>
+
+                <!-- Menu Mobile Button -->
+                <button id="menuBtn" class="md:hidden text-gray-700 hover:text-purple-600">
+                    <i class="text-2xl fas fa-bars"></i>
+                </button>
+
             </div>
-        </header>
-       
-        <nav class="bg-gray-800 text-white">
-            <div class="flex mx-auto px-4 py-3 flex gap-6">
-                <a href="index.html" class="hover:text-blue-400">👤Dashboard</a>
-                <a href="browse.html" class="hover:text-blue-400">🔍Browse Contenuti</a>
-                <a href="editor.html" class="hover:text-blue-400">✏️Editor Visite</a>
-                <a href="create-visit.html" class="hover:text-blue-400">➕Crea una Visita</a>
+        </div>
+
+        <!-- Menu Mobile (hidden by default) -->
+        <div id="mobileMenu" class="md:hidden bg-white border-t hidden">
+            <div class="px-4 py-3 space-y-3">
+                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Home</a>
+                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Arte</a>
+                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Artisti</a>
+                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Collezioni</a>
+                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Chi Siamo</a>
+                
+                <div class="pt-4 space-y-3 border-t">
+                    <button class="w-full py-2 text-left text-gray-700">
+                        <i class="fas fa-search mr-2"></i> Cerca
+                    </button>
+                    <button class="w-full py-2 text-left text-gray-700">
+                        Accedi
+                    </button>
+                    <button class="w-full py-2 bg-purple-600 text-white rounded-lg text-center">
+                        Registrati
+                    </button>
+                </div>
             </div>
-        </nav>
-        
-        <main class="bg-yellow-500">
-            <h1 class="text-2xl font-bold mb-6">Ciao Volamm!</h1>
-            <div>
-                <h2 class="text-3xl font-bold mb-6">⭐Visite salvate</h2>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-cover bg-center text-amber-50" 
+    style="background-image: url('https://images.pexels.com/photos/20967/pexels-photo.jpg');">
+
+        <div class="max-w-4xl mx-auto px-4 py-20 text-center">
+            <h1 class="text-4xl md:text-5xl font-bold mb-5">
+                Visitare un museo, mai stato cosi personalizzato!
+            </h1>
+            <p class="text-xl mb-8 text-gray-200">
+                Scopri subito e acquista visite digitali interattive per i tuoi prossimi musei da visitare 
+            </p>
+            
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <button class="px-8 py-3 bg-white text-purple-600 font-bold rounded-lg hover:bg-gray-100">
+                    Esplora le opere
+                </button>
+
+                <button class="px-8 py-3 border-2 border-white text-white rounded-lg hover:bg-white hover:text-purple-600">
+                    Diventa artista
+                </button>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- Features -->
+    <section id="about" class="py-10 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 mt-8">
+                <i>Marketplace</i> per visitatori
+            </h2>  
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-purple-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="text-purple-600 text-2xl fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Esplora</h3>
+                    <p class="text-gray-600">
+                        Opere, autori, intere visite interattive ai musei!
+                    </p>
+                </div>
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-blue-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-shopping-cart text-blue-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Acquista</h3>
+                    <p class="text-gray-600">
+                        Compra le visite che ti interessano 
+                    </p>
+                </div>
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-red-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-building-columns text-red-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Visita</h3>
+                    <p class="text-gray-600">
+                        Carica la visita sul tuo Navigator, ed esplora la storia!
+                    </p>
+                </div>
             </div>
 
-            
-            
-        </main>
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 mt-20">
+                <i>Marketplace&Editor</i> per creatori
+            </h2>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-green-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-plus text-green-600 text-2xl "></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Crea</h3>
+                    <p class="text-gray-600">
+                        Crea nuove visite per il tuo museo
+                    </p>
+                </div>
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-yellow-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user text-yellow-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Modifica</h3>
+                    <p class="text-gray-600">
+                        Perfeziona e aggiorna quando vuoi le tue visite
+                    </p>
+                </div>
+                <div class="text-center p-4">
+                    <div class="w-16 h-16 bg-violet-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fa-solid fa-upload text-violet-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">Pubblica</h3>
+                    <p class="text-gray-600">
+                        Rendi pubbliche o vendi le visite ai tuoi visitatori!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Chi Siamo -->
+    <section class="bg-gray-50 py-16">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Chi Siamo</h2>
+                <p class="text-lg text-gray-600 max-w-3xl mx-auto">
+                    Siamo tre studenti che studiano al corso di Informatica all'Università di Bologna. Abbiamo sviluppato questo progetto per creare un ponte tra musei, artisti e visitatori attraverso esperienze digitali interattive che arricchiscono la visita tradizionale e la rendono personalizzata.
+                </p>
+            </div>
+        </div>
+    </section>
 
-        
-        
-    </body>
+  <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-12">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-8">
+                <!-- Logo e descrizione -->
+                <div class="md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-6">
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-palette text-white"></i>
+                        </div>
+                        <span class="text-2xl font-bold">ArtAround</span>
+                    </div>
+
+                    <p class="text-gray-300 mb-6">
+                        Il marketplace per visite museali interattive. 
+                        Esperienze culturali innovative a portata di click.
+                    </p>
+
+                    <!-- Social -->
+                    <div class="flex space-x-4">
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-purple-600">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-600">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-blue-400">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center hover:bg-red-600">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+      
+                <!-- Contatti -->
+                <div>
+                    <h4 class="font-bold text-lg mb-6">Contatti</h4>
+                    <ul class="space-y-3">
+                        <li class="flex items-start">
+                            <i class="fas fa-envelope mt-1 mr-3 text-gray-400"></i>
+                            <span class="text-gray-300">info@artaround.it</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-phone mt-1 mr-3 text-gray-400"></i>
+                            <span class="text-gray-300">+39 000 1234567</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-map-marker-alt mt-1 mr-3 text-gray-400"></i>
+                            <span class="text-gray-300">Bologna, Italia</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Copyright -->
+            <div class="border-t border-gray-700 mt-12 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 ArtAround Marketplace. Tutti i diritti riservati.</p>
+                <p class="mt-2 text-sm">
+                    <a href="#" class="hover:text-white">Privacy Policy</a> • 
+                    <a href="#" class="hover:text-white">Terms of Service</a> • 
+                    <a href="#" class="hover:text-white">Cookie Policy</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+
+</body>
 </html>

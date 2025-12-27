@@ -1,17 +1,14 @@
 const usersRouter = require("express").Router(); 
- 
-usersRouter.get('/profile', (req, res) => {
-    // Logica per ottenere il profilo utente
-    res.send({msg: 'User profile route'});
-});
+const authorization = require("../middlewares/auth.middleware");
+const userController = require("../controllers/user.controller");
+
+
+usersRouter.get('/profile/:id', authorization, userController.getUserProfile);
+usersRouter.put('/profile/:id', authorization, userController.updateUserProfile);
 
 //TODO: in base a profilo utente (es. admin, visitor) aggiunta rotte per creazione visite
 
-usersRouter.put('/profile', (req, res) => {
-    // Logica per aggiornare il profilo utente
-    res.send({msg: 'Update user profile route'});
-});
-
+// DA SISTEMARE CON DB E CONTROLLER...
 usersRouter.get('/favorites', (req, res) => {
     // Logica per ottenere i preferiti dell'utente
     res.send({msg: 'User favorites route'});
