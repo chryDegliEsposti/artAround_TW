@@ -6,10 +6,10 @@
     <title>ArtAround</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.15.3/dist/cdn.min.js"></script>
 </head>
 
-<body class="bg-white min-h-screen">
+<body x-data="{openMenu: false}" class="bg-white min-h-screen">
     
     <!-- NAVBAR -->
     <nav class="sticky top-0 z-50 bg-gray-100 shadow-lg">
@@ -21,22 +21,19 @@
                     <div class="w-7 h-7 sm:w-8 sm:h-8 bg-purple-600 rounded-lg flex items-center justify-center">
                         <i class="text-white text-xs">AA</i>
                     </div>
-                    <span class="text-l sm:text-xl lg:text-2xl font-bold text-gray-800 hover:text-purple-600" >Marketplace</span>
+                    <span class="text-l sm:text-xl lg:text-2xl font-bold text-gray-800">Marketplace</span>
                 </div>
 
                 <!-- Menu Desktop -->
                 <div class="hidden md:flex items-center space-x-6">
-                    <a href="#" class="text-gray-600 hover:text-purple-600">Home</a>
-                    <a href="#" class="text-gray-600 hover:text-purple-600">Arte</a>
-                    <a href="#" class="text-gray-600 hover:text-purple-600">Collezioni</a>
-                    <a href="#" class="text-gray-600 hover:text-purple-600">Chi Siamo</a>
+                    <a href="#home" class="text-gray-600 hover:text-purple-600">Home</a>
+                    <a href="#features" class="text-gray-600 hover:text-purple-600">Utenti</a>
+                    <a href="#preview" class="text-gray-600 hover:text-purple-600">Collezioni</a>
+                    <a href="#aboutus" class="text-gray-600 hover:text-purple-600">Chi Siamo</a>
                 </div>
 
                 <!-- Bottoni -->
-                <div class="hidden md:flex items-center space-x-4">
-                    <button class="px-4 py-2 text-gray-700 hover:text-purple-600">
-                        <i class="fas fa-search"></i>
-                    </button>
+                <div class="hidden md:flex items-center space-x-2">
                     <button class="px-4 py-2 text-gray-700 hover:text-purple-600">
                         Accedi
                     </button>
@@ -46,7 +43,7 @@
                 </div>
 
                 <!-- Menu Mobile Button -->
-                <button id="menuBtn" class="md:hidden text-gray-700 hover:text-purple-600">
+                <button @click="openMenu = !openMenu" @click.away="openMenu=false" class="md:hidden text-gray-700 hover:text-purple-600">
                     <i class="text-2xl fas fa-bars"></i>
                 </button>
 
@@ -54,18 +51,14 @@
         </div>
 
         <!-- Menu Mobile (hidden by default) -->
-        <div id="mobileMenu" class="md:hidden bg-white border-t hidden">
+        <div x-show="openMenu" @click="openMenu=false" x-transition class="bg-white border-t">
             <div class="px-4 py-3 space-y-3">
-                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Home</a>
-                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Arte</a>
-                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Artisti</a>
-                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Collezioni</a>
-                <a href="#" class="block py-2 text-gray-700 hover:text-purple-600">Chi Siamo</a>
+                <a href="#home" class="block py-2 text-gray-700 hover:text-purple-600">Home</a>
+                <a href="#features" class="block py-2 text-gray-700 hover:text-purple-600">Utenti</a>
+                <a href="#preview" class="block py-2 text-gray-700 hover:text-purple-600">Collezioni</a>
+                <a href="#aboutus" class="block py-2 text-gray-700 hover:text-purple-600">Chi Siamo</a>
                 
                 <div class="pt-4 space-y-3 border-t">
-                    <button class="w-full py-2 text-left text-gray-700">
-                        <i class="fas fa-search mr-2"></i> Cerca
-                    </button>
                     <button class="w-full py-2 text-left text-gray-700">
                         Accedi
                     </button>
@@ -78,7 +71,7 @@
     </nav>
 
     <!-- Hero Section -->
-    <section class="bg-cover bg-center text-amber-50" 
+    <section id="home" class="bg-cover bg-center text-amber-50" 
     style="background-image: url('https://images.pexels.com/photos/20967/pexels-photo.jpg');">
 
         <div class="max-w-4xl mx-auto px-4 py-20 text-center">
@@ -103,7 +96,7 @@
 
 
     <!-- Features -->
-    <section id="about" class="py-10 bg-white">
+    <section id="features" class="py-10 bg-white">
         <div class="max-w-6xl mx-auto px-4">
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 mt-8">
                 <i>Marketplace</i> per visitatori
@@ -135,7 +128,7 @@
                     <p class="text-gray-600">
                         Carica la visita sul tuo Navigator, ed esplora la storia!
                     </p>
-                </div>
+                </div>  
             </div>
 
             <h2 class="text-3xl font-bold text-center text-gray-800 mb-8 mt-20">
@@ -173,8 +166,66 @@
         </div>
     </section>
     
+    <!-- Art Preview -->
+    <section id="preview" class="py-16 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-3xl font-bold text-center text-gray-800 mb-8">
+                Visite in Primo Piano
+            </h2>
+            
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Art Card 1 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&h=400&q=80" 
+                         alt="Pittura" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">"Sera a Venezia"</h3>
+                        <p class="text-gray-600 text-sm">Pittura a olio • Marta Rossi</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="font-bold text-purple-600">€ 850</span>
+                            <button class="text-gray-400 hover:text-yellow-500">
+                                <i class="far fa-star"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Art Card 2 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&h=400&q=80" 
+                         alt="Pittura" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">"Sera a Venezia"</h3>
+                        <p class="text-gray-600 text-sm">Pittura a olio • Marta Rossi</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="font-bold text-purple-600">€ 850</span>
+                            <button class="text-gray-400 hover:text-yellow-500">
+                                <i class="far fa-star"></i>
+                            </button>
+                        </div>  
+                    </div>  
+                </div>  
+
+                <!-- Art Card 3 -->
+                <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?auto=format&fit=crop&w=600&h=400&q=80" 
+                         alt="Pittura" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg">"Sera a Venezia"</h3>
+                        <p class="text-gray-600 text-sm">Pittura a olio • Marta Rossi</p>
+                        <div class="flex justify-between items-center mt-4">
+                            <span class="font-bold text-purple-600">€ 850</span>
+                            <button class="text-gray-400 hover:text-yellow-500">
+                                <i class="far fa-star"></i>
+                            </button>
+                        </div>   
+                    </div>   
+                </div>   
+      </div>
+    </section>            
+    
     <!-- Chi Siamo -->
-    <section class="bg-gray-50 py-16">
+    <section id="aboutus" class="bg-gray-50 py-16">
         <div class="max-w-6xl mx-auto px-4">
             <div class="text-center mb-12">
                 <h2 class="text-3xl font-bold text-gray-800 mb-4">Chi Siamo</h2>
