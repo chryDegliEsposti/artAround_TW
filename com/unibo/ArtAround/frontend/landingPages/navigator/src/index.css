@@ -1,0 +1,120 @@
+:root {
+    --color-primary: #677db7;
+    --color-background: #0d1317;
+    --color-text: #f4fff8;
+}
+
+body {
+    background-color: var(--color-background);
+    color: var(--color-text);
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    /* Prevent scrolling for app-like feel */
+}
+
+.map-container {
+    width: 100vw;
+    height: 100vh;
+    background-color: #2a2a2a;
+    /* Placeholder for map */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.fab-camera {
+    position: fixed;
+    top: 20px;
+    /* Moved to top */
+    right: 80px;
+    /* Placed to the left of the menu button */
+    width: 50px;
+    /* Slightly smaller to match menu button scale if needed, or keep 60 */
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--color-primary);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border: none;
+    z-index: 1000;
+    transition: transform 0.2s;
+}
+
+.fab-camera:active {
+    transform: scale(0.95);
+}
+
+.menu-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    /* Moved to right */
+    z-index: 1000;
+    font-size: 1.5rem;
+    color: var(--color-text);
+    background: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+
+}
+
+/* Details Card Styles */
+.details-card {
+    position: absolute;
+    z-index: 1000;
+    color: white;
+    background-color: var(--color-background);
+    /* Or bg-dark/transparent */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+}
+
+/* Mobile: Bottom Sheet / Details Panel */
+@media (max-width: 768px) {
+    .details-card {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border-radius: 15px 15px 0 0;
+        /* Rounded top corners */
+        padding-bottom: 20px;
+        /* Safe area */
+    }
+
+    .details-card-body {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Desktop: Floating Card */
+@media (min-width: 769px) {
+    .details-card {
+        bottom: 30px;
+        right: 30px;
+        width: 400px;
+        /* Wider/Longer */
+        border-radius: 15px;
+    }
+
+    .details-card-body {
+        display: flex;
+        flex-direction: row;
+        /* Horizontal layout */
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+    }
+}
+
+.start-nav-btn {
+    white-space: nowrap;
+}
