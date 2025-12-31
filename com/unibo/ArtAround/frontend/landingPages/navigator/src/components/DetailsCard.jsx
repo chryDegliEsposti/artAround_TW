@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, Button } from 'react-bootstrap';
 import { FaClock, FaRoute, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
