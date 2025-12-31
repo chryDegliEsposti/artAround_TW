@@ -148,6 +148,22 @@ router.post('/', async (req, res) => {
     }
 });
 
+
+// GET /api/museums/:id - Ottieni un museo specifico per ID
+router.get('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const museum = await museums.findById(id);
+
+        if (!museum) {
+            return res.status(404).json({ message: 'Museum not found' });
+        }
+        res.json(museum);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // PUT /api/museums/:id - Aggiorna un museo esistente
 router.put('/:id', async (req, res) => {
     try {

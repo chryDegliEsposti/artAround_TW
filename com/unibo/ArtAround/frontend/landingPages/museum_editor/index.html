@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtAround - Editor Mappa Museo</title>
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Leaflet Geoman CSS (for drawing) -->
+    <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.css" />
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="editor-container">
+        <!-- Sidebar / Toolbar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Editor Museo</h2>
+                <a href="../marcketplace/pages/home/home_museum_owner.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Torna alla Home
+                </a>
+            </div>
+
+            <!-- Layer Control (Floors) -->
+            <div class="panel layer-panel">
+                <h3><i class="fas fa-layer-group"></i> Piani / Livelli</h3>
+                <div class="layer-list" id="layer-list">
+                    <!-- Layers will be populated here -->
+                    <div class="layer-item active" data-id="0">Piano Terra <i class="fas fa-check"></i></div>
+                </div>
+                <button class="btn-secondary btn-sm" id="add-layer-btn"><i class="fas fa-plus"></i> Aggiungi
+                    Piano</button>
+            </div>
+
+            <!-- Tools -->
+            <div class="panel tools-panel">
+                <h3><i class="fas fa-tools"></i> Strumenti</h3>
+                <div class="tools-grid">
+                    <button class="tool-btn" id="tool-wall" title="Disegna Muro (Linea)"><i
+                            class="fas fa-vector-square"></i> Muri</button>
+                    <button class="tool-btn" id="tool-room" title="Disegna Stanza (Area)"><i
+                            class="fas fa-draw-polygon"></i> Stanza</button>
+                    <button class="tool-btn" id="tool-door-entry" title="Porta Entrata (Verde)"><i
+                            class="fas fa-door-open" style="color: #4caf50;"></i> Entrata</button>
+                    <button class="tool-btn" id="tool-door-exit" title="Porta Uscita (Rossa)"><i
+                            class="fas fa-door-open" style="color: #f44336;"></i> Uscita</button>
+                    <button class="tool-btn" id="tool-door-both" title="Bidirezionale (Arancione)"><i
+                            class="fas fa-exchange-alt" style="color: #ff9800;"></i> Entr/Usc</button>
+                    <button class="tool-btn" id="tool-item" title="Marker Oggetto"><i class="fas fa-cube"></i>
+                        Oggetto</button>
+                    <button class="tool-btn" id="tool-poi" title="Marker Servizi (Bar, WC)"><i
+                            class="fas fa-map-marker-alt"></i> POI</button>
+                </div>
+            </div>
+
+            <!-- Properties Panel (Hidden by default) -->
+            <div class="panel properties-panel" id="properties-panel"
+                style="display: none; border-left: 3px solid var(--color-secondary);">
+                <h3><i class="fas fa-pen"></i> Dettagli Elemento</h3>
+                <div class="form-group">
+                    <label for="prop-title" style="display:block; margin-bottom:5px; font-size:0.9rem;">Titolo /
+                        Nome</label>
+                    <input type="text" id="prop-title" class="form-control" placeholder="Es. Mona Lisa"
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: white; margin-bottom: 10px;">
+                </div>
+                <div class="form-group" id="prop-type-group">
+                    <!-- Dynamic fields based on type could go here -->
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <button class="btn-primary btn-sm" id="save-prop-btn">Salva</button>
+                    <button class="btn-secondary btn-sm" id="cancel-prop-btn"
+                        style="border-color: #f44336; color: #f44336;">Cancella</button>
+                </div>
+            </div>
+
+            <!-- Context Info / Save -->
+            <div class="panel info-panel">
+                <p id="status-text">Seleziona uno strumento o clicca sulla mappa.</p>
+                <button class="btn-primary" id="save-map-btn"><i class="fas fa-save"></i> Salva Mappa</button>
+            </div>
+        </aside>
+
+        <!-- Map Area -->
+        <main class="map-wrapper">
+            <div id="editor-map"></div>
+        </main>
+    </div>
+
+    <!-- Leaflet & Geoman JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2.17.0/dist/leaflet-geoman.min.js"></script>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
