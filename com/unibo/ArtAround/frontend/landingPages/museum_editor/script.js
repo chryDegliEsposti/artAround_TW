@@ -53,8 +53,8 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchMuseumData(museumId, map);
 
     // 6. Setup UI and Events
-    setupTools(map);
-    setupDrawingEvents(map);
+    setupTools(map, museumId);
+    setupDrawingEvents(map, museumId);
     setupLayerControls();
 });
 
@@ -95,12 +95,12 @@ function switchLayer(id) {
     }
 
     renderLayerList();
-    updateStatus(`Passato a: ${layers[id].name} `);
+    updateStatus(`Passato a: ${layers[id].name}`);
 }
 
 function addLayer() {
     const nextId = Object.keys(layers).length;
-    const name = `Piano ${nextId} `; // 1, 2, 3... or "Piano 1"
+    const name = `Piano ${nextId}`; // 1, 2, 3... or "Piano 1"
 
     initLayer(nextId, name);
     switchLayer(nextId); // Auto-switch to new layer
@@ -114,8 +114,8 @@ function renderLayerList() {
         const layerData = layers[id];
 
         const div = document.createElement('div');
-        div.className = `layer - item ${id === currentLayerId ? 'active' : ''} `;
-        div.innerHTML = `${layerData.name} ${id === currentLayerId ? '<i class="fas fa-check"></i>' : ''} `;
+        div.className = `layer-item ${id === currentLayerId ? 'active' : ''}`;
+        div.innerHTML = `${layerData.name} ${id === currentLayerId ? '<i class="fas fa-check"></i>' : ''}`;
 
         div.addEventListener('click', () => switchLayer(id));
         layerListContainer.appendChild(div);
@@ -151,7 +151,7 @@ async function fetchMuseumData(id, map) {
     }
 }
 
-function setupTools(map) {
+function setupTools(map, museumId) {
     const setTool = (type, mode, options = {}) => {
         currentDrawType = type;
         map.pm.enableDraw(mode, options);
@@ -168,15 +168,41 @@ function setupTools(map) {
     document.getElementById('tool-item').addEventListener('click', () => setTool('item', 'Marker'));
     document.getElementById('tool-poi').addEventListener('click', () => setTool('poi', 'Marker'));
 
-    // Save Map
-    document.getElementById('save-map-btn').addEventListener('click', () => {
-        const data = collectMapData();
-        console.log("MAP JSON DATA:", JSON.stringify(data, null, 2));
-        alert("Dati mappa generati in console (F12)");
+    // Main Save Map Button
+    document.getElementById('save-map-btn').addEventListener('click', async () => {
+        const fullData = collectMapData();
+
+        // Split data into structural Map Data (walls, rooms, doors, POIs) and Items (artworks)
+        const mapData = fullData.filter(el => el.type !== 'item');
+        const items = fullData.filter(el => el.type === 'item');
+
+        try {
+            const response = await fetch(`http://localhost:5000/api/museums/${museumId}/map`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mapData, items })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                console.log("Map saved:", result);
+                alert("Mappa salvata con successo! Verrai reindirizzato alla creazione degli oggetti.");
+
+                // Redirect to create_items page
+                // Path depends on where this file is relative. 
+                // museum_editor/index.html -> ../marcketplace/pages/create_items/index.html
+                window.location.href = `../marcketplace/pages/create_items/index.html?museumId=${museumId}`;
+            } else {
+                throw new Error("Errore nel salvataggio della mappa");
+            }
+        } catch (error) {
+            console.error(error);
+            alert("Errore durante il salvataggio: " + error.message);
+        }
     });
 }
 
-function setupDrawingEvents(map) {
+function setupDrawingEvents(map, museumId) {
     map.on('pm:create', (e) => {
         const layer = e.layer;
         const type = currentDrawType || 'custom';
@@ -245,6 +271,21 @@ function collectMapData() {
         group.eachLayer(layer => {
             if (layer instanceof L.Polygon && layer.elementData?.type === 'room') {
                 rooms.push(layer);
+                // Also export the room polygon itself
+                exportData.push({
+                    type: 'room',
+                    name: layer.elementData.title || `Stanza (${layerId})`,
+                    layer: parseInt(layerId),
+                    coordinates: layer.getLatLngs()[0].map(p => [p.lat, p.lng]) // Leaflet polygon format
+                });
+            }
+            if (layer instanceof L.Polyline && layer.elementData?.type === 'wall' && !(layer instanceof L.Polygon)) {
+                // Export wall lines
+                exportData.push({
+                    type: 'wall',
+                    layer: parseInt(layerId),
+                    coordinates: layer.getLatLngs().map(p => [p.lat, p.lng])
+                });
             }
             if (layer instanceof L.Marker && layer.elementData) {
                 items.push(layer);
@@ -294,7 +335,7 @@ function isPointInPolygon(latLng, polygon) {
         if (Array.isArray(latLngs[0])) { // Nested [[lat,lng]] or [[LatLng]]
             // Taking outer ring
             const ring = latLngs[0];
-            // ring could be array of objects or array of numbers (if GeoJSON)
+            // ring could be array of objects or array of simple numbers (if GeoJSON)
             // Leaflet usually objects
             vs = ring.map(p => [p.lat, p.lng]);
         } else { // Flat [LatLng]

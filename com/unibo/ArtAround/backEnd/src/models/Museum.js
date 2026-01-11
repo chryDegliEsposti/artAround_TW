@@ -12,7 +12,8 @@ const MuseumSchema = new mongoose.Schema({
     location: {
         type: { type: String, enum: ['Point'], default: 'Point' },
         coordinates: { type: [Number] }
-    }
+    },
+    mapData: { type: Array, default: [] } // Stores walls, rooms, doors, POIs
 }, { timestamps: true });
 
 MuseumSchema.index({ location: '2dsphere' });

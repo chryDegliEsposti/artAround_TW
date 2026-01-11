@@ -164,6 +164,67 @@ router.get('/:id', async (req, res) => {
     }
 });
 
+// PUT /api/museums/:id/map - Salva dati mappa (Muri/Stanze) e Oggetti
+router.put('/:id/map', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { mapData, items } = req.body;
+
+        const museum = await museums.findById(id);
+        if (!museum) return res.status(404).json({ message: 'Museum not found' });
+
+        // 1. Update Museum with structural map data (walls, rooms, doors)
+        if (mapData) {
+            museum.mapData = mapData;
+            await museum.save();
+        }
+
+        // 2. Process Items (Artworks)
+        // These are creating new Items or updating existing ones? 
+        // For simplicity, we create new ones or update if we had an ID (but editor creates new usually).
+        // Strategy: We can delete old items for this museum that were "drafts" or just add new ones.
+        // User said: "mandare i dati al db... differenziando... dagli item... riporta alla pagina... per compilare descrizioni"
+        // So we create barebone items here.
+
+        const savedItems = [];
+        if (items && Array.isArray(items)) {
+            const Item = require('../models/Item');
+
+            // Optional: clear previous items? Or just append?
+            // Usually editors "overwrite" the state. 
+            // Warning: this might delete items with full descriptions if we are not careful.
+            // But for now, let's assume this is the "initial creation" or "layout update".
+            // Let's just create/upsert based on something? No unique ID from editor yet.
+            // Let's create new items.
+
+            // First, remove items associated with this museum that don't have descriptions yet (drafts)?
+            // Or just keep adding. Let's add.
+
+            for (const itemData of items) {
+                const newItem = new Item({
+                    title: itemData.name || "Nuova Opera",
+                    location: {
+                        type: 'Point',
+                        coordinates: [itemData.coordinates.lon, itemData.coordinates.lat]
+                    },
+                    floor: itemData.layer,
+                    locationCode: itemData.room || "Museo", // Storing room name here for now
+                    museums: [museum._id],
+                    // Description placeholders will be filled in next step
+                });
+                await newItem.save();
+                savedItems.push(newItem);
+            }
+        }
+
+        res.json({ message: 'Map saved successfully', museum, itemsCount: savedItems.length });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: err.message });
+    }
+});
+
 // PUT /api/museums/:id - Aggiorna un museo esistente
 router.put('/:id', async (req, res) => {
     try {
@@ -184,6 +245,7 @@ router.put('/:id', async (req, res) => {
         }
 
         if (items && Array.isArray(items) && items.length > 0) {
+            const Item = require('../models/Item');
             const Author = require('../models/Author');
 
             const itemPromises = items.map(async (itemData) => {

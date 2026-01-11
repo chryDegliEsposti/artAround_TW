@@ -105,6 +105,7 @@ router.post('/generate_item_descriptions', async (req, res) => {
             },
             body: JSON.stringify({
                 "model": "google/gemini-2.0-flash-exp:free",
+                "max_tokens": 4096,
                 "messages": [
                     { "role": "user", "content": prompt }
                 ]
@@ -114,6 +115,7 @@ router.post('/generate_item_descriptions', async (req, res) => {
         const data = await response.json();
 
         if (!response.ok) {
+            console.error("OpenRouter Error Data:", JSON.stringify(data, null, 2));
             throw new Error(data.error?.message || "OpenRouter API Error");
         }
 
@@ -124,8 +126,13 @@ router.post('/generate_item_descriptions', async (req, res) => {
         res.json(descriptions);
 
     } catch (err) {
-        console.error("AI Generation Error:", err);
-        res.status(500).json({ message: "Failed to generate item descriptions", error: err.message });
+        console.error("AI Generation Error Full Trace:", err);
+        if (err.response) {
+            console.error("Response Status:", err.response.status);
+            const text = await err.response.text();
+            console.error("Response Body:", text);
+        }
+        res.status(500).json({ message: "Failed to generate item descriptions", error: err.message, stack: err.stack });
     }
 });
 
