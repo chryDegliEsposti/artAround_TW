@@ -5,27 +5,35 @@ const jwt = require('jsonwebtoken');
 
 const signup = async (req, res, next) => {
     // Logica di registrazione
-    console.log(req)
+    console.log(`INCOMING SIGNUP REQUEST}`);
     const session = await mongoose.startSession();
     session.startTransaction(); //per assicurare operazioni atomiche su state db 
     try {
         const {email, username, password, role} = req.body;
-
-        const alreadyExists = await User.findOne({email});
+        
+        //check uniqueness
+        let alreadyExists = await User.findOne({email});
         if(alreadyExists){
-            const error = new Error('User with this email already exists!');
+            const error = new Error('User with this EMAIL already exists!');
+            error.status = 409;
+            throw error;
+        }
+        alreadyExists = await User.findOne({username});
+        if(alreadyExists){
+            const error = new Error('User with this USERNAME already exists!');
             error.status = 409;
             throw error;
         }
 
+        //create the new user
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newUsers = await User.create([ //note: .create returns arr of created models
             {
-                email,
-                username,
+                email: email,
+                username: username,
                 password: hashedPassword,
-                role: role || 'visitor'
+                role: role
             }
         ], { session }); //bind session to new user creation
 
@@ -41,12 +49,24 @@ const signup = async (req, res, next) => {
         await session.commitTransaction(); //se tutto ok, conferma le operazioni
         session.endSession();
 
+        //"hybrid approach" for jwt management
+        res.cookie('jwt', userToken, {
+            httpOnly: true,      //cookie sicuro(no js access)
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
         res.status(201).json({
             success: true,
-            message: 'User registered successfully',
+            message: 'Registration was successful!',
             data: {
                 token: userToken,
-                user: newUsers[0]
+                user: {
+                    id: newUsers[0]._id,
+                    username: newUsers[0].username,
+                    role: newUsers[0].role
+                }
             }
         });
 
@@ -59,6 +79,7 @@ const signup = async (req, res, next) => {
 
 const login = async (req, res, next) => {
     // Logica di login
+    console.log(`INCOMING LOGIN REQUEST`, req.cookies);
     try {
         const { email, password } = req.body;
 
@@ -76,18 +97,29 @@ const login = async (req, res, next) => {
             throw error;
         }
 
-        const userToken = jwt.sign( //...?? vecchio token signup che senso aveva?
+        const userToken = jwt.sign( 
             {userId: user._id},
             process.env.JWT_SECRET,
             {expiresIn: process.env.JWT_EXPIRES_IN}
         );
+
+        res.cookie('jwt', userToken, {
+            httpOnly: true,      //cookie sicuro(no js access)
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000
+        });
 
         res.status(200).json({
             success: true,
             message: 'Login successful',
             data: {
                 token: userToken,
-                user: user
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    role: user.role
+                }
             }
         });
 

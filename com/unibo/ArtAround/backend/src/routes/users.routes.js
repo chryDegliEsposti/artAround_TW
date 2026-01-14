@@ -7,6 +7,9 @@ usersRouter.get('/profile/:id', authorization, userController.getUserProfile);
 usersRouter.put('/profile/:id', authorization, userController.updateUserProfile);
 
 //TODO: in base a profilo utente (es. admin, visitor) aggiunta rotte per creazione visite
+    /* questa maybe da usare da dashboard utente, vari endpoints 
+    OPPURE REPLACED SOMEHOW da homepage routes? DA PENSARE... */
+  
 
 // DA SISTEMARE CON DB E CONTROLLER...
 usersRouter.get('/favorites', (req, res) => {

@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, lowercase: true },
-    password: { type: String, required: true }, // TODO:Ricorda di hashare la password!
     username: { type: String, required: true },
+    password: { type: String, required: true }, // TODO:Ricorda di hashare la password!
 
     payment_card_number: { type: String },
     payment_card_cvv: { type: String },
@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
     
     role: {
         type: String,
-        enum: ['visitor', 'content_creator', 'teacher', 'admin'],
+        enum: ['admin', 'teacher', 'visitor'],
         default: 'visitor'
     },
     
