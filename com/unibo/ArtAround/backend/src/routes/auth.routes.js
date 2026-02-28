@@ -5,6 +5,6 @@ authRouter.post('/signup', authController.signup); //each route is managed by a 
 
 authRouter.post('/login', authController.login);
 
-
+authRouter.get('/logout', authController.logout);
 
 module.exports = authRouter;
