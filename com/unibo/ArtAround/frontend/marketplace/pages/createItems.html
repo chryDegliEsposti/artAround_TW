@@ -141,7 +141,7 @@
                         const userData = JSON.parse(localStorage.getItem('userData'));
                         if (userData && userData.museumId) {
                             this.formData.creatorId = userData.id;
-                            this.formData.museum = userData.museumId; //TODO: aggiungi campo museo alla registrazione/login e salvalo nel token, così da poterlo recuperare qui senza dover fare una chiamata extra al server.
+                            this.formData.museum = "Museo0" //userData.museumId; //TODO: aggiungi campo museo alla registrazione/login e salvalo nel token, così da poterlo recuperare qui senza dover fare una chiamata extra al server.
                         }
                         console.log("Modulo inizializzato per il museo:", this.formData.museum);
                     },
@@ -156,6 +156,8 @@
                         this.isSearching = true;
                         try {
                             // 1. Cerca nel tuo Database Locale
+                            /* TODO: connessione server endpoint per ricerca autori (es: /api/v1/marketplace/search-authors?q=caravaggio)
+
                             const localResponse = await fetch(`/api/v1/marketplace/search-authors?q=${this.searchQuery}`);
                             const localData = await localResponse.json();
                             let combinedResults = (localData.authors || []).map(a => ({
@@ -163,14 +165,16 @@
                                 name: a.name,
                                 description: 'Contenuto già presente nel sistema',
                                 source: 'ArtAround'
-                            }));
-
+                            }));*/
+                            
+                            let combinedResults = []
                             // 2. Se pochi risultati locali, cerca su Wikidata
                             if (combinedResults.length < 3) {
                                 const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
                                 const wikiResponse = await fetch(wikiUrl);
                                 const wikiData = await wikiResponse.json();
-                                
+                                console.log("Risultati Wikidata:", wikiData);
+
                                 const wikiResults = (wikiData.search || []).map(i => ({
                                     id: i.id,
                                     name: i.label,
@@ -225,6 +229,7 @@
                             } else {
                                 alert('Errore: ' + (data.message || 'Impossibile salvare l\'item'));
                             }
+
                         } catch (err) {
                             console.error("Errore nell'invio della form:", err);
                             alert("Errore di connessione al server.");
