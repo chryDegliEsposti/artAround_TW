@@ -1,20 +1,19 @@
 const marketplaceRouter = require('express').Router();
-const markteplaceController = require("../controllers/marketplace.controller");
+const marketplaceController = require("../controllers/marketplace.controller");
 const authorization = require("../middlewares/auth.middleware");
 
 
-//public routes (partono da base /marketplace)
-marketplaceRouter.get("/", markteplaceController.getIndex)  
-marketplaceRouter.get("/registration", markteplaceController.getSignup)  
-marketplaceRouter.get("/login", markteplaceController.getLogin)  
-//TODO: 
-    //da login e registration .html problema che porta a root, e non a api/v1/marketplace
+//public routes (at /marketplace)
+marketplaceRouter.get("/", marketplaceController.getIndex)  
+marketplaceRouter.get("/registration", marketplaceController.getSignup)  
+marketplaceRouter.get("/login", marketplaceController.getLogin)  
 
-marketplaceRouter.get("/registration", markteplaceController.getSignup)
-marketplaceRouter.get("/login", markteplaceController.getLogin)
+//marketplaceRouter.get("/registration", marketplaceController.getSignup)
+//marketplaceRouter.get("/login", marketplaceController.getLogin)
 
 //protected routes
-marketplaceRouter.get("/homepage", authorization, markteplaceController.getHomepage) //qua arrivo da login/signup
-
+marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage) //from login/signup
+marketplaceRouter.get("/homepage/createItems", authorization, marketplaceController.getCreateItems) //from homepage
+//marketplaceRouter.get("/homepage/create-visits", authorization, marketplaceController.getCreateVisits) //from homepage
 
 module.exports = marketplaceRouter;

@@ -1,50 +1,48 @@
 const mongoose = require('mongoose');
 
 const ItemSchema = new mongoose.Schema({
+    //INFORMATION about the item
     itemType: {
         type: String,
         enum: ['artwork', 'artist', 'style', 'movement', 'historical_event', 'other'],
         required: true,
         default: 'artwork'
     },
-
     artworkId: {
         type: String,
-        required: () => {this.itemType === 'artwork'},
-        index: true //per ottimizzazioni db
+        required: function() { return this.itemType === 'artwork'; },
+        index: true //db optimization for search by artworkId
         // Esempio: "Q126599960" (per il quadro di Bedoli)
     },
-
     title: { type: String, required: true },
-
+    description: { type: String, required: true },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
+    creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    style: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
     recognitionImage: {
         type: String, //url dell'immagine...
     },
 
+    //to FILTER by audience level
     length: {
         type: String,
         enum: ['3s', '15s', '1min', '4min'], 
         required: true
     },
-    
     languageLevel: {
         type: String,
         enum: ['infantile', 'elementare', 'medio', 'specialistico'],
         required: true
     },
 
-    description: { type: String, required: true },
-
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
-
-    syle: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
-
+    //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
     museum: { 
         type: mongoose.Schema.Types.ObjectId, 
         ref: 'Museum', 
         required : true 
     },
 
+    //For the artworks MARKETPLACE
     license: { 
         type: String, 
         enum: [
@@ -58,8 +56,14 @@ const ItemSchema = new mongoose.Schema({
             'Proprietary',   // Tutti i diritti riservati
             'Custom'         // Licenza personalizzata
         ],
-        required: () => {this.itemType === 'artwork'},
+        required: function() { return this.itemType === 'artwork'; },
     },
+    price: {
+        type: Number,
+        required: function() { return this.itemType === 'artwork'; },
+        min: 0
+    }
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Item', ItemSchema);

@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const UserSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true, lowercase: true },
     username: { type: String, required: true },
-    password: { type: String, required: true }, // TODO:Ricorda di hashare la password!
+    password: { type: String, required: true }, 
 
     payment_card_number: { type: String },
     payment_card_cvv: { type: String },
@@ -11,7 +11,7 @@ const UserSchema = new mongoose.Schema({
     
     role: {
         type: String,
-        enum: ['admin', 'teacher', 'visitor'],
+        enum: ['creator', 'teacher', 'visitor'],
         default: 'visitor'
     },
     

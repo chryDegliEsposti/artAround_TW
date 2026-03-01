@@ -15,10 +15,13 @@ const getIndex = servePage("index")
 const getSignup = servePage("registration")
 const getLogin = servePage("login")
 const getHomepage = servePage("homepage")
+const getCreateItems = servePage("createItems")
+//const getCreateVisits = servePage("create-visits") 
 
 module.exports = {
     getIndex,
     getSignup,
     getLogin,
     getHomepage,
+    getCreateItems,
 };
