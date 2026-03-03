@@ -211,7 +211,9 @@
                         }
 
                         try {
-                            const token = localStorage.getItem('token');
+                            const token = localStorage.getItem('apiToken');
+
+                            console.log("TEST: ", token)
                             const response = await fetch('/api/v1/marketplace/create/items', {
                                 method: 'POST',
                                 headers: {
@@ -226,7 +228,7 @@
                             if (response.ok) {
                                 alert('Ottimo! Item creato e aggiunto al marketplace.');
                                 window.location.href = '/marketplace/homepage/';
-                                
+
                             } else {
                                 alert('Errore: ' + (data.message || 'Impossibile salvare l\'item'));
                             }

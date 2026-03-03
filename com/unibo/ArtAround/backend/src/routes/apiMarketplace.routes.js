@@ -6,7 +6,7 @@ const authorization = require("../middlewares/auth.middleware");
 //apiMarketplaceRouter.use(authorization); 
 
 // --- ITEMS SECTION ---
-apiMarketplaceRouter.post("/items", apiMarketplaceController.createItems) //fetch createItems from frontend
+apiMarketplaceRouter.post("/items", authorization, apiMarketplaceController.createItems) //fetch createItems from frontend
 //apiMarketplaceRouter.get("/get-authors", authorization, apiMarketplaceController.searchAuthorForItem) //fetch from createItems(frontend)
 
 

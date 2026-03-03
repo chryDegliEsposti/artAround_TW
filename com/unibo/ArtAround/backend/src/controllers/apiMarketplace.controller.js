@@ -27,7 +27,7 @@ const createItems = async (req, res) => {
             museum,
             license: itemType === 'artwork' ? license : 'CC BY', // Default se non è artwork
             price: itemType === 'artwork' ? price : 0,           // Default se non è artwork
-            creator: "123" //req.user.id 
+            creator: req.userId // Popolato dal middleware 'authorization', rappresenta l'ID dell'utente che sta creando l'item 
         });
         
         // Risposta al frontend
