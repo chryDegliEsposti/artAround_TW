@@ -10,6 +10,7 @@ const authRouter = require("./routes/auth.routes");
 //const visitsRouter = require("./routes/visits.routes"); 
 //const homeRouter = require("./routes/home.routes");
 const marketplaceRouter = require("./routes/marketplace.routes");
+const apiMarketplaceRouter = require("./routes/apiMarketplace.routes");
 
 
 //DB connection
@@ -48,6 +49,8 @@ app.use("/marketplace", marketplaceRouter)
 
 // ======= API ======= funzioni centralizzate per Marketplace e Navigator con API
 app.use("/api/v1/auth", authRouter); //richieste fetch da registration/login
+app.use("/api/v1/marketplace/create", apiMarketplaceRouter) //richieste fetch da createItems/createVisits
+
 //TODO ROUTE: aggiunge as I go a macchia d'olio...
 //app.use("/api/v1/users", usersRouter); 
 //app.use("/api/v1/visits", visitsRouter); 

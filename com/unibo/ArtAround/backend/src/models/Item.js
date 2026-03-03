@@ -16,8 +16,8 @@ const ItemSchema = new mongoose.Schema({
     },
     title: { type: String, required: true },
     description: { type: String, required: true },
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
-    creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    author: {type: String}, /*{ type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },*/
+    creator: {type: String}, /*{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, String for now, to avoid auth issues in development*/ 
     style: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
     recognitionImage: {
         type: String, //url dell'immagine...
@@ -37,9 +37,9 @@ const ItemSchema = new mongoose.Schema({
 
     //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
     museum: { 
-        type: mongoose.Schema.Types.ObjectId, 
+        type: String, //mongoose.Schema.Types.ObjectId,
         ref: 'Museum', 
-        required : true 
+        //required : true 
     },
 
     //For the artworks MARKETPLACE

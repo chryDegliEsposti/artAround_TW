@@ -50,18 +50,19 @@
                             </div>
                         </div>
                         
-                        <!-- Author search(from DB or Wikidata) -->
+                        <!-- Search Item's OBJECT(from DB or Wikidata) -->
                         <div class="relative">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Cerca l'Autore (DB o Wikidata)</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Cerca autore, movimento, o stile (DB o Wikidata)</label>
                             <div class="flex gap-2">
                                 <input type="text" x-model="searchQuery" @input.debounce.500ms="search"
                                     class="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none"
                                     placeholder="Es: Caravaggio, Impressionismo...">
                             </div>
                             
+                            <!-- Dropdown menu for the results -->
                             <div x-show="results.length > 0" class="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-xl max-h-60 overflow-y-auto">
                                 <template x-for="res in results">
-                                    <div @click="selectSubject(res)" class="p-3 hover:bg-purple-50 cursor-pointer flex justify-between border-b last:border-0">
+                                    <div @click="selectSubject(res)" @click.away="results = []" class="p-3 hover:bg-purple-50 cursor-pointer flex justify-between border-b last:border-0">
                                         <div>
                                             <span class="font-bold text-gray-800" x-text="res.name"></span>
                                             <p class="text-xs text-gray-500" x-text="res.description || ''"></p>
@@ -91,7 +92,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
                             <select x-model="formData.languageLevel" class="w-full border rounded-lg p-3">
                                 <option value="infantile">Infantile / Bambini</option>
-                                <option value="semplice">Semplice / Turista</option>
+                                <option value="elementare">Semplice / Turista</option>
                                 <option value="medio">Intermedio</option>
                                 <option value="specialistico">Specialistico / Esperto</option>
                             </select>
@@ -117,7 +118,7 @@
         <script>
             function itemCreator() {
                 return {
-                    // author search state
+                    // Item's related info SEARCH STATE
                     searchQuery: '',
                     results: [],
                     isSearching: false,
@@ -125,13 +126,12 @@
                     // form data to be sent to the server
                     formData: {
                         itemType: 'artwork',
-                        authorId: '',      // ID da Wikidata o DB Locale
+                        subjectId: '',     // ID da Wikidata o DB Locale(dell'oggetto dell'Item es: autore, stile, movimento)
                         title: '',          
                         description: '',    
                         length: '15s',
                         languageLevel: 'semplice',
                         museum: '',         // ID del museo (TODO: puoi prenderlo dal profilo utente)
-                        creatorId: '',     // ID dell'utente creatore 
                         license: 'CC BY',
                         price: 0
                     },
@@ -140,7 +140,7 @@
                     init() {
                         const userData = JSON.parse(localStorage.getItem('userData'));
                         if (userData && userData.museumId) {
-                            this.formData.creatorId = userData.id;
+                            //this.formData.creatorId = userData.id;
                             this.formData.museum = "Museo0" //userData.museumId; //TODO: aggiungi campo museo alla registrazione/login e salvalo nel token, così da poterlo recuperare qui senza dover fare una chiamata extra al server.
                         }
                         console.log("Modulo inizializzato per il museo:", this.formData.museum);
@@ -193,7 +193,7 @@
                         }
                     },
 
-                    // Selezione del soggetto dalla lista
+                    // Selezione del soggetto dalla lista(onclick del risultato dal dropdown)
                     selectSubject(item) {
                         this.formData.subjectId = item.id;
                         this.formData.title = item.name;
@@ -212,7 +212,7 @@
 
                         try {
                             const token = localStorage.getItem('token');
-                            const response = await fetch('/api/v1/marketplace/items', {
+                            const response = await fetch('/api/v1/marketplace/create/items', {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -225,7 +225,8 @@
 
                             if (response.ok) {
                                 alert('Ottimo! Item creato e aggiunto al marketplace.');
-                                window.location.href = '/marketplace/homepage/dashboard.html';
+                                window.location.href = '/marketplace/homepage/';
+                                
                             } else {
                                 alert('Errore: ' + (data.message || 'Impossibile salvare l\'item'));
                             }
