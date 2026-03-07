@@ -35,8 +35,7 @@
                         try {
                             await fetch('/api/v1/auth/logout'); 
                             
-                            localStorage.removeItem('token');
-                            localStorage.removeItem('userData');
+                            localStorage.clear() //instead of single item removal 
                             
                             window.location.href = '/marketplace/homepage';
 

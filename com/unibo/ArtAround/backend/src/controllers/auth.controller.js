@@ -9,7 +9,7 @@ const signup = async (req, res, next) => {
     const session = await mongoose.startSession();
     session.startTransaction(); //per assicurare operazioni atomiche su state db 
     try {
-        const {email, username, password, role} = req.body;
+        const {email, username, password, role, museumId} = req.body;
         
         //check uniqueness
         let alreadyExists = await User.findOne({email});
@@ -28,13 +28,18 @@ const signup = async (req, res, next) => {
         //create the new user
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
-        const newUsers = await User.create([ //note: .create returns arr of created models
-            {
+        const newUserData = {
                 email: email,
                 username: username,
                 password: hashedPassword,
                 role: role
-            }
+        }
+        if(role === 'creator'){
+            newUserData.museumId = museumId;
+        }
+            
+        const newUsers = await User.create([ //note: .create returns arr of created models
+            newUserData
         ], { session }); //bind session to new user creation
 
         const userToken = jwt.sign({ 
