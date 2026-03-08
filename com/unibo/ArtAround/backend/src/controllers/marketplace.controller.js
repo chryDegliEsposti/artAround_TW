@@ -16,7 +16,7 @@ const getSignup = servePage("registration")
 const getLogin = servePage("login")
 const getHomepage = servePage("homepage")
 const getCreateItems = servePage("createItems")
-//const getCreateVisits = servePage("create-visits") 
+const getCreateVisits = servePage("createVisits") 
 
 
 module.exports = {
@@ -25,4 +25,5 @@ module.exports = {
     getLogin,
     getHomepage,
     getCreateItems,
+    getCreateVisits,
 };

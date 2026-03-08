@@ -14,8 +14,7 @@ marketplaceRouter.get("/login", marketplaceController.getLogin)
 //protected routes
 marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage) //from login/signup
 marketplaceRouter.get("/homepage/createItems", authorization, marketplaceController.getCreateItems) //from homepage
-
-//marketplaceRouter.get("/homepage/create-visits", authorization, marketplaceController.getCreateVisits) //from homepage
+marketplaceRouter.get("/homepage/createVisits", authorization, marketplaceController.getCreateVisits) //from homepage
 
 
 
