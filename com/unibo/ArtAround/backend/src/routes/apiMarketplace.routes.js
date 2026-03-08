@@ -12,7 +12,7 @@ apiMarketplaceRouter.post("/items", authorization, apiMarketplaceController.crea
 
 // --- VISITS SECTION---
 //apiMarketplaceRouter.post("/visit", authorization, apiMarketplaceController.createVisit)
-//router.get('/search-items', apiMarketplaceController.searchItemsForVisit); //to search items for visit creation 
+apiMarketplaceRouter.get('/searchItems', apiMarketplaceController.searchItemsForVisit); //to search items for visit creation 
 
 
 

@@ -62,16 +62,21 @@ const signup = async (req, res, next) => {
             maxAge: 24 * 60 * 60 * 1000
         });
 
+        const userData = {
+            id: newUsers[0]._id,
+            username: newUsers[0].username,
+            role: newUsers[0].role
+        }
+        if(newUsers[0].role === 'creator'){
+            userData.museumId = newUsers[0].museumId;
+        }
+
         res.status(201).json({
             success: true,
             message: 'Registration was successful!',
             data: {
                 token: userToken,
-                user: {
-                    id: newUsers[0]._id,
-                    username: newUsers[0].username,
-                    role: newUsers[0].role
-                }
+                user: userData
             }
         });
 
@@ -115,16 +120,21 @@ const login = async (req, res, next) => {
             maxAge: 24 * 60 * 60 * 1000
         });
 
+        const userData = {
+            id: user._id,
+            username: user.username,
+            role: user.role
+        }
+        if(user.role === 'creator'){
+            userData.museumId = user.museumId;
+        }
+        
         res.status(200).json({
             success: true,
             message: 'Login successful',
             data: {
                 token: userToken,
-                user: {
-                    id: user._id,
-                    username: user.username,
-                    role: user.role
-                }
+                user: userData
             }
         });
 

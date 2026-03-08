@@ -131,19 +131,18 @@
                         description: '',    
                         length: '15s',
                         languageLevel: 'semplice',
-                        museum: '',         // ID del museo (TODO: puoi prenderlo dal profilo utente)
+                        museum: '',         //from user profile 
                         license: 'CC BY',
                         price: 0
                     },
 
                     // Inizializzazione: recupera i dati dell'utente loggato
                     init() {
-                        const userData = JSON.parse(localStorage.getItem('userData'));
+                        const userData = JSON.parse(localStorage.getItem('user'));
                         if (userData && userData.museumId) {
-                            //this.formData.creatorId = userData.id;
-                            this.formData.museum = "Museo0" //userData.museumId; //TODO: aggiungi campo museo alla registrazione/login e salvalo nel token, così da poterlo recuperare qui senza dover fare una chiamata extra al server.
+                            this.formData.creatorId = userData.id;
+                            this.formData.museum = userData.museumId; 
                         }
-                        console.log("Modulo inizializzato per il museo:", this.formData.museum);
                     },
 
                     // Logica di ricerca (Locale + Fallback Wikidata)

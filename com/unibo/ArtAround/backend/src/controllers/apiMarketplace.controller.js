@@ -72,6 +72,27 @@ const createItems = async (req, res) => {
 };
 */
 
+const searchItemsForVisit = async (req, res) => {
+    try {
+        const museumId = req.query.museumId;
+        const items = await Item.find({ museum: museumId });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                items
+            }
+        });
+    } catch (err) {
+        console.error("Errore nella ricerca degli Items:", err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante la ricerca degli Items'
+        });
+    }
+}
+
 module.exports = {
     createItems,
+    searchItemsForVisit,
 }

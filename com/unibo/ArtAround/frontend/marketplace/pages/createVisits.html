@@ -262,17 +262,19 @@
                 // Loading states
                 loading: false,
                 
-                //--- INIT(for x-init) ---
-                /*async init() {
-                    // Recupera user data dal localStorage
-                    const userData = localStorage.getItem('userData');
+                //--- INIT(called by x-init) ---
+                async init() {
+                    const userData = localStorage.getItem('user');
+                 
                     if (userData) {
                         this.user = JSON.parse(userData);
                         this.museumId = this.user.museumId;
                         
+                        console.log('User:', this.museumId);
+
                         if (!this.museumId) {
                             alert('Errore: Museo non associato al profilo');
-                            window.location.href = '/marketplace/dashboard';
+                            //window.location.href = '/marketplace/dashboard';
                             return;
                         }
                         
@@ -284,12 +286,12 @@
                     } else {
                         window.location.href = '/marketplace/login';
                     }
-                },*/
+                },
                 
                 async loadItems() {
                     try {
                         const token = localStorage.getItem('token');
-                        const response = await fetch(`/api/v1/items?museumId=${this.museumId}`, {
+                        const response = await fetch(`/api/v1/marketplace/create/searchItems?museumId=${this.museumId}`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
                             }
