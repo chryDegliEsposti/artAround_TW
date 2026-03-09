@@ -1,4 +1,5 @@
 const Item = require('../models/Item');
+const Visit = require('../models/Visit');
 
 const createItems = async (req, res) => {
     try {
@@ -92,7 +93,45 @@ const searchItemsForVisit = async (req, res) => {
     }
 }
 
+const createVisit = async (req, res) => {
+    try {
+        // Extract frontend data (Alpine.js formData) to create
+        let price = 0;
+        const { title, description, museumId, items, createdBy } = req.body;
+        
+        // Creazione dell'oggetto Visit nel DB
+        const newVisit = await Visit.create({
+            museum: museumId,
+            title,
+            price, //TODO prendi da frontend o calcola in base agli item selezionati
+            description,
+            items, // Array di itemId selezionati per la visita
+            author: createdBy 
+        });
+        
+        console.log('Nuova visita creata con successo:', newVisit);
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Visita creata con successo',
+            data: {
+                visit: newVisit
+            }
+        });
+
+    } catch (err) {
+        console.error("Errore nel salvataggio della Visita:", err);
+        
+        // Gestione errori di validazione di Mongoose
+        res.status(400).json({
+            status: 'error',
+            message: err.message || 'Errore durante il salvataggio della visita'
+        });
+    }
+};
+
 module.exports = {
     createItems,
     searchItemsForVisit,
+    createVisit,
 }
