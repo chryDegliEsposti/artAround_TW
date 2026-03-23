@@ -1,0 +1,10 @@
+i wanna create a web app called navigator that is the "second part" of a bigger web app, the other part is called marketplace and is a site where a user can buy one or some museum's visits, and the museums owne have to upload their museums with the guided visits and item into the museums. but this is no longer your problem beacuse it alredy exists, this is important to you to know a bit of the db (mongoDB) alredy present. 
+the navigator web is designed for phone users but it also work on pc's view. 
+the opening page is a map of the current location of the user position's marked by an arrow (google maps style), and some marker indicating all the nearest musems in the area. 
+the user have a button on the top right which is a pop-up menu with the select: map, my visits, marketplace, about us.
+when the user press onto a museum's marker it redirect the user into google maps indications to that museum.
+from my visits area (only if logged) the user can see a list of all the past visits and the new ones, and some utilies button : bring me there, start visit, overview.
+when the user click on the "start visit" button get into the real navigator app: 
+is a 2d map of the planimetry of the museum, with all the items, doors, emerency exits, resturant zones, toilets, ecc in the map.
+the visit is a tour of the museum : there is an oredered list of all the item the user must visit, the navigator bring the user to the first item giving direction, when the user is near enugh to see the item it appears on the screen a description of the item. 
+to go to the next item the user have a down bar, like spotify : previus, start/play, next.

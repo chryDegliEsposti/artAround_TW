@@ -1,0 +1,209 @@
+.bottom-sheet-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--surface-color);
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transform: translateY(calc(100% - 137px)); /* Account for extended handle area */
+  height: 480px; /* Full expanded height */
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+}
+
+.bottom-sheet-container.expanded {
+  transform: translateY(0);
+}
+
+html[data-theme='dark'] .bottom-sheet-container {
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.pull-handle-area {
+  height: 44px; /* Expanded hit area! */
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding-bottom: 20px; /* offset the visual line up */
+}
+
+.pull-indicator {
+  width: 40px;
+  height: 5px;
+  background-color: #cbd5e1;
+  border-radius: 3px;
+}
+
+html[data-theme='dark'] .pull-indicator {
+  background-color: #475569;
+}
+
+.bottom-sheet-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.progress-bar-container {
+  width: 100%;
+  height: 3px;
+  background-color: var(--bg-color);
+  flex-shrink: 0;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--primary-color);
+  transition: width 0.3s ease;
+}
+
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 2rem;
+  height: 90px;
+  flex-shrink: 0;
+  background-color: var(--surface-color);
+  z-index: 20;
+}
+
+.side-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+/* User asked for the lower bar to never disappear. All buttons stay visible! */
+
+.center-anchor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.play-btn {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.description-layer {
+  flex: 1;
+  opacity: 0;
+  pointer-events: none;
+  padding: 0.5rem 1.5rem 1.5rem 1.5rem;
+  overflow-y: auto;
+  transition: opacity 0.3s ease;
+}
+
+.description-layer.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0.1s; /* fade in slightly after opening starts */
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.secondary-control {
+  padding: 0.5rem;
+  border-radius: 50%;
+}
+
+.secondary-control:not(:disabled):hover {
+  background-color: var(--bg-color);
+}
+
+.primary-control {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.primary-control:hover {
+  transform: scale(1.05);
+}
+
+.play-icon-offset {
+  margin-left: 4px;
+}
+
+/* Item Description Styling inside Sheet */
+.item-image-placeholder {
+  width: 100%;
+  height: 140px;
+  background-color: var(--bg-color);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.placeholder-icon {
+  color: #94a3b8;
+}
+
+.item-badge {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  margin-bottom: 0.5rem;
+}
+
+.item-content-body {
+  padding-bottom: 2rem;
+}
+
+.item-content-body h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+}
+
+.item-text {
+  color: var(--text-color);
+  opacity: 0.8;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+.item-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.action-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+}

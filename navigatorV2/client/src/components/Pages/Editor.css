@@ -1,0 +1,308 @@
+.editor-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-color, #f8fafc);
+  color: var(--text-color, #1e293b);
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.editor-sidebar {
+  width: 320px;
+  min-width: 320px;
+  background-color: var(--surface-color, #ffffff);
+  box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.sidebar-header h2 {
+  font-size: 1.5rem;
+  margin: 0.5rem 0 0.25rem 0;
+  color: var(--text-color, #0f172a);
+}
+
+.sidebar-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-top: 0;
+  line-height: 1.4;
+}
+
+.back-to-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0;
+  cursor: pointer;
+}
+
+.back-to-app:hover {
+  color: var(--primary-color, #3b82f6);
+}
+
+.tool-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+}
+
+.tool-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.25rem 0;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: var(--text-color, #334155);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.tool-btn:hover {
+  border-color: #93c5fd;
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+.tool-btn.active {
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.tool-btn.primary {
+  background-color: var(--primary-color, #3b82f6);
+  color: white;
+  border-color: var(--primary-color, #3b82f6);
+  margin-top: 0.5rem;
+}
+
+.tool-btn.primary:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.tool-btn.danger {
+  color: #ef4444;
+  border-color: #fecaca;
+  background-color: #fef2f2;
+}
+
+.tool-btn.danger:hover {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+}
+
+.finish-btn {
+  padding: 0.6rem;
+  background-color: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.finish-btn:hover {
+  background-color: #059669;
+}
+
+.finish-btn.highlight {
+  animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.editor-map-area {
+  flex: 1;
+  position: relative;
+}
+
+.editor-hud {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background-color: var(--surface-color, white);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 1000;
+  font-size: 0.9rem;
+  color: var(--text-color, #334155);
+}
+
+.custom-poi-icon-wrapper {
+  background: none;
+  border: none;
+}
+
+.poi-icon-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  border: 2px solid white;
+}
+
+.poi-icon-box.exhibit { background-color: #3b82f6; border-radius: 8px; font-size: 11px; }
+.poi-icon-box.restroom { background-color: #06b6d4; }
+.poi-icon-box.restaurant { background-color: #f59e0b; font-size: 9px; }
+.poi-icon-box.exit { background-color: #10b981; }
+.poi-icon-box.exit.emergency { background-color: #ef4444; }
+.poi-icon-box.default { background-color: #64748b; }
+
+.layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.layer-btn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  background: white;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-color, #334155);
+  transition: all 0.2s;
+}
+
+.layer-btn:hover {
+  background: #f1f5f9;
+}
+
+.layer-btn.active {
+  background: var(--primary-color, #3b82f6);
+  color: white;
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.add-layer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+}
+
+.sub-tool-panel {
+  margin: 0.25rem 0 0.5rem 0;
+  padding: 0.75rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed #cbd5e1;
+}
+
+.sub-tool-panel label {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.sub-tool-panel select {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.85rem;
+  background-color: white;
+  color: #334155;
+  outline: none;
+}
+
+.sub-tool-panel select:focus {
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.mobile-sidebar-toggle {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 2000;
+  background-color: var(--surface-color, white);
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  color: var(--text-color, #1e293b);
+}
+
+.mobile-sidebar-toggle:hover {
+  background-color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .editor-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    width: 280px;
+    min-width: 280px;
+    box-shadow: 4px 0 15px rgba(0,0,0,0.2);
+  }
+
+  .editor-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* When sidebar is closed on mobile, move the HUD so it doesn't overlap default map controls */
+  .editor-hud {
+    bottom: 1rem;
+    top: auto;
+    right: 50%;
+    transform: translateX(50%);
+  }
+}
