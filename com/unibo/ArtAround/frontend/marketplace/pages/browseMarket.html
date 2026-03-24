@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace - ArtAround</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    
+    <!-- NAVBAR -->
+    <nav class="sticky top-0 z-50 bg-gray-100 shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                
+                <!-- Logo che porta alla home -->
+                <a href="/marketplace" class="flex items-center space-x-2">
+                    <div class="w-7 h-7 sm:w-8 sm:h-8 bg-purple-600 rounded-lg flex items-center justify-center">
+                        <i class="text-white text-xs">AA</i>
+                    </div>
+                    <span class="text-l sm:text-xl lg:text-2xl font-bold text-gray-800 hover:text-purple-600">Marketplace</span>
+                </a>
+
+                <!-- Menu principale -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="/marketplace" class="text-purple-600 font-medium">
+                        <i class="fas fa-store mr-2"></i>Marketplace
+                    </a>
+                    <a href="/marketplace/my-purchases" class="text-gray-600 hover:text-purple-600">
+                        <i class="fas fa-shopping-bag mr-2"></i>Acquisti
+                    </a>
+                    <a href="/marketplace/homepage" class="text-gray-600 hover:text-purple-600">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                </div>
+
+                <!-- User menu -->
+                <div class="flex items-center space-x-4" x-data="{ user: null }" x-init="user = JSON.parse(localStorage.getItem('userData') || 'null')">
+                    <span class="text-sm text-gray-600" x-text="user?.username || 'Visitatore'"></span>
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center">
+                        <i class="text-white text-sm fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        <div class="max-w-7xl mx-auto px-4 py-8" x-data="marketplaceApp()" x-init="init()">
+            
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Marketplace Browser</h1>
+                <p class="text-gray-600">Scopri e acquista visite museali e contenuti esclusivi creati dalla community</p>
+            </div>
+
+            <!-- TABS SCELTA RICERCA: Items / Visite -->
+            <div class="mb-6 border-b border-gray-200">
+                <div class="flex space-x-8">
+                    <button 
+                        @click="activeTab = 'visits'" 
+                        :class="activeTab === 'visits' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-1 font-medium border-b-2 transition-colors">
+                        <i class="fas fa-route mr-2"></i>Visite
+                        <span class="ml-2 text-sm" x-text="`(${visits.length})`"></span>
+                    </button>
+                    <button 
+                        @click="activeTab = 'items'" 
+                        :class="activeTab === 'items' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-1 font-medium border-b-2 transition-colors">
+                        <i class="fas fa-palette mr-2"></i>Item
+                        <span class="ml-2 text-sm" x-text="`(${items.length})`"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- FILTRI E RICERCA -->
+            <div class="bg-white rounded-xl shadow-md p-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Search -->
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        <input 
+                            type="text" 
+                            x-model="searchTerm"
+                            placeholder="Cerca per titolo, descrizione..."
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        >
+                    </div>
+                    
+                    <!-- Filtro prezzo (solo per visite) -->
+                    <div x-show="activeTab === 'visits'">
+                        <select x-model="priceFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="all">Tutti i prezzi</option>
+                            <option value="free">Gratuiti</option>
+                            <option value="paid">A pagamento</option>
+                            <option value="under5">Sotto €5</option>
+                            <option value="under10">Sotto €10</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Filtro durata (per items) -->
+                    <div x-show="activeTab === 'items'">
+                        <select x-model="durationFilter" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="all">Tutte le durate</option>
+                            <option value="short">Brevi (≤15s)</option>
+                            <option value="medium">Medie (≤40s)</option>
+                            <option value="long">Lunghe (>40s)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Ordinamento -->
+                    <div>
+                        <select x-model="sortBy" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="recent">Più recenti</option>
+                            <option value="price_asc">Prezzo crescente</option>
+                            <option value="price_desc">Prezzo decrescente</option>
+                            <option value="popular">Più popolari</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRIglia Prodotti -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                
+                <!-- VISITE CARD -->
+                <template x-for="visit in filteredVisits" :key="visit._id">
+                    <div x-show="activeTab==='visits'" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group">
+                        <!-- Immagine copertina -->
+                        <div class="h-40 bg-gradient-to-r from-purple-500 to-pink-500 relative">
+                            <div class="absolute top-3 right-3">
+                                <span x-show="visit.isFree" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                    <i class="fas fa-gift mr-1"></i>Gratis
+                                </span>
+                                <span x-show="!visit.isFree && visit.price" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                    €<span x-text="visit.price"></span>
+                                </span>
+                            </div>
+                            <div class="absolute bottom-3 left-3">
+                                <span class="bg-gray-900 bg-opacity-75 text-white text-xs px-2 py-1 rounded-full">
+                                    <i class="far fa-clock mr-1"></i><span x-text="visit.duration"></span> min
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4">
+                            <h3 class="font-bold text-gray-800 text-lg mb-1 line-clamp-1" x-text="visit.title"></h3>
+                            <p class="text-gray-500 text-sm mb-3 line-clamp-2" x-text="visit.description || 'Nessuna descrizione'"></p>
+                            
+                            <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                <span><i class="fas fa-route mr-1"></i><span x-text="visit.items?.length || 0"></span> tappe</span>
+                                <span><i class="fas fa-user mr-1"></i><span x-text="visit.createdBy?.username || 'Anonimo'"></span></span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between mt-2">
+                                <div>
+                                    <span x-show="!visit.isFree && visit.price" class="text-xl font-bold text-purple-600">
+                                        €<span x-text="visit.price.toFixed(2)"></span>
+                                    </span>
+                                    <span x-show="visit.isFree" class="text-green-600 font-medium">
+                                        <i class="fas fa-check-circle mr-1"></i>Gratuita
+                                    </span>
+                                </div>
+                                <button 
+                                    @click="purchaseVisit(visit)"
+                                    :disabled="purchasing[visit._id]"
+                                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <i class="fas fa-shopping-cart mr-1"></i>
+                                    <span x-text="purchasing[visit._id] ? 'Acquisto...' : 'Acquista'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- ITEMS CARD -->
+                <template x-for="item in filteredItems" :key="item._id">
+                    <div x-show="activeTab==='items'" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
+                        <div class="h-32 bg-gradient-to-r from-blue-500 to-purple-500 relative">
+                            <div class="absolute top-3 right-3">
+                                <span x-show="item.price && item.price > 0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                    €<span x-text="item.price"></span>
+                                </span>
+                                <span x-show="!item.price || item.price === 0" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                    Gratis
+                                </span>
+                            </div>
+                            <div class="absolute bottom-3 left-3">
+                                <span class="bg-gray-900 bg-opacity-75 text-white text-xs px-2 py-1 rounded-full">
+                                    <i class="far fa-clock mr-1"></i><span x-text="item.duration"></span>s
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div class="p-4">
+                            <h3 class="font-bold text-gray-800 mb-1 line-clamp-1" x-text="item.title || 'Senza titolo'"></h3>
+                            <p class="text-gray-500 text-sm mb-2 line-clamp-2" x-text="item.description || 'Nessuna descrizione'"></p>
+                            
+                            <div class="flex items-center space-x-3 text-xs text-gray-500 mb-3">
+                                <span><i class="fas fa-language mr-1"></i><span x-text="item.language || 'it'"></span></span>
+                                <span><i class="fas fa-tag mr-1"></i><span x-text="item.level || 'base'"></span></span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between mt-2">
+                                <div>
+                                    <span x-show="item.price && item.price > 0" class="text-xl font-bold text-purple-600">
+                                        €<span x-text="item.price.toFixed(2)"></span>
+                                    </span>
+                                    <span x-show="!item.price || item.price === 0" class="text-green-600 font-medium">
+                                        <i class="fas fa-check-circle mr-1"></i>Gratuito
+                                    </span>
+                                </div>
+                                <button 
+                                    @click="purchaseItem(item)"
+                                    :disabled="purchasing[item._id]"
+                                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                >
+                                    <i class="fas fa-shopping-cart mr-1"></i>
+                                    <span x-text="purchasing[item._id] ? 'Acquisto...' : 'Acquista'"></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- No content found msg -->
+            <div x-show="filteredVisits.length === 0 && filteredItems.length === 0" class="text-center py-16">
+               
+                <p class="text-gray-500 text-lg">Nessun contenuto trovato</p>
+                <p class="text-gray-400 text-sm">Prova a modificare i filtri o torna più tardi</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
+
+
+
+
+    <script>
+        function marketplaceApp() {
+            return {
+                // Dati
+                visits: [],
+                items: [],
+                activeTab: 'visits',
+                
+                // Filtri
+                searchTerm: '',
+                priceFilter: 'all',
+                durationFilter: 'all',
+                sortBy: 'recent',
+                
+                // UI State
+                loading: false,
+                purchasing: {},
+                
+                async init() {
+                    await this.loadData(); //carico dati iniziali da API (visite e items pubblici) pronti per essere filtrati e mostrati all'utente
+                },
+                
+                async loadData() {
+                    this.loading = true;
+                    try {
+                        const token = localStorage.getItem('apiToken');
+                        
+                        // (pre)Carica tutte le visite pubbliche
+                        const visitsRes = await fetch('/api/v1/marketplace/browse/visits', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (visitsRes.ok) {
+                            const data = await visitsRes.json();
+                            this.visits = data.data.visits || [];
+                        }
+                        
+                        // Carica tutti gli item pubblici
+                        const itemsRes = await fetch('/api/v1/marketplace/browse/items', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (itemsRes.ok) {
+                            const data = await itemsRes.json();
+                            this.items = data.data.items || [];
+                        }
+                        
+                    } catch (error) {
+                        console.error('Errore caricamento dati:', error);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                // Visite filtrate
+                get filteredVisits() {
+                    let filtered = [...this.visits];
+                    
+                    // Filtro ricerca
+                    if (this.searchTerm) {
+                        const term = this.searchTerm.toLowerCase();
+                        filtered = filtered.filter(v => 
+                            v.title?.toLowerCase().includes(term) ||
+                            v.description?.toLowerCase().includes(term)
+                        );
+                    }
+                    
+                    // Filtro prezzo
+                    if (this.priceFilter === 'free') {
+                        filtered = filtered.filter(v => v.isFree || v.price === 0);
+                    } else if (this.priceFilter === 'paid') {
+                        filtered = filtered.filter(v => !v.isFree && v.price > 0);
+                    } else if (this.priceFilter === 'under5') {
+                        filtered = filtered.filter(v => v.price > 0 && v.price < 5);
+                    } else if (this.priceFilter === 'under10') {
+                        filtered = filtered.filter(v => v.price > 0 && v.price <= 10);
+                    }
+                    
+                    // Ordinamento
+                    if (this.sortBy === 'recent') {
+                        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    } else if (this.sortBy === 'price_asc') {
+                        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+                    } else if (this.sortBy === 'price_desc') {
+                        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+                    } else if (this.sortBy === 'popular') {
+                        filtered.sort((a, b) => (b.purchases || 0) - (a.purchases || 0));
+                    }
+                    
+                    return filtered;
+                },
+                
+                // Items filtrati
+                get filteredItems() {
+                    let filtered = [...this.items];
+                    
+                    // Filtro ricerca
+                    if (this.searchTerm) {
+                        const term = this.searchTerm.toLowerCase();
+                        filtered = filtered.filter(i => 
+                            i.title?.toLowerCase().includes(term) ||
+                            i.description?.toLowerCase().includes(term)
+                        );
+                    }
+                    
+                    // Filtro durata
+                    if (this.durationFilter === 'short') {
+                        filtered = filtered.filter(i => (i.duration || 999) <= 15);
+                    } else if (this.durationFilter === 'medium') {
+                        filtered = filtered.filter(i => (i.duration || 999) <= 40);
+                    } else if (this.durationFilter === 'long') {
+                        filtered = filtered.filter(i => (i.duration || 0) > 40);
+                    }
+                    
+                    // Ordinamento
+                    if (this.sortBy === 'recent') {
+                        filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    } else if (this.sortBy === 'price_asc') {
+                        filtered.sort((a, b) => (a.price || 0) - (b.price || 0));
+                    } else if (this.sortBy === 'price_desc') {
+                        filtered.sort((a, b) => (b.price || 0) - (a.price || 0));
+                    }
+                    
+                    return filtered;
+                },
+                
+                async purchaseVisit(visit) {
+                    if (this.purchasing[visit._id]) return;
+                    
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('Devi effettuare il login per acquistare');
+                        window.location.href = '/marketplace/login';
+                        return;
+                    }
+                    
+                    this.purchasing[visit._id] = true;
+                    
+                    try {
+                        const response = await fetch('/api/v1/purchases', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                type: 'visit',
+                                itemId: visit._id,
+                                price: visit.isFree ? 0 : visit.price
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            alert(`Acquisto completato! ${visit.title} è ora nella tua libreria.`);
+                            // Opzionale: ricarica i dati
+                            await this.loadData();
+                        } else {
+                            alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
+                        }
+                        
+                    } catch (error) {
+                        console.error('Errore acquisto:', error);
+                        alert('Errore durante l\'acquisto');
+                    } finally {
+                        this.purchasing[visit._id] = false;
+                    }
+                },
+                
+                async purchaseItem(item) {
+                    if (this.purchasing[item._id]) return;
+                    
+                    const token = localStorage.getItem('token');
+                    if (!token) {
+                        alert('Devi effettuare il login per acquistare');
+                        window.location.href = '/marketplace/login';
+                        return;
+                    }
+                    
+                    this.purchasing[item._id] = true;
+                    
+                    try {
+                        const response = await fetch('/api/v1/purchases', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                type: 'item',
+                                itemId: item._id,
+                                price: item.price || 0
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            alert(`Acquisto completato! ${item.title} è ora nella tua libreria.`);
+                        } else {
+                            alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
+                        }
+                        
+                    } catch (error) {
+                        console.error('Errore acquisto:', error);
+                        alert('Errore durante l\'acquisto');
+                    } finally {
+                        this.purchasing[item._id] = false;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

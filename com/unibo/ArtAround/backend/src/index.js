@@ -49,7 +49,8 @@ app.use("/marketplace", marketplaceRouter)
 
 // ======= API ======= funzioni centralizzate per Marketplace e Navigator con API
 app.use("/api/v1/auth", authRouter); //richieste fetch da registration/login
-app.use("/api/v1/marketplace/create", apiMarketplaceRouter) //richieste fetch da createItems/createVisits
+app.use("/api/v1/marketplace", apiMarketplaceRouter) //richieste fetch da createItems/createVisits
+
 
 //TODO ROUTE: aggiunge as I go a macchia d'olio...
 //app.use("/api/v1/users", usersRouter); 

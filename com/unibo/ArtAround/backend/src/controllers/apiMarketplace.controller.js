@@ -130,8 +130,63 @@ const createVisit = async (req, res) => {
     }
 };
 
+const getVisitsForBrowsing = async (req, res) => {
+    try {
+        /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
+            1.aggiungi campo 'status' al modello Visit (enum: ['draft', 'published'], default: 'draft')
+            2.modifica createVisit per accettare 'status' da frontend (default a 'draft' se non fornito)
+            3.modifica questa funzione per filtrare le visite in base al 'status' richiesto (es. Visit.find({ status: req.query.status || 'published' }))
+        
+        const status = req.query.status || 'published'; // Default to 'published' if not provided
+        const visits = await Visit.find({ status }).populate('museum').populate('items');
+        */
+
+        const visits = await Visit.find() 
+        .populate('author', 'username') //get creator username to show in browse market cards(username specific field needed)
+        .populate('museum')
+        
+        res.status(200).json({
+            status: 'success',
+            data: {
+                visits
+            }
+        });
+
+    } catch (err) {
+        console.error("Errore nella ricerca delle Visite:", err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante la ricerca delle visite'
+        });
+    }
+};
+
+const getItemsForBrowsing = async (req, res) => {
+    try {
+        const items = await Item.find() //TODO: filter only published items (es. Item.find({ status: 'published' }))
+        .populate('creator', 'username'); //get creator effective username to show in browse market cards(username specific field needed, needed bcs model is creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+        
+        res.status(200).json({
+            status: 'success',
+            data: {
+                items
+            }
+        });
+
+    } catch (err) {
+        console.error("Errore nella ricerca degli Items:", err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante la ricerca degli items'
+        });
+    }
+};   
+
+
 module.exports = {
     createItems,
     searchItemsForVisit,
     createVisit,
+    getVisitsForBrowsing,
+    getItemsForBrowsing,
 }

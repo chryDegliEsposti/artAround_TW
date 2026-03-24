@@ -15,7 +15,7 @@ marketplaceRouter.get("/login", marketplaceController.getLogin)
 marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage) //from login/signup
 marketplaceRouter.get("/homepage/createItems", authorization, marketplaceController.getCreateItems) //from homepage
 marketplaceRouter.get("/homepage/createVisits", authorization, marketplaceController.getCreateVisits) //from homepage
-
+marketplaceRouter.get("/browseMarket", authorization, marketplaceController.getBrowseMarket) //from homepage
 
 
 module.exports = marketplaceRouter;

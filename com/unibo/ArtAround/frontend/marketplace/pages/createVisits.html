@@ -290,7 +290,7 @@
                 
                 async loadItems() {
                     try {
-                        const token = localStorage.getItem('token');
+                        const token = localStorage.getItem('apiToken');
                         const response = await fetch(`/api/v1/marketplace/create/searchItems?museumId=${this.museumId}`, {
                             headers: {
                                 'Authorization': `Bearer ${token}`
