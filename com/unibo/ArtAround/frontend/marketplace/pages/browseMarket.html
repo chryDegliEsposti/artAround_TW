@@ -7,6 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* Nasconde gli elementi fino a quando Alpine non è pronto */
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -48,10 +53,16 @@
         </div>
     </nav>
 
+
     <!-- Main Content -->
-    <main class="flex-grow">
-        <div class="max-w-7xl mx-auto px-4 py-8" x-data="marketplaceApp()" x-init="init()">
-            
+    <main x-data="marketplaceApp()" x-init="init()" x-cloak class="flex-grow">
+        <!-- Loading -->
+        <div x-show="loading" class="text-center py-16">
+            <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-4"></i>
+            <p class="text-gray-500">Caricamento in corso...</p>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 py-8" x-show="!loading">
             <!-- Header -->
             <div class="mb-8">
                 <h1 class="text-3xl font-bold text-gray-800 mb-2">Marketplace Browser</h1>
@@ -134,13 +145,15 @@
                         <!-- Immagine copertina -->
                         <div class="h-40 bg-gradient-to-r from-purple-500 to-pink-500 relative">
                             <div class="absolute top-3 right-3">
-                                <span x-show="visit.isFree" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                                    <i class="fas fa-gift mr-1"></i>Gratis
-                                </span>
-                                <span x-show="!visit.isFree && visit.price" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                <!-- 1st price badge -->
+                                <span x-show="visit.price && visit.price>0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
                                     €<span x-text="visit.price"></span>
                                 </span>
+                                <span x-show="!visit.price || visit.price===0" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                    Gratis
+                                </span>
                             </div>
+
                             <div class="absolute bottom-3 left-3">
                                 <span class="bg-gray-900 bg-opacity-75 text-white text-xs px-2 py-1 rounded-full">
                                     <i class="far fa-clock mr-1"></i><span x-text="visit.duration"></span> min
@@ -159,13 +172,15 @@
                             
                             <div class="flex items-center justify-between mt-2">
                                 <div>
-                                    <span x-show="!visit.isFree && visit.price" class="text-xl font-bold text-purple-600">
+                                    <!-- 2nd price badge -->
+                                    <span x-show="!visit.price===0 && visit.price>0" class="text-xl font-bold text-purple-600">
                                         €<span x-text="visit.price.toFixed(2)"></span>
                                     </span>
-                                    <span x-show="visit.isFree" class="text-green-600 font-medium">
+                                    <span x-show="!visit.price || visit.price===0" class="text-green-600 font-medium">
                                         <i class="fas fa-check-circle mr-1"></i>Gratuita
                                     </span>
                                 </div>
+                                <!-- Buy visit button -->
                                 <button 
                                     @click="purchaseVisit(visit)"
                                     :disabled="purchasing[visit._id]"
@@ -184,10 +199,11 @@
                     <div x-show="activeTab==='items'" class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
                         <div class="h-32 bg-gradient-to-r from-blue-500 to-purple-500 relative">
                             <div class="absolute top-3 right-3">
-                                <span x-show="item.price && item.price > 0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
-                                    €<span x-text="item.price"></span>
+                                <!-- 1st price badge -->
+                                <span x-show="item?.price && item?.price > 0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                    €<span x-text="item?.price"></span>
                                 </span>
-                                <span x-show="!item.price || item.price === 0" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                <span x-show="!item?.price || item?.price === 0" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                                     Gratis
                                 </span>
                             </div>
@@ -209,13 +225,15 @@
                             
                             <div class="flex items-center justify-between mt-2">
                                 <div>
-                                    <span x-show="item.price && item.price > 0" class="text-xl font-bold text-purple-600">
-                                        €<span x-text="item.price.toFixed(2)"></span>
+                                    <!-- 2nd price badge-->
+                                    <span x-show="item?.price && item?.price > 0" class="text-xl font-bold text-purple-600">
+                                        €<span x-text="item?.price.toFixed(2)"></span>
                                     </span>
-                                    <span x-show="!item.price || item.price === 0" class="text-green-600 font-medium">
+                                    <span x-show="!item?.price || item?.price === 0" class="text-green-600 font-medium">
                                         <i class="fas fa-check-circle mr-1"></i>Gratuito
                                     </span>
                                 </div>
+                                <!-- Buy button -->
                                 <button 
                                     @click="purchaseItem(item)"
                                     :disabled="purchasing[item._id]"
@@ -252,23 +270,25 @@
     <script>
         function marketplaceApp() {
             return {
-                // Dati
+                // Data
                 visits: [],
                 items: [],
                 activeTab: 'visits',
                 
-                // Filtri
+                // Filters trackers
                 searchTerm: '',
                 priceFilter: 'all',
                 durationFilter: 'all',
                 sortBy: 'recent',
                 
                 // UI State
-                loading: false,
+                loading: true,
                 purchasing: {},
                 
                 async init() {
+                    this.loading = true;
                     await this.loadData(); //carico dati iniziali da API (visite e items pubblici) pronti per essere filtrati e mostrati all'utente
+                    this.loading = false;
                 },
                 
                 async loadData() {
@@ -289,6 +309,7 @@
                         const itemsRes = await fetch('/api/v1/marketplace/browse/items', {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
+
                         if (itemsRes.ok) {
                             const data = await itemsRes.json();
                             this.items = data.data.items || [];
@@ -301,9 +322,9 @@
                     }
                 },
                 
-                // Visite filtrate
+                // VISITS FILTERING
                 get filteredVisits() {
-                    let filtered = [...this.visits];
+                    let filtered = [...this.visits]; //everything received from backend, then apply filters client-side
                     
                     // Filtro ricerca
                     if (this.searchTerm) {
@@ -312,8 +333,7 @@
                             v.title?.toLowerCase().includes(term) ||
                             v.description?.toLowerCase().includes(term)
                         );
-                    }
-                    
+                    } 
                     // Filtro prezzo
                     if (this.priceFilter === 'free') {
                         filtered = filtered.filter(v => v.isFree || v.price === 0);
@@ -324,7 +344,6 @@
                     } else if (this.priceFilter === 'under10') {
                         filtered = filtered.filter(v => v.price > 0 && v.price <= 10);
                     }
-                    
                     // Ordinamento
                     if (this.sortBy === 'recent') {
                         filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -339,7 +358,7 @@
                     return filtered;
                 },
                 
-                // Items filtrati
+                // ITEMS FILTERING
                 get filteredItems() {
                     let filtered = [...this.items];
                     
@@ -351,7 +370,6 @@
                             i.description?.toLowerCase().includes(term)
                         );
                     }
-                    
                     // Filtro durata
                     if (this.durationFilter === 'short') {
                         filtered = filtered.filter(i => (i.duration || 999) <= 15);
@@ -360,7 +378,6 @@
                     } else if (this.durationFilter === 'long') {
                         filtered = filtered.filter(i => (i.duration || 0) > 40);
                     }
-                    
                     // Ordinamento
                     if (this.sortBy === 'recent') {
                         filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -373,6 +390,7 @@
                     return filtered;
                 },
                 
+                //PURCHASE LOGIC
                 async purchaseVisit(visit) {
                     if (this.purchasing[visit._id]) return;
                     
@@ -386,7 +404,7 @@
                     this.purchasing[visit._id] = true;
                     
                     try {
-                        const response = await fetch('/api/v1/purchases', {
+                        const response = await fetch('/api/v1/marketplace/purchases/visit', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

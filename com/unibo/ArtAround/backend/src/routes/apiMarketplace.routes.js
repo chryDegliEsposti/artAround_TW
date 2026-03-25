@@ -20,6 +20,10 @@ apiMarketplaceRouter.get("/browse/visits", apiMarketplaceController.getVisitsFor
 apiMarketplaceRouter.get("/browse/items", apiMarketplaceController.getItemsForBrowsing) //fetch from browseMarket(frontend)
 
 
+// --- PURCHASES SECTION ---
+apiMarketplaceRouter.post("/purchase/visit", authorization, apiMarketplaceController.purchaseVisit) //fetch from browseMarket(frontend)
+apiMarketplaceRouter.post("/purchase/item", authorization, apiMarketplaceController.purchaseItem) //fetch from browseMarket(frontend)
+
 
 
 module.exports = apiMarketplaceRouter;

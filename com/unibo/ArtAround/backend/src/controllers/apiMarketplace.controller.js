@@ -181,6 +181,46 @@ const getItemsForBrowsing = async (req, res) => {
         });
     }
 };   
+ 
+const purchaseVisit = async (req, res) => {
+    try {
+        const visitId = req.body.visitId;   
+        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware 'authorization        
+
+        const visit = await Visit.findById(visitId);
+        if (!visit) {
+            return res.status(404).json({ status: 'error', message: 'Visita non trovata' });
+        }   
+
+
+
+    } catch (err) {
+        console.error("Errore durante l'acquisto della visita:", err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante l\'acquisto della visita'
+        });
+    }
+};
+
+const purchaseItem = async (req, res) => {
+    try {
+        const itemId = req.body.itemId;
+        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware 'authorization        
+
+        const item = await Item.findById(itemId);
+        if (!item) {
+            return res.status(404).json({ status: 'error', message: 'Item non trovato' });
+        }   
+    } catch (err) {
+        console.error("Errore durante l'acquisto dell'item:", err);
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante l\'acquisto dell\'item'
+        });
+    }
+};  
+
 
 
 module.exports = {
@@ -189,4 +229,6 @@ module.exports = {
     createVisit,
     getVisitsForBrowsing,
     getItemsForBrowsing,
+    purchaseVisit,
+    purchaseItem,
 }
