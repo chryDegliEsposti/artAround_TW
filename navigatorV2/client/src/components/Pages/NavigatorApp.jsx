@@ -423,6 +423,7 @@ const mockTourItems = mockMuseumData.pois
   .map(poi => ({
     id: poi.id,
     name: poi.name,
+    //TODO : add images
     desc: `You are currently navigating toward the famous ${poi.name}. This is one of the museum's most prized exhibits. Bring yourself closer to discover its history and secrets.`,
     x: tx(poi.position.x),
     y: ty(poi.position.y)
@@ -437,6 +438,7 @@ export default function NavigatorApp() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [aiResponse, setAiResponse] = useState(null);
@@ -504,6 +506,31 @@ export default function NavigatorApp() {
       ctx.translate(-cameraX, -cameraY);
     }
 
+    // Draw high-end grid background
+    const gridSize = 100;
+    ctx.beginPath();
+    ctx.strokeStyle = '#f1f5f9';
+    ctx.lineWidth = 1 / mapZoom;
+    for (let x = -2000; x <= 4000; x += gridSize) {
+      ctx.moveTo(x, -8000); ctx.lineTo(x, 2000);
+    }
+    for (let y = -8000; y <= 2000; y += gridSize) {
+      ctx.moveTo(-2000, y); ctx.lineTo(4000, y);
+    }
+    ctx.stroke();
+
+    // Draw Floor Fill based on external walls
+    mockMuseumData.lines.filter(l => l.type === 'ext-wall').forEach(line => {
+      ctx.beginPath();
+      line.points.forEach((pt, i) => {
+        const cx = tx(pt.x);
+        const cy = ty(pt.y);
+        if (i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+      });
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    });
+
     // Draw lines (walls) from JSON
     mockMuseumData.lines.forEach(line => {
       ctx.beginPath();
@@ -513,10 +540,17 @@ export default function NavigatorApp() {
         if (i === 0) ctx.moveTo(cx, cy);
         else ctx.lineTo(cx, cy);
       });
-      ctx.strokeStyle = line.type === 'ext-wall' ? '#0f172a' : '#64748b';
-      // Adjust thickness visually if zoomed
-      ctx.lineWidth = line.type === 'ext-wall' ? 6 / (mapZoom > 1 ? mapZoom * 0.7 : 1) : 2 / (mapZoom > 1 ? mapZoom * 0.7 : 1);
+      
+      const isExt = line.type === 'ext-wall';
+      ctx.strokeStyle = isExt ? '#1e293b' : '#94a3b8';
+      ctx.lineWidth = isExt ? 8 / (mapZoom * 0.7) : 3 / (mapZoom * 0.7);
+      
+      if (isExt) {
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 10 / (mapZoom * 0.7);
+      }
       ctx.stroke();
+      ctx.shadowBlur = 0; // Reset shadow
     });
 
     // Draw POIs (Non-exhibits) from JSON
@@ -529,7 +563,7 @@ export default function NavigatorApp() {
       // Match Editor.jsx HTML box styling exactly
       let label = 'EX';
       let bgColor = '#8b5cf6'; // exhibit
-      
+
       if (poi.type === 'exit') {
         label = poi.subType === 'emergency' ? 'SOS' : 'Exit';
         bgColor = poi.subType === 'emergency' ? '#ef4444' : '#10b981';
@@ -541,64 +575,80 @@ export default function NavigatorApp() {
         bgColor = '#0ea5e9';
       }
 
-      const rawMapZoom = mapZoom > 1 ? mapZoom * 0.8 : 1;
-      
-      // Draw rounded box background
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.2)';
+      ctx.shadowBlur = 8 / mapZoom;
       ctx.fillStyle = bgColor;
-      const boxW = 32 / rawMapZoom;
-      const boxH = 20 / rawMapZoom;
+      const boxW = 38 / (mapZoom * 0.8);
+      const boxH = 22 / (mapZoom * 0.8);
       ctx.beginPath();
-      ctx.roundRect(cx - boxW/2, cy - boxH/2, boxW, boxH, 4 / rawMapZoom);
+      ctx.roundRect(cx - boxW / 2, cy - boxH / 2, boxW, boxH, 6 / (mapZoom * 0.8));
       ctx.fill();
+      ctx.restore();
 
-      // Draw crisp center text
       ctx.fillStyle = 'white';
-      ctx.font = `600 ${10 / rawMapZoom}px sans-serif`;
+      ctx.font = `bold ${10 / (mapZoom * 0.8)}px sans-serif`;
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'center';
-      
-      ctx.fillText(label, cx, cy);
+      ctx.fillText(label.toUpperCase(), cx, cy);
     });
 
-    // Draw current routing path properly connecting to User
+    // Draw current routing path
     if (currentPath.length > 0) {
       ctx.beginPath();
-      ctx.moveTo(userPos.x, userPos.y); // Start directly at user avatar
-      currentPath.forEach((pt) => {
-        ctx.lineTo(pt.x, pt.y);
-      });
-      ctx.strokeStyle = 'rgba(59, 130, 246, 0.6)'; // Tour line
-      ctx.lineWidth = 4 / (mapZoom > 1 ? mapZoom * 0.7 : 1);
-      ctx.setLineDash([8 / (mapZoom > 1 ? mapZoom * 0.7 : 1), 8 / (mapZoom > 1 ? mapZoom * 0.7 : 1)]);
+      ctx.moveTo(userPos.x, userPos.y);
+      currentPath.forEach((pt) => ctx.lineTo(pt.x, pt.y));
+      ctx.strokeStyle = '#3b82f6';
+      ctx.lineWidth = 5 / (mapZoom * 0.7);
+      ctx.setLineDash([12 / (mapZoom * 0.7), 8 / (mapZoom * 0.7)]);
+      ctx.globalAlpha = 0.5;
       ctx.stroke();
+      ctx.globalAlpha = 1.0;
       ctx.setLineDash([]);
     }
 
     // Draw active Tour Items (Exhibits)
     items.forEach((item, index) => {
+      const isActive = index === currentIndex;
       ctx.beginPath();
-      ctx.arc(item.x, item.y, 8 / (mapZoom > 1 ? mapZoom * 0.8 : 1), 0, 2 * Math.PI);
-      ctx.fillStyle = index === currentIndex ? '#ef4444' : '#94a3b8';
+      ctx.arc(item.x, item.y, 10 / (mapZoom * 0.8), 0, 2 * Math.PI);
+      
+      const grad = ctx.createRadialGradient(item.x, item.y, 0, item.x, item.y, 10 / (mapZoom * 0.8));
+      grad.addColorStop(0, isActive ? '#f87171' : '#cbd5e1');
+      grad.addColorStop(1, isActive ? '#ef4444' : '#94a3b8');
+      
+      ctx.fillStyle = grad;
       ctx.fill();
 
-      // Highlight pulse for current item
-      if (index === currentIndex) {
+      if (isActive) {
         ctx.beginPath();
-        ctx.arc(item.x, item.y, 14 / (mapZoom > 1 ? mapZoom * 0.8 : 1), 0, 2 * Math.PI);
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
-        ctx.lineWidth = 3 / (mapZoom > 1 ? mapZoom * 0.8 : 1);
+        ctx.arc(item.x, item.y, 18 / (mapZoom * 0.8), 0, 2 * Math.PI);
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)';
+        ctx.lineWidth = 4 / (mapZoom * 0.8);
         ctx.stroke();
       }
     });
 
     // Draw User Location
+    ctx.save();
+    ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
+    ctx.shadowBlur = 15 / mapZoom;
+    
+    // Outer pulse ring
     ctx.beginPath();
-    ctx.arc(userPos.x, userPos.y, 10 / (mapZoom > 1 ? mapZoom * 0.8 : 1), 0, 2 * Math.PI);
-    ctx.fillStyle = '#3b82f6'; // Blue for user
+    ctx.arc(userPos.x, userPos.y, 14 / (mapZoom * 0.8), 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+    ctx.fill();
+    
+    // Inner core
+    ctx.beginPath();
+    ctx.arc(userPos.x, userPos.y, 9 / (mapZoom * 0.8), 0, 2 * Math.PI);
+    ctx.fillStyle = '#3b82f6';
     ctx.fill();
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2 / (mapZoom > 1 ? mapZoom * 0.8 : 1);
+    ctx.lineWidth = 2.5 / (mapZoom * 0.8);
     ctx.stroke();
+    ctx.restore();
 
     ctx.restore(); // Undo camera transforms
 
@@ -611,15 +661,9 @@ export default function NavigatorApp() {
       const dy = userPos.y - currentItem.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
       if (distance < 20) {
-        // Fire a Toast Pop-up instead of opening the full description sheet
-        setAiResponse(`You reached the ${currentItem.name}! Press Play to view its description.`);
+        // Fire the ItemDescription component overlay Pop-Up
+        setShowPopup(true);
         setHasTriggeredCurrent(true);
-
-        // Auto hide toast after 5 seconds
-        const t = setTimeout(() => {
-          setAiResponse((current) => current?.includes(currentItem.name) ? null : current);
-        }, 5000);
-        return () => clearTimeout(t);
       }
     }
   }, [userPos, currentItem, hasTriggeredCurrent]);
@@ -627,7 +671,7 @@ export default function NavigatorApp() {
   // Reset auto-trigger when moving to next item
   useEffect(() => {
     setHasTriggeredCurrent(false);
-    setShowDescription(false); // Hide description when moving away/next
+    setShowPopup(false); // Hide popup (proximity-based, independent from bottom bar)
     setIsPlaying(false);
   }, [currentIndex]);
 
@@ -686,9 +730,10 @@ export default function NavigatorApp() {
     lastPanRef.current = { x: e.clientX, y: e.clientY };
 
     // Move camera relative to zoom factor
+    // Loosen clamps to allow freer exploration of the large map
     setCameraPos(prev => ({
-      x: Math.max(-500, Math.min(1000, prev.x - dx / mapZoom)),
-      y: Math.max(-500, Math.min(1000, prev.y - dy / mapZoom))
+      x: prev.x - dx / mapZoom,
+      y: prev.y - dy / mapZoom
     }));
   };
 
@@ -699,7 +744,6 @@ export default function NavigatorApp() {
   const handleNext = () => {
     if (currentIndex < items.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setShowDescription(false);
       setIsPlaying(true);
     }
   };
@@ -707,14 +751,12 @@ export default function NavigatorApp() {
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
-      setShowDescription(false);
       setIsPlaying(true);
     }
   };
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
-    if (showDescription) setShowDescription(false);
   };
 
   const handleMicRequest = async () => {
@@ -886,10 +928,12 @@ export default function NavigatorApp() {
         </div>
       </div>
 
-      {showDescription && (
+      {showPopup && (
         <ItemDescription
           item={currentItem}
-          onClose={() => setShowDescription(false)}
+          onPlayPause={togglePlay}
+          isPlaying={isPlaying}
+          onClose={() => setShowPopup(false)}
         />
       )}
 

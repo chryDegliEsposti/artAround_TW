@@ -98,4 +98,18 @@ html[data-theme='dark'] .item-image-placeholder {
   flex: 1;
   padding: 0.75rem;
   border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.play-action-btn {
+  filter: drop-shadow(0 4px 10px rgba(59, 130, 246, 0.2));
+}
+
+.play-action-btn:active {
+  transform: scale(0.98);
 }

@@ -1,11 +1,8 @@
 .search-bar-container {
-  position: absolute;
-  top: 1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 90%;
+  /* Removed absolute to let parent handle layout */
+  width: 100%;
   max-width: 450px;
-  z-index: 1000;
+  margin: 0 auto;
   pointer-events: auto;
 }
 
@@ -67,7 +64,6 @@
 @media (max-width: 480px) {
   .search-bar-container {
     width: 95%;
-    top: 0.75rem;
   }
   
   .search-input-wrapper {

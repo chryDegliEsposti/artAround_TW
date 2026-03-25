@@ -4,6 +4,39 @@
   position: relative;
   display: flex;
   flex-direction: column;
+  background-color: var(--bg-color);
+}
+
+.map-controls-overlay {
+  position: absolute;
+  top: 1.25rem;
+  left: 1rem;
+  right: 1rem;
+  z-index: 1001; /* Above map features but below main app-header and popup-menu */
+  pointer-events: none;
+}
+
+.map-controls-overlay > * {
+  pointer-events: auto;
+}
+
+.main-map-container {
+  flex: 1;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.leaflet-map-container {
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Move Leaflet controls to avoid overlap */
+.leaflet-bottom.leaflet-right {
+  margin-bottom: 0.5rem;
+  margin-right: 0.5rem;
 }
 
 .map-loading {
@@ -15,41 +48,230 @@
   color: var(--text-light);
 }
 
-.map-error-banner {
-  background-color: rgba(239, 68, 68, 0.9);
-  color: white;
-  padding: 0.5rem 1rem;
-  text-align: center;
-  font-size: 0.875rem;
+/* Swipeable Scroller Section */
+.museums-scroller-container {
+  background-color: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
+  z-index: 1000;
   position: absolute;
-  top: 0;
+  bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  touch-action: pan-y;
+  border-radius: 20px 20px 0 0;
 }
 
-.leaflet-map-container {
-  flex: 1;
+.museums-scroller-container.collapsed {
+  transform: translateY(calc(100% - 24px));
+}
+
+.scroller-pull-handle {
   width: 100%;
-  height: 100%;
-  z-index: 1;
-}
-
-.museum-popup {
+  height: 24px;
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  min-width: 150px;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
 }
 
-.museum-popup h4 {
+.scroller-pull-handle:active {
+  cursor: grabbing;
+}
+
+.scroller-pull-handle .pull-indicator {
+  width: 40px;
+  height: 4px;
+  background-color: #cbd5e1;
+  border-radius: 2px;
+}
+
+.scroller-content {
+  padding-bottom: 1rem;
+}
+
+.scroller-header {
+  padding: 0 1rem 0.75rem 1.25rem;
+}
+
+.scroller-header h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--text-color);
 }
 
-.museum-popup .btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
-  width: 100%;
+.scroller-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  display: block;
 }
+
+.museum-horizontal-list {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding: 0.5rem 1.25rem 1rem 1.25rem;
+  scrollbar-width: none;
+}
+
+.museum-horizontal-list::-webkit-scrollbar {
+  display: none;
+}
+
+.museum-card-horizontal {
+  flex: 0 0 160px;
+  background-color: var(--bg-color);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.museum-card-horizontal:active {
+  transform: scale(0.96);
+}
+
+.museum-card-image {
+  height: 100px;
+  width: 100%;
+  position: relative;
+}
+
+.museum-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.museum-card-rating {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.museum-card-info {
+  padding: 0.75rem;
+}
+
+.museum-card-info h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.85rem;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.museum-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--text-light);
+  font-size: 0.7rem;
+}
+
+/* Popup Styles */
+.museum-popup {
+  padding: 0.25rem;
+}
+
+.museum-popup h4 {
+  margin: 0 0 0.25rem 0;
+}
+
+.popup-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  color: var(--accent-color);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.star-icon {
+  color: #f59e0b;
+}
+
+/* Custom Location Marker (Google Maps Style) */
+.custom-location-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+}
+
+.location-beacon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease-out;
+}
+
+.beacon-core {
+  width: 16px;
+  height: 16px;
+  background-color: #3b82f6;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  z-index: 2;
+  position: relative;
+}
+
+.beacon-arrow {
+  position: absolute;
+  top: -6px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 14px solid rgba(59, 130, 246, 0.8);
+  z-index: 1;
+}
+
+.beacon-core::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  background-color: rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  animation: beacon-pulse 2s infinite ease-out;
+}
+
+@keyframes beacon-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2); opacity: 0; }
+}
+
+.slide-in-bottom {
+  animation: slide-in-bottom 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes slide-in-bottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+

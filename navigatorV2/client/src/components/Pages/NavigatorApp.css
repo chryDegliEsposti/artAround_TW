@@ -80,6 +80,12 @@ html[data-theme='dark'] .map-instructions {
   width: 100%;
   height: 100%;
   display: block;
+  touch-action: none;
+  cursor: grab;
+}
+
+.indoor-canvas:active {
+  cursor: grabbing;
 }
 
 html[data-theme='dark'] .indoor-canvas {
