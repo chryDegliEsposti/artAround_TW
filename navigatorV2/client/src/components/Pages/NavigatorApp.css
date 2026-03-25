@@ -303,3 +303,46 @@ html[data-theme='dark'] .dpad-controller {
   transform: scale(0.9);
   background-color: #2563eb;
 }
+
+/* User Pulse Marker Styles */
+.user-pulse-marker {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.user-pulse-marker .pulse-core {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background-color: #3b82f6;
+  border: 2.5px solid #ffffff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  z-index: 2;
+}
+
+.user-pulse-marker .pulse-ring {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  background-color: rgba(59, 130, 246, 0.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulse-animation 2s infinite ease-out;
+  z-index: 1;
+}
+
+@keyframes pulse-animation {
+  0% {
+    transform: translate(-50%, -50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
