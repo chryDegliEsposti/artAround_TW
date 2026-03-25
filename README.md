@@ -1,1 +1,0 @@
-# artAround_TW
