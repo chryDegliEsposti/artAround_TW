@@ -17,7 +17,9 @@ const UserSchema = new mongoose.Schema({
     
     museumId: { type: String }, //TODO: solo per creator, al momento stringa semplice (es. "MUSEO123"), ma potrebbe diventare ref a collezione Musei se necessario
     
-    purchasedVisits: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Visit' }]
+    purchasedVisits: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Visit' }],
+
+    purchasedItems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }]
 
 }, { timestamps: true });
 

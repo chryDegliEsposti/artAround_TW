@@ -16,8 +16,8 @@ apiMarketplaceRouter.get('/create/searchItems', authorization, apiMarketplaceCon
 
 
 // --- BROWSING SECTION---
-apiMarketplaceRouter.get("/browse/visits", apiMarketplaceController.getVisitsForBrowsing) //fetch from browseMarket(frontend)
-apiMarketplaceRouter.get("/browse/items", apiMarketplaceController.getItemsForBrowsing) //fetch from browseMarket(frontend)
+apiMarketplaceRouter.get("/browse/visits", authorization, apiMarketplaceController.getVisitsForBrowsing) //fetch from browseMarket(frontend)
+apiMarketplaceRouter.get("/browse/items", authorization, apiMarketplaceController.getItemsForBrowsing) //fetch from browseMarket(frontend)
 
 
 // --- PURCHASES SECTION ---

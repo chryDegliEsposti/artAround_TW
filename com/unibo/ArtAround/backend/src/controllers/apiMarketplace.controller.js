@@ -1,5 +1,6 @@
 const Item = require('../models/Item');
 const Visit = require('../models/Visit');
+const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
 
 const createItems = async (req, res) => {
     try {
@@ -140,15 +141,25 @@ const getVisitsForBrowsing = async (req, res) => {
         const status = req.query.status || 'published'; // Default to 'published' if not provided
         const visits = await Visit.find({ status }).populate('museum').populate('items');
         */
-
+        
         const visits = await Visit.find() 
         .populate('author', 'username') //get creator username to show in browse market cards(username specific field needed)
         .populate('museum')
         
+        let purchasedVisits = [];
+        if (req.user && req.user.id) {
+            const user = await User.findById(req.user.id);
+            if (user) {
+                // Estraiamo solo gli ID come stringhe per il frontend
+                purchasedVisits = user.purchasedVisits.map(id => id.toString());
+            }
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
-                visits
+                visits: visits,
+                purchasedVisits: purchasedVisits
             }
         });
 
@@ -184,15 +195,45 @@ const getItemsForBrowsing = async (req, res) => {
  
 const purchaseVisit = async (req, res) => {
     try {
+        console.log("Acquisto visita - request body:", req.body);
         const visitId = req.body.visitId;   
         const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware 'authorization        
 
+        // Verifica che la visita esista
         const visit = await Visit.findById(visitId);
         if (!visit) {
             return res.status(404).json({ status: 'error', message: 'Visita non trovata' });
         }   
+        
+        // Verifica se l'utente ha già acquistato questa visita o i suoi item (per evitare acquisti doppi)
+        const user = await User.findById(userId) 
+        const alreadyPurchased = user.purchasedVisits.some(p => p.toString() === visitId);
+        if (alreadyPurchased) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Hai già acquistato questo contenuto' 
+            });
+        }
 
+        user.purchasedVisits.push(visitId);
+        await user.save();
 
+        //retrieve visits possedute, per mostrare in frontend (es. disabilitare pulsante acquisto se già acquistata)
+        let purchasedVisits = [];
+        if (userId) {
+            //const user = await User.findById(userId);
+            //purchasedVisits = user.purchasedVisits.map(p => p.visitId.toString());
+            purchasedVisits = user.purchasedVisits.map(p => {console.log(p); p.toString()});
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Visita acquistata con successo',
+            data: {
+                visit: visit,
+                purchasedVisits: purchasedVisits 
+            }
+        }); 
 
     } catch (err) {
         console.error("Errore durante l'acquisto della visita:", err);
@@ -212,6 +253,14 @@ const purchaseItem = async (req, res) => {
         if (!item) {
             return res.status(404).json({ status: 'error', message: 'Item non trovato' });
         }   
+        return res.status(200).json({
+            status: 'success',
+            message: 'Item acquistato con successo',
+            data: {
+                item
+            }
+        });
+
     } catch (err) {
         console.error("Errore durante l'acquisto dell'item:", err);
         res.status(500).json({
