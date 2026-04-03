@@ -174,13 +174,34 @@ const getVisitsForBrowsing = async (req, res) => {
 
 const getItemsForBrowsing = async (req, res) => {
     try {
-        const items = await Item.find() //TODO: filter only published items (es. Item.find({ status: 'published' }))
-        .populate('creator', 'username'); //get creator effective username to show in browse market cards(username specific field needed, needed bcs model is creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' })
+        /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
+            1.aggiungi campo 'status' al modello Visit (enum: ['draft', 'published'], default: 'draft')
+            2.modifica createVisit per accettare 'status' da frontend (default a 'draft' se non fornito)
+            3.modifica questa funzione per filtrare le visite in base al 'status' richiesto (es. Visit.find({ status: req.query.status || 'published' }))
         
+        const status = req.query.status || 'published'; // Default to 'published' if not provided
+        const visits = await Visit.find({ status }).populate('museum').populate('items');
+        */
+        
+        const items = await Item.find() 
+        /*.populate('author', 'username') //get creator username to show in browse market cards(username specific field needed)
+        .populate('museumId')*/
+        
+        let purchasedItems = [];
+        if (req.user && req.user.id) {
+            const user = await User.findById(req.user.id);
+            if (req.user && req.user.id) {
+                // Estraiamo solo gli ID come stringhe per il frontend
+                purchasedItems = user.purchasedItems.map(id => id.toString());
+                console.log('Items posseduti dall\'utente:', purchasedItems);
+            }
+        }
+
         res.status(200).json({
             status: 'success',
             data: {
-                items
+                items: items,
+                purchasedItems: purchasedItems
             }
         });
 
@@ -197,7 +218,7 @@ const purchaseVisit = async (req, res) => {
     try {
         console.log("Acquisto visita - request body:", req.body);
         const visitId = req.body.visitId;   
-        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware 'authorization        
+        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware authorization        
 
         // Verifica che la visita esista
         const visit = await Visit.findById(visitId);
@@ -205,7 +226,7 @@ const purchaseVisit = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Visita non trovata' });
         }   
         
-        // Verifica se l'utente ha già acquistato questa visita o i suoi item (per evitare acquisti doppi)
+        // Verifica se l'utente ha già acquistato questa visita
         const user = await User.findById(userId) 
         const alreadyPurchased = user.purchasedVisits.some(p => p.toString() === visitId);
         if (alreadyPurchased) {
@@ -246,20 +267,45 @@ const purchaseVisit = async (req, res) => {
 
 const purchaseItem = async (req, res) => {
     try {
-        const itemId = req.body.itemId;
-        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware 'authorization        
+        console.log("Acquisto item - request body:", req.body);
+        const itemId = req.body.itemId;   
+        const userId = req.userId;      
 
+        // Verifica che l'item esiste
         const item = await Item.findById(itemId);
         if (!item) {
             return res.status(404).json({ status: 'error', message: 'Item non trovato' });
         }   
+        
+        // Verifica se l'utente ha già acquistato questo item 
+        const user = await User.findById(userId) 
+        const alreadyPurchased = user.purchasedItems.some(i => i.toString() === itemId);
+        if (alreadyPurchased) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Hai già acquistato questo contenuto' 
+            });
+        }
+
+        user.purchasedItems.push(itemId);
+        await user.save();
+
+        //retrieve items posseduti, per mostrare in frontend (es. disabilitare pulsante acquisto se già acquistata)
+        let purchasedItems = [];
+        if (userId) {
+            //const user = await User.findById(userId);
+            //purchasedItems = user.purchasedVisits.map(i => i.itemId.toString());
+            purchasedItems = user.purchasedItems.map(i => {console.log(i); i.toString()});
+        }
+
         return res.status(200).json({
             status: 'success',
-            message: 'Item acquistato con successo',
+            message: 'Visita acquistata con successo',
             data: {
-                item
+                item: item,
+                purchasedItems: purchasedItems 
             }
-        });
+        }); 
 
     } catch (err) {
         console.error("Errore durante l'acquisto dell'item:", err);

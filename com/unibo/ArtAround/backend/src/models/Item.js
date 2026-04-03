@@ -36,9 +36,8 @@ const ItemSchema = new mongoose.Schema({
     },
 
     //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
-    museum: { 
-        type: String, //mongoose.Schema.Types.ObjectId,
-        ref: 'Museum', 
+    museumId: { 
+        type: String, //mongoose.Schema.Types.ObjectId, ref: 'Museum', 
         //required : true 
     },
 

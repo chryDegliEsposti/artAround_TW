@@ -138,7 +138,7 @@
 
             <!-- Griglie Prodotti -->
             <div x-show="activeTab==='visits'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- VISITE CARD -->
+                <!-- CARD VISITS -->
                 <template x-for="visit in filteredVisits" :key="visit._id">
                     <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group">
                         <!-- Immagine copertina -->
@@ -200,54 +200,59 @@
                     </div>
                 </template>
             </div>
-       
+            
+            <!-- CARD ITEMS -->
             <div x-show="activeTab==='items'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <!-- ITEMS CARD -->
                 <template x-for="item in filteredItems" :key="item._id">
-                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden">
-                        <div class="h-32 bg-gradient-to-r from-blue-500 to-purple-500 relative">
+                    <div class="bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow overflow-hidden group">
+                        <div class="h-40 bg-gradient-to-r from-blue-500 to-purple-500 relative">
                             <div class="absolute top-3 right-3">
-                                <!-- 1st price badge -->
-                                <span x-show="item?.price && item?.price > 0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
-                                    €<span x-text="item?.price"></span>
+                                <span x-show="ownedItems.includes(item._id)" 
+                                    class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                    <i class="fas fa-check-circle mr-1"></i>Posseduto
                                 </span>
-                                <span x-show="!item?.price || item?.price === 0" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                                <span x-show="!ownedItems.includes(item._id) && item.price && item.price>0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
+                                    €<span x-text="item.price"></span>
+                                </span>
+                                <span x-show="!ownedItems.includes(item._id) && (!item.price || item.price===0)" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                                     Gratis
                                 </span>
                             </div>
+
                             <div class="absolute bottom-3 left-3">
                                 <span class="bg-gray-900 bg-opacity-75 text-white text-xs px-2 py-1 rounded-full">
-                                    <i class="far fa-clock mr-1"></i><span x-text="item.duration"></span>s
+                                    <i class="far fa-clock mr-1"></i><span x-text="item.duration"></span> min
                                 </span>
                             </div>
                         </div>
                         
                         <div class="p-4">
-                            <h3 class="font-bold text-gray-800 mb-1 line-clamp-1" x-text="item.title || 'Senza titolo'"></h3>
-                            <p class="text-gray-500 text-sm mb-2 line-clamp-2" x-text="item.description || 'Nessuna descrizione'"></p>
+                            <h3 class="font-bold text-gray-800 text-lg mb-1 line-clamp-1" x-text="item.title"></h3>
+                            <p class="text-gray-500 text-sm mb-3 line-clamp-2" x-text="item.description || 'Nessuna descrizione'"></p>
                             
-                            <div class="flex items-center space-x-3 text-xs text-gray-500 mb-3">
-                                <span><i class="fas fa-language mr-1"></i><span x-text="item.language || 'it'"></span></span>
-                                <span><i class="fas fa-tag mr-1"></i><span x-text="item.level || 'base'"></span></span>
+                            <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                <span><i class="fas fa-palette mr-1"></i>Item d'arte</span>
+                                <span><i class="fas fa-user mr-1"></i><span x-text="item.createdBy?.username || 'Anonimo'"></span></span>
                             </div>
                             
                             <div class="flex items-center justify-between mt-2">
                                 <div>
-                                    <!-- 2nd price badge-->
-                                    <span x-show="item?.price && item?.price > 0" class="text-xl font-bold text-purple-600">
-                                        €<span x-text="item?.price.toFixed(2)"></span>
+                                    <span x-show="!ownedItems.includes(item._id) && item.price && item.price>0" class="text-xl font-bold text-purple-600">
+                                        €<span x-text="(item.price || 0).toFixed(2)"></span>
                                     </span>
-                                    <span x-show="!item?.price || item?.price === 0" class="text-green-600 font-medium">
+                                    <span x-show="!ownedItems.includes(item._id) && (!item.price || item.price===0)" class="text-green-600 font-medium">
                                         <i class="fas fa-check-circle mr-1"></i>Gratuito
                                     </span>
                                 </div>
-                                <!-- Buy button -->
+
                                 <button 
                                     @click="purchaseItem(item)"
-                                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                                    :class="ownedItems.includes(item._id) ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'"
+                                    class="px-4 py-2 text-white rounded-lg transition-colors text-sm"
                                 >
-                                    <i class="fas fa-shopping-cart mr-1"></i>
-                                    <span x-text="purchasing[item._id] ? 'Acquisto...' : 'Acquista'"></span>
+                                    <i class="fas mr-1" :class="ownedItems.includes(item._id) ? 'fa-check' : 'fa-shopping-cart'"></i>
+                                    
+                                    <span x-text="ownedItems.includes(item._id) ? 'Posseduto' : (purchasing[item._id] ? 'Caricamento...' : 'Acquista')"></span>
                                 </button>
                             </div>
                         </div>
@@ -321,10 +326,12 @@
                         const itemsRes = await fetch('/api/v1/marketplace/browse/items', {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
-
                         if (itemsRes.ok) {
                             const data = await itemsRes.json();
                             this.items = data.data.items || [];
+                            this.ownedItems = data.data.purchasedItems || [];
+                            console.log('Items caricati:', this.items.length);
+                            console.log('Items posseduti:', this.ownedItems);
                         }
                         
                     } catch (error) {
@@ -438,10 +445,10 @@
                             
                             if (response.ok) {
                                 alert(`Acquisto completato! ${visit.title} è ora nella tua libreria.`);
-                                // Opzionale: ricarica i dati
                                 if (!this.ownedVisits.includes(visit._id)) {
-                                    this.ownedVisits = [...this.ownedVisits, visit._id];
+                                    this.ownedVisits = [...this.ownedVisits, visit._id]; //manual refresh per mostrare subito visita come posseduta, senza dover ricaricare dati da API (che è più pesante e lento)
                                 }
+                                // Opzionale: ricarica i dati
                                 //await this.loadData();
                             } else {
                                 alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
@@ -457,48 +464,54 @@
                 },
                 
                 async purchaseItem(item) {
-                    console.log('🟢 purchaseItem chiamato!', item);
-                    alert('Acquisto item: ' + item?.title);
+                    console.log('🔵 purchaseItem chiamato!', item);
+                    if(!this.ownedItems.includes(item._id)){
+                        alert('Acquisto item: ' + item?.title);
 
-                    if (this.purchasing[item._id]) return;
-                    
-                    const token = localStorage.getItem('apiToken');
-                    if (!token) {
-                        alert('Devi effettuare il login per acquistare');
-                        window.location.href = '/marketplace/login';
-                        return;
-                    }
-                    
-                    this.purchasing[item._id] = true;
-                    console.log(item._id);
-                    
-                    try {
-                        const response = await fetch('/api/v1/marketplace/purchase/item', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                type: 'item',
-                                itemId: item._id,
-                                price: item.price || 0
-                            })
-                        });
+                        if (this.purchasing[item._id]) return;
                         
-                        const data = await response.json();
-                        
-                        if (response.ok) {
-                            alert(`Acquisto completato! ${item.title} è ora nella tua libreria.`);
-                        } else {
-                            alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
+                        const token = localStorage.getItem('apiToken');
+                        if (!token) {
+                            alert('Devi effettuare il login per acquistare');
+                            window.location.href = '/marketplace/login';
+                            return;
                         }
                         
-                    } catch (error) {
-                        console.error('Errore acquisto:', error);
-                        alert('Errore durante l\'acquisto');
-                    } finally {
-                        this.purchasing[item._id] = false;
+                        this.purchasing[item._id] = true;
+                        console.log(item._id);
+                        
+                        try {
+                            const response = await fetch('/api/v1/marketplace/purchase/item', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                    type: 'item',
+                                    itemId: item._id,
+                                    price: item.price
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            
+                            if (response.ok) {
+                                alert(`Acquisto completato! ${item.title} è ora nella tua libreria.`);
+                                if (!this.ownedItems.includes(item._id)) {
+                                    this.ownedItems = [...this.ownedItems, item._id]; //manual refresh
+                                }
+                                //await this.loadData();
+                            } else {
+                                alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
+                            }
+                        
+                        } catch (error) {
+                            console.error('Errore acquisto:', error);
+                            alert('Errore durante l\'acquisto');
+                        } finally {
+                            this.purchasing[item._id] = false;
+                        }
                     }
                 }
             }
