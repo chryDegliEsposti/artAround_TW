@@ -1,0 +1,62 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Museum join</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </head>
+    
+    <body>
+        <main class="max-w-3xl mx-auto px-4 py-12" x-data="joinMuseumSearch()">
+            <div class="mb-6">
+                <a href="/marketplace/homepage" class="text-purple-600 hover:text-purple-800 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Homepage
+                </a>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2 italic">Trova la tua Struttura</h2>
+                <p class="text-gray-500 mb-8">Cerca un museo esistente per collaborare alla creazione di contenuti.</p>
+
+                <div class="relative mb-8">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" 
+                        x-model="query" 
+                        @input.debounce.500ms="search"
+                        placeholder="Digita il nome del museo (es: Uffizi...)"
+                        class="w-full pl-12 pr-4 py-4 bg-gray-50 rounded-2xl border-2 border-transparent focus:border-purple-500 focus:bg-white outline-none transition-all text-lg shadow-inner">
+                </div>
+
+                <div class="space-y-4">
+                    <template x-if="loading">
+                        <div class="text-center py-10"><i class="fas fa-spinner animate-spin text-3xl text-purple-600"></i></div>
+                    </template>
+
+                    <template x-for="museum in results" :key="museum._id">
+                        <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-purple-50 transition group">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                                    <i class="fas fa-university"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-gray-800" x-text="museum.name"></h4>
+                                    <p class="text-sm text-gray-500" x-text="museum.city"></p>
+                                </div>
+                            </div>
+                            <button @click="requestJoin(museum._id)" 
+                                class="bg-white border-2 border-purple-600 text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-600 hover:text-white transition">
+                                Richiedi Accesso
+                            </button>
+                        </div>
+                    </template>
+
+                    <template x-if="query.length > 2 && results.length === 0 && !loading">
+                        <div class="text-center py-10 text-gray-500 italic">Nessun museo trovato con questo nome.</div>
+                    </template>
+                </div>
+            </div>
+        </main>
+    </body>
+</html>

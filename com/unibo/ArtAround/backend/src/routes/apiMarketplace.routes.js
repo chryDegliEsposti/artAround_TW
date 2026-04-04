@@ -14,6 +14,11 @@ apiMarketplaceRouter.post("/create/items", authorization, apiMarketplaceControll
 apiMarketplaceRouter.post("/create/visits", authorization, apiMarketplaceController.createVisit)
 apiMarketplaceRouter.get('/create/searchItems', authorization, apiMarketplaceController.searchItemsForVisit); //to search items for visit creation 
 
+// --- MUSEUMS SECTION---
+/*apiMarketplaceRouter.post("/create/museum", authorization, apiMarketplaceController.createMuseum) //fetch from createMuseum(frontend)
+apiMarketplaceRouter.post("/join/museum", authorization, apiMarketplaceController.joinMuseum) //fetch from joinMuseum(frontend)
+//apiMarketplaceRouter.get("/myMuseums", authorization, apiMarketplaceController.getMyMuseums) //fetch from homepage(frontend) to show user's museums in dropdown menu
+*/
 
 // --- BROWSING SECTION---
 apiMarketplaceRouter.get("/browse/visits", authorization, apiMarketplaceController.getVisitsForBrowsing) //fetch from browseMarket(frontend)

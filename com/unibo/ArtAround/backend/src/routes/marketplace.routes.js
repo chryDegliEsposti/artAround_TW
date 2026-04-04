@@ -8,13 +8,15 @@ marketplaceRouter.get("/", marketplaceController.getIndex)
 marketplaceRouter.get("/registration", marketplaceController.getSignup)  
 marketplaceRouter.get("/login", marketplaceController.getLogin)  
 
-//marketplaceRouter.get("/registration", marketplaceController.getSignup)
-//marketplaceRouter.get("/login", marketplaceController.getLogin)
 
 //protected routes
 marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage) //from login/signup
 marketplaceRouter.get("/homepage/createItems", authorization, marketplaceController.getCreateItems) //from homepage
 marketplaceRouter.get("/homepage/createVisits", authorization, marketplaceController.getCreateVisits) //from homepage
+
+marketplaceRouter.get("/homepage/newMuseum", authorization, marketplaceController.getNewMuseum) //from homepage
+marketplaceRouter.get("/homepage/joinMuseum", authorization, marketplaceController.getJoinMuseum) //from homepage
+
 marketplaceRouter.get("/browseMarket", authorization, marketplaceController.getBrowseMarket) //from homepage
 
 

@@ -1,0 +1,175 @@
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Museum creation</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    </head>
+
+    <body>
+        <main class="max-w-6xl mx-auto px-4 py-12" x-data="createMuseumManager()">
+            <!-- back to homepage -->
+            <div class="mb-6">
+                <a href="/marketplace/homepage" class="text-purple-600 hover:text-purple-800 flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Homepage
+                </a>
+            </div>
+            
+            <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+                <div class="bg-purple-600 p-6 text-white">
+                    <h2 class="text-2xl font-bold italic"><i class="fas fa-university mr-3"></i>Registra il tuo Museo</h2>
+                </div>
+
+                <div class="p-8 space-y-8">
+                    <section class="grid md:grid-cols-3 gap-6 pb-8 border-b">
+                        <div class="md:col-span-1">
+                            <h3 class="font-bold text-gray-800">Dettagli nuovo Museo</h3>
+                            <p class="text-purple-500 ">Inserisci i dettagli per creare il profilo del nuovo museo da mostrare su ArtAround.</p>
+                        </div>
+                        <div class="md:col-span-2 grid grid-cols-2 gap-4">
+                            <div class="col-span-2">
+                                <label class="block text-sm font-semibold mb-1">Codice Identificativo Unico</label>
+                                <div class="relative">
+                                    <input type="text" x-model="museumData.customCode" @input.debounce.500ms="checkCode"
+                                        class="w-full px-4 py-2 rounded-lg border focus:ring-2 outline-none uppercase"
+                                        :class="codeStatus === 'taken' ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-purple-500'"
+                                        placeholder="ES: GALLERIA-ARTE-01">
+                                    <span class="absolute right-3 top-2 text-sm" 
+                                        :class="codeStatus === 'taken' ? 'text-red-500' : 'text-green-500'"
+                                        x-text="codeMessage"></span>
+                                </div>
+                            </div>
+                            <input type="text" x-model="museumData.name" placeholder="Nome Museo" class="col-span-2 p-2 border rounded">
+                            <input type="text" x-model="museumData.city" placeholder="Città" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.address" placeholder="Indirizzo" class="p-2 border rounded">
+                        </div>
+                    </section>
+
+                    <section class="grid md:grid-cols-2 gap-8">
+                        <div class="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
+                            <h4 class="font-bold text-purple-700 mb-4"><i class="fas fa-cube mr-2"></i>Crea Nuovo Item</h4>
+                            <div class="space-y-4">
+                                <input type="text" x-model="tempItem.title" placeholder="Titolo Opera/Item" class="w-full p-2 border rounded">
+                                <textarea x-model="tempItem.description" placeholder="Descrizione" class="w-full p-2 border rounded"></textarea>
+                                <div class="flex gap-2">
+                                    <input type="number" x-model="tempItem.price" placeholder="Prezzo €" class="w-1/2 p-2 border rounded">
+                                    <button @click="addItemToList()" type="button"
+                                        class="w-1/2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
+                                        Aggiungi a lista
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="font-bold text-gray-800 mb-4">Item pronti per la registrazione (<span x-text="itemsList.length"></span>)</h4>
+                            <div class="space-y-2 max-h-64 overflow-y-auto pr-2">
+                                <template x-for="(item, index) in itemsList" :key="index">
+                                    <div class="flex justify-between items-center p-3 bg-white border rounded-lg shadow-sm group">
+                                        <div>
+                                            <p class="font-bold text-sm text-gray-800" x-text="item.title"></p>
+                                            <p class="text-xs text-purple-600">€ <span x-text="item.price || '0.00'"></span></p>
+                                        </div>
+                                        <button @click="removeItem(index)" class="text-gray-300 hover:text-red-500 transition">
+                                            <i class="fas fa-times-circle"></i>
+                                        </button>
+                                    </div>
+                                </template>
+                                <template x-if="itemsList.length === 0">
+                                    <p class="text-sm text-gray-400 italic text-center py-10">Nessun item aggiunto ancora.</p>
+                                </template>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="pt-6 border-t flex justify-end">
+                        <button @click="saveEverything()" 
+                            :disabled="codeStatus === 'taken' || !museumData.name"
+                            class="bg-green-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                            Finalizza Registrazione Museo e Item
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- FOOTER -->
+        <footer class="bg-gray-800 text-white py-8 mt-12">
+            <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
+                <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+            </div>
+        </footer>
+
+
+        <script>
+            function createMuseumManager() {
+                return {
+                    museumData: { customCode: '', name: '', city: '', address: '' },
+                    codeStatus: '', // 'available', 'taken'
+                    codeMessage: '',
+                    
+                    // Gestione Item
+                    tempItem: { title: '', description: '', price: '' },
+                    itemsList: [],
+
+                    // 1. Controllo Codice Unico
+                    async checkCode() {
+                        if (this.museumData.customCode.length < 3) return;
+                        try {
+                            const res = await fetch(`/api/v1/museums/check-code?code=${this.museumData.customCode.toUpperCase()}`);
+                            const data = await res.json();
+                            if (data.exists) {
+                                this.codeStatus = 'taken';
+                                this.codeMessage = '❌ Già in uso';
+                            } else {
+                                this.codeStatus = 'available';
+                                this.codeMessage = '✅ Disponibile';
+                            }
+                        } catch (e) { console.error("Errore check codice"); }
+                    },
+
+                    // 2. Gestione Lista Locale
+                    addItemToList() {
+                        if (!this.tempItem.title) return alert("Inserisci almeno il titolo dell'item");
+                        this.itemsList.push({ ...this.tempItem });
+                        // Reset form item
+                        this.tempItem = { title: '', description: '', price: '' };
+                    },
+
+                    removeItem(index) {
+                        this.itemsList.splice(index, 1);
+                    },
+
+                    // 3. Salvataggio Massivo
+                    async saveEverything() {
+                        if (this.codeStatus === 'taken') return alert("Cambia il codice identificativo!");
+                        
+                        try {
+                            const res = await fetch('/api/v1/museums/bulk-create', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
+                                },
+                                body: JSON.stringify({
+                                    museum: this.museumData,
+                                    items: this.itemsList
+                                })
+                            });
+
+                            if (res.ok) {
+                                alert('Museo e Item registrati con successo!');
+                                window.location.href = '/dashboard';
+                            }
+                        } catch (err) {
+                            alert('Errore durante il salvataggio.');
+                        }
+                    }
+                }
+            }
+        </script>
+
+    </body>
+</html>

@@ -140,6 +140,47 @@
                         </a>
                     </div>
                 </div>
+                
+                <!-- Menu opzioni Musei -->
+                <div class="relative" x-data="{ isMuseumMenuOpen: false }" x-show="userRole === 'creator' || userRole === 'owner'">
+                    <button @click="isMuseumMenuOpen = !isMuseumMenuOpen" 
+                            class="hover:text-purple-400 flex items-center focus:outline-none transition">
+                        <i class="fas fa-university mr-2"></i>
+                        I miei Musei
+                        <i class="fas fa-chevron-down ml-2 text-sm transition-transform"
+                        :class="{ 'rotate-180': isMuseumMenuOpen }"></i>
+                    </button>
+
+                    <div x-show="isMuseumMenuOpen"
+                        x-transition
+                        @click.away="isMuseumMenuOpen = false"
+                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                        
+                        <a href="/marketplace/homepage/newMuseum" 
+                            @click="isCreateMenuOpen = false"
+                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-b">
+                            <i class="fas fa-plus-circle mr-3 text-purple-500"></i>
+                            Crea Nuovo
+                        </a>
+
+                        <a href="/marketplace/homepage/joinMuseum" 
+                            @click="isCreateMenuOpen = false"
+                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-handshake mr-3 text-blue-600"></i>
+                            Unisciti
+                        </a>
+                        <!-- option: manage personal museum(s) -->
+                        <template x-for="museum in myMuseums" :key="museum._id">
+                            <a :href="'/marketplace/homepage/museum/' + museum._id" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-50 last:border-0">
+                                <div class="flex justify-between items-center">
+                                    <span class="font-medium" x-text="museum.name"></span>
+                                    <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+                                </div>
+                            </a>
+                        </template>
+                    </div>
+                </div>
+                
             </div>
         </div>
     </nav>
@@ -409,11 +450,46 @@
     </footer>
 
     <script>
-        function dashboard() {
+        function dashboard() { //TODO: dati interattivi user loggato("Hi ...")
             return {
-                init() {
-                    console.log('Dashboard loaded');
-                    // Qui puoi caricare dati dal backend
+                userRole: 'creator', // Dovrebbe venire dal tuo auth state o localStorage
+                myMuseums: [],
+                
+                async init() {
+                    // Recupera il ruolo dal localStorage salvato al login
+                    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+                    this.userRole = userData.role || 'visitor';
+                    
+                    if (this.userRole === 'creator') {
+                        await this.loadMyMuseums();
+                    }
+                    console.log('Dashboard initialized for:', this.userRole);
+                },
+
+                async loadMyMuseums() {
+                    try {
+                        const token = localStorage.getItem('apiToken');
+                        const res = await fetch('/api/v1/users/my-museums', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.myMuseums = json.data || [];
+                        }
+                    } catch (err) {
+                        console.error('Errore caricamento musei:', err);
+                        // Mock data per test se il backend non è pronto:
+                        // this.myMuseums = [{_id: '1', name: 'Museo Egizio', role: 'owner'}];
+                    }
+                },
+
+                openMuseumModal(mode) {
+                    // Qui puoi scatenare l'apertura di una modale o redirect
+                    if (mode === 'create') {
+                        window.location.href = '/marketplace/homepage/newMuseum';
+                    } else {
+                        window.location.href = '/marketplace/homepage/joinMuseum';
+                    }
                 }
             }
         }

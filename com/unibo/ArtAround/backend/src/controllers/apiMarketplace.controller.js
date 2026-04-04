@@ -131,6 +131,33 @@ const createVisit = async (req, res) => {
     }
 };
 
+/*const createMuseum = async (req, res) => {
+    try {
+        const { name, description } = req.body;
+        const newMuseum = await Museum.create({
+            name,
+            description,
+            creator: req.userId 
+        });
+
+        res.status(201).json({
+            status: 'success',
+            message: 'Museo creato con successo',
+            data: {
+                museum: newMuseum
+            }
+        });
+
+    } catch (err) {
+        console.error("Errore nel salvataggio del Museo:", err);
+        
+        res.status(400).json({
+            status: 'error',
+            message: err.message || 'Errore durante il salvataggio del museo'
+        });
+    }
+};*/
+
 const getVisitsForBrowsing = async (req, res) => {
     try {
         /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)

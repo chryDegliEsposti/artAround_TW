@@ -18,6 +18,8 @@ const getHomepage = servePage("homepage")
 const getCreateItems = servePage("createItems")
 const getCreateVisits = servePage("createVisits") 
 const getBrowseMarket = servePage("browseMarket")
+const getNewMuseum = servePage("newMuseum")
+const getJoinMuseum = servePage("joinMuseum")
 
 module.exports = {
     getIndex,
@@ -27,4 +29,6 @@ module.exports = {
     getCreateItems,
     getCreateVisits,
     getBrowseMarket,
+    getNewMuseum,
+    getJoinMuseum,
 };
