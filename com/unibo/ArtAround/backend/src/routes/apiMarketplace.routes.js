@@ -9,16 +9,17 @@ const authorization = require("../middlewares/auth.middleware");
 apiMarketplaceRouter.post("/create/items", authorization, apiMarketplaceController.createItems) //fetch createItems from frontend
 //apiMarketplaceRouter.get("/get-authors", authorization, apiMarketplaceController.searchAuthorForItem) //fetch from createItems(frontend)
 
-
 // --- VISITS SECTION---
 apiMarketplaceRouter.post("/create/visits", authorization, apiMarketplaceController.createVisit)
 apiMarketplaceRouter.get('/create/searchItems', authorization, apiMarketplaceController.searchItemsForVisit); //to search items for visit creation 
 
 // --- MUSEUMS SECTION---
-/*apiMarketplaceRouter.post("/create/museum", authorization, apiMarketplaceController.createMuseum) //fetch from createMuseum(frontend)
-apiMarketplaceRouter.post("/join/museum", authorization, apiMarketplaceController.joinMuseum) //fetch from joinMuseum(frontend)
+/*apiMarketplaceRouter.post("/join/museum", authorization, apiMarketplaceController.joinMuseum) //fetch from joinMuseum(frontend)
 //apiMarketplaceRouter.get("/myMuseums", authorization, apiMarketplaceController.getMyMuseums) //fetch from homepage(frontend) to show user's museums in dropdown menu
 */
+apiMarketplaceRouter.get("/museums/checkCode", authorization, apiMarketplaceController.checkMuseumCode) //fetch from createMuseum(frontend)
+apiMarketplaceRouter.post("/museums/create/", authorization, apiMarketplaceController.createMuseum) //fetch from createMuseum(frontend)
+
 
 // --- BROWSING SECTION---
 apiMarketplaceRouter.get("/browse/visits", authorization, apiMarketplaceController.getVisitsForBrowsing) //fetch from browseMarket(frontend)

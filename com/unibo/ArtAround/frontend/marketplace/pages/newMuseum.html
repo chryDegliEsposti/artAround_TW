@@ -32,7 +32,7 @@
                             <div class="col-span-2">
                                 <label class="block text-sm font-semibold mb-1">Codice Identificativo Unico</label>
                                 <div class="relative">
-                                    <input type="text" x-model="museumData.customCode" @input.debounce.500ms="checkCode"
+                                    <input type="text" x-model="museumData.code" @input.debounce.500ms="checkCode"
                                         class="w-full px-4 py-2 rounded-lg border focus:ring-2 outline-none uppercase"
                                         :class="codeStatus === 'taken' ? 'border-red-500 focus:ring-red-200' : 'border-gray-300 focus:ring-purple-500'"
                                         placeholder="ES: GALLERIA-ARTE-01">
@@ -42,8 +42,11 @@
                                 </div>
                             </div>
                             <input type="text" x-model="museumData.name" placeholder="Nome Museo" class="col-span-2 p-2 border rounded">
-                            <input type="text" x-model="museumData.city" placeholder="Città" class="p-2 border rounded">
+                            <span class="md:col-span-1 text-sm text-gray-500">Posizione geografica struttura</span> <br>
                             <input type="text" x-model="museumData.address" placeholder="Indirizzo" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.city" placeholder="Citta'" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.longitude" placeholder="Longitudine" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.latitude" placeholder="Latitudine" class="p-2 border rounded">
                         </div>
                     </section>
 
@@ -55,8 +58,8 @@
                                 <textarea x-model="tempItem.description" placeholder="Descrizione" class="w-full p-2 border rounded"></textarea>
                                 <div class="flex gap-2">
                                     <input type="number" x-model="tempItem.price" placeholder="Prezzo €" class="w-1/2 p-2 border rounded">
-                                    <button @click="addItemToList()" type="button"
-                                        class="w-1/2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
+                                    <button @click="addItemToList()" type="button" class="w-1/2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
+                                        <i class="fas fa-save mr-2"></i>
                                         Aggiungi a lista
                                     </button>
                                 </div>
@@ -88,7 +91,7 @@
                         <button @click="saveEverything()" 
                             :disabled="codeStatus === 'taken' || !museumData.name"
                             class="bg-green-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            Finalizza Registrazione Museo e Item
+                            <i class="fas fa-cloud-upload-alt mr-2"></i> Finalizza Registrazione Museo e Item
                         </button>
                     </div>
                 </div>
@@ -106,8 +109,8 @@
         <script>
             function createMuseumManager() {
                 return {
-                    museumData: { customCode: '', name: '', city: '', address: '' },
-                    codeStatus: '', // 'available', 'taken'
+                    museumData: { code: '', name: '', address: '', city: '', longitude: '', latitude: '' },
+                    codeStatus: '', // museumId: 'available', 'taken'
                     codeMessage: '',
                     
                     // Gestione Item
@@ -116,16 +119,16 @@
 
                     // 1. Controllo Codice Unico
                     async checkCode() {
-                        if (this.museumData.customCode.length < 3) return;
+                        if (this.museumData.code.length < 3) return;
                         try {
-                            const res = await fetch(`/api/v1/museums/check-code?code=${this.museumData.customCode.toUpperCase()}`);
+                            const res = await fetch(`/api/v1/marketplace/museums/checkCode?code=${this.museumData.code.toUpperCase()}`);
                             const data = await res.json();
                             if (data.exists) {
                                 this.codeStatus = 'taken';
                                 this.codeMessage = '❌ Già in uso';
                             } else {
                                 this.codeStatus = 'available';
-                                this.codeMessage = '✅ Disponibile';
+                                this.codeMessage = '✅ Codice disponibile';
                             }
                         } catch (e) { console.error("Errore check codice"); }
                     },
@@ -147,7 +150,7 @@
                         if (this.codeStatus === 'taken') return alert("Cambia il codice identificativo!");
                         
                         try {
-                            const res = await fetch('/api/v1/museums/bulk-create', {
+                            const res = await fetch('/api/v1/marketplace/museums/create', {
                                 method: 'POST',
                                 headers: { 
                                     'Content-Type': 'application/json',
@@ -160,8 +163,8 @@
                             });
 
                             if (res.ok) {
-                                alert('Museo e Item registrati con successo!');
-                                window.location.href = '/dashboard';
+                                alert('Profilo dati museo registrato con successo!');
+                                window.location.href = '/marketplace/homepage';
                             }
                         } catch (err) {
                             alert('Errore durante il salvataggio.');

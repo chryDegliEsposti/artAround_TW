@@ -6,7 +6,8 @@ const ItemSchema = new mongoose.Schema({
         type: String,
         enum: ['artwork', 'artist', 'style', 'movement', 'historical_event', 'other'],
         required: true,
-        default: 'artwork'
+        //default: 'artwork'
+        default: 'other'
     },
     artworkId: {
         type: String,
@@ -27,18 +28,18 @@ const ItemSchema = new mongoose.Schema({
     length: {
         type: String,
         enum: ['3s', '15s', '1min', '4min'], 
-        required: true
+        //required: true
     },
     languageLevel: {
         type: String,
         enum: ['infantile', 'elementare', 'medio', 'specialistico'],
-        required: true
+        //required: true
     },
 
     //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
     museumId: { 
-        type: String, //mongoose.Schema.Types.ObjectId, ref: 'Museum', 
-        //required : true 
+        type: String, 
+        required : true 
     },
 
     //For the artworks MARKETPLACE

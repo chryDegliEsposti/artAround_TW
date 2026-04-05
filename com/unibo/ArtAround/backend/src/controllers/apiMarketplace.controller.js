@@ -1,6 +1,7 @@
 const Item = require('../models/Item');
 const Visit = require('../models/Visit');
 const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
+const Museum = require('../models/Museum'); //per check codice museo in createMuseum
 
 const createItems = async (req, res) => {
     try {
@@ -131,20 +132,78 @@ const createVisit = async (req, res) => {
     }
 };
 
-/*const createMuseum = async (req, res) => {
+const checkMuseumCode = async (req, res) => {
     try {
-        const { name, description } = req.body;
+        const { code } = req.query;
+        const existingMuseum = await Museum.findOne({ museumId: code.toUpperCase() });
+        let exists;
+        if(existingMuseum) {
+            exists = true;
+        }else {
+            exists = false;
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                exists: exists 
+            }
+        });
+
+    } catch (err) {
+        console.error("Errore durante la verifica del codice museo:", err);
+        
+        res.status(500).json({
+            status: 'error',
+            message: err.message || 'Errore durante la verifica del codice museo'
+        });
+    }
+};
+
+const createMuseum = async (req, res) => {
+    try {
+        console.log("Creazione museo - request body:", req.body);
+
+        const { museum, items } = req.body;
+        const userId = req.userId; 
+        
+        //--- Sequential operations BLOCK for museum creation 
+        // 1. Check museumId uniqueness 
+        const existingMuseum = await Museum.findOne({ museumId: museum.code.toUpperCase() });
+        if (existingMuseum) {
+            return res.status(400).json({ status: 'error', message: 'Il codice museo è già in uso.' });
+        }
+        // 2. Create Museum
         const newMuseum = await Museum.create({
-            name,
-            description,
-            creator: req.userId 
+            name: museum.name,
+            museumId: museum.code.toUpperCase(),
+            description: museum.description,
+            creator: userId,
+            city: museum.city,
+            address: museum.address,
+            longitude: museum.longitude,
+            latitude: museum.latitude,
+        });
+        // 3. Create and link Items (if any)  
+        if (items && items.length > 0) {
+            const itemsWithMuseumId = items.map(item => ({
+                ...item,
+                museumId: newMuseum.museumId, 
+                creator: userId
+            }));
+            await Item.insertMany(itemsWithMuseumId);
+        }
+        // 4. Add museum to user's managedMuseums 
+        await User.findByIdAndUpdate(userId, {
+            $push: { managedMuseums: newMuseum._id }
         });
 
         res.status(201).json({
             status: 'success',
             message: 'Museo creato con successo',
             data: {
-                museum: newMuseum
+                museum: newMuseum, 
+                itemsCount: items.length
             }
         });
 
@@ -156,7 +215,7 @@ const createVisit = async (req, res) => {
             message: err.message || 'Errore durante il salvataggio del museo'
         });
     }
-};*/
+};
 
 const getVisitsForBrowsing = async (req, res) => {
     try {
@@ -353,4 +412,7 @@ module.exports = {
     getItemsForBrowsing,
     purchaseVisit,
     purchaseItem,
+    checkMuseumCode,
+    createMuseum,
+
 }
