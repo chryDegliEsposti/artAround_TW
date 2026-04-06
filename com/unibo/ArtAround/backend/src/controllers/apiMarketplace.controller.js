@@ -184,7 +184,7 @@ const createMuseum = async (req, res) => {
             longitude: museum.longitude,
             latitude: museum.latitude,
         });
-        // 3. Create and link Items (if any)  
+        // 3. Create museum's items (if any)  
         if (items && items.length > 0) {
             const itemsWithMuseumId = items.map(item => ({
                 ...item,

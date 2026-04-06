@@ -28,12 +28,12 @@ const ItemSchema = new mongoose.Schema({
     length: {
         type: String,
         enum: ['3s', '15s', '1min', '4min'], 
-        //required: true
+        required: true
     },
     languageLevel: {
         type: String,
         enum: ['infantile', 'elementare', 'medio', 'specialistico'],
-        //required: true
+        required: true
     },
 
     //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
@@ -47,12 +47,12 @@ const ItemSchema = new mongoose.Schema({
         type: String, 
         enum: [
             'CC0',           // Public domain
-            'CC BY',         // Uso libero con attribuzione
-            'CC BY-SA',      // Uso libero con stessa licenza
-            'CC BY-NC',      // Non commerciale
-            'CC BY-ND',      // No modifiche
-            'CC BY-NC-SA',   // Non commerciale + stessa licenza
-            'CC BY-NC-ND',   // Non commerciale + no modifiche
+            'CC-BY',         // Uso libero con attribuzione
+            'CC-BY-SA',      // Uso libero con stessa licenza
+            'CC-BY-NC',      // Non commerciale
+            'CC-BY-ND',      // No modifiche
+            'CC-BY-NC-SA',   // Non commerciale + stessa licenza
+            'CC-BY-NC-ND',   // Non commerciale + no modifiche
             'Proprietary',   // Tutti i diritti riservati
             'Custom'         // Licenza personalizzata
         ],

@@ -13,8 +13,8 @@ const MuseumSchema = new mongoose.Schema({
     collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], //list partecipanti museo (oltre al creator)
 
     //mapLink: { type: String }
+    //imageLink: { type: String }
 
-    
 }, { timestamps: true });
 
 module.exports = mongoose.model('Museum', MuseumSchema);

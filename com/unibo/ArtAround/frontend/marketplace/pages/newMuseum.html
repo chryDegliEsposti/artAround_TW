@@ -50,12 +50,91 @@
                         </div>
                     </section>
 
+                    <!-- Linked Items to add section -->
                     <section class="grid md:grid-cols-2 gap-8">
                         <div class="bg-gray-50 p-6 rounded-xl border border-dashed border-gray-300">
                             <h4 class="font-bold text-purple-700 mb-4"><i class="fas fa-cube mr-2"></i>Crea Nuovo Item</h4>
-                            <div class="space-y-4">
-                                <input type="text" x-model="tempItem.title" placeholder="Titolo Opera/Item" class="w-full p-2 border rounded">
+                            <div class="space-y-4">     
+                                <!-- Type -->                           
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo item</label>
+                                    <select x-model="tempItem.itemType" class="w-full border rounded-lg p-3">
+                                        <option value="artwork">Opera</option>
+                                        <option value="artist">Artista</option>
+                                        <option value="style">Stile</option>
+                                    </select>
+                                </div>
+
+                                <!-- Search Item's OBJECT(from DB or Wikidata) -->
+                                <div class="relative">
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Cerca autore, movimento, o stile (DB o Wikidata)</label>
+                                    <div class="flex gap-2">
+                                        <input type="text" x-model="searchQuery" @input.debounce.500ms="search"
+                                            class="flex-1 border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-purple-500 outline-none"
+                                            placeholder="Es: Caravaggio, Impressionismo...">
+                                    </div>
+                                    <!-- Dropdown menu for the results -->
+                                    <div x-show="results.length > 0" class="absolute z-10 w-full bg-white border rounded-lg mt-1 shadow-xl max-h-60 overflow-y-auto">
+                                        <template x-for="res in results">
+                                            <div @click="selectSubject(res)" @click.away="results = []" class="p-3 hover:bg-purple-50 cursor-pointer flex justify-between border-b last:border-0">
+                                                <div>
+                                                    <span class="font-bold text-gray-800" x-text="res.name"></span>
+                                                    <p class="text-xs text-gray-500" x-text="res.description || ''"></p>
+                                                </div>
+                                                <span class="text-[10px] uppercase font-bold px-2 py-1 bg-gray-100 rounded self-center" x-text="res.source"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <div class="grid md:grid-cols-2 gap-6 mb-6">
+                                    <!-- Description length -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Lunghezza Contenuto</label>
+                                        <select x-model="tempItem.length" class="w-full border rounded-lg p-3">
+                                            <option value="3s">3 Secondi (Titolo/Flash)</option>
+                                            <option value="15s">15 Secondi (Breve)</option>
+                                            <option value="1min">1 Minuto (Approfondito)</option>
+                                            <option value="4min">4 Minuti (Specialistico)</option>
+                                        </select>
+                                    </div>
+                                    <!-- Description lang lvl -->
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">Target Audience</label>
+                                        <select x-model="tempItem.languageLevel" class="w-full border rounded-lg p-3">
+                                            <option value="infantile">Infantile / Bambini</option>
+                                            <option value="elementare">Semplice / Turista</option>
+                                            <option value="medio">Intermedio</option>
+                                            <option value="specialistico">Specialistico / Esperto</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <!-- Description -->
                                 <textarea x-model="tempItem.description" placeholder="Descrizione" class="w-full p-2 border rounded"></textarea>
+                                
+                                 <!-- LICENSE DROPDOWN-->
+                                <div x-show="tempItem.itemType === 'artwork'" x-transition.duration.300ms>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-file-contract mr-1 text-purple-600"></i>
+                                        Licenza
+                                    </label>
+                                    <select x-model="tempItem.license" class="w-full border rounded-lg p-3">
+                                        <option value="CC0">CC0 - Pubblico Dominio (nessuna restrizione)</option>
+                                        <option value="CC-BY">CC BY - Attribuzione (condividi con credito)</option>
+                                        <option value="CC-BY-SA">CC BY-SA - Attribuzione e Condividi allo stesso modo</option>
+                                        <option value="CC-BY-NC">CC BY-NC - Attribuzione, Non commerciale</option>
+                                        <option value="CC-BY-ND">CC BY-ND - Attribuzione, Non opere derivate</option>
+                                        <option value="CC-BY-NC-SA">CC BY-NC-SA - Attribuzione, Non commerciale</option>
+                                        <option value="CC-BY-NC-ND">CC BY-NC-ND - Attribuzione, Non opere derivate</option>
+                                        <option value="Proprietary">Copyright - Tutti i diritti riservati</option>
+                                        <option value="Custom">Custom - ...</option>
+                                    </select>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        La licenza determina come altri possono utilizzare il tuo contenuto
+                                    </p>
+                                </div>       
+                                
                                 <div class="flex gap-2">
                                     <input type="number" x-model="tempItem.price" placeholder="Prezzo €" class="w-1/2 p-2 border rounded">
                                     <button @click="addItemToList()" type="button" class="w-1/2 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700 transition">
@@ -109,15 +188,19 @@
         <script>
             function createMuseumManager() {
                 return {
+                    // Form STATE for museum details
                     museumData: { code: '', name: '', address: '', city: '', longitude: '', latitude: '' },
                     codeStatus: '', // museumId: 'available', 'taken'
                     codeMessage: '',
                     
-                    // Gestione Item
-                    tempItem: { title: '', description: '', price: '' },
+                    tempItem: { title: '', description: '', price: '', length: '3s', languageLevel: 'infantile', itemType: 'artwork', artworkId: '', license: 'CC0' },
                     itemsList: [],
+                    // Item's related info SEARCH STATE
+                    searchQuery: '',
+                    results: [],
+                    isSearching: false,
 
-                    // 1. Controllo Codice Unico
+                    //***--- 1.check museumId uniqueness ---****
                     async checkCode() {
                         if (this.museumData.code.length < 3) return;
                         try {
@@ -133,19 +216,75 @@
                         } catch (e) { console.error("Errore check codice"); }
                     },
 
-                    // 2. Gestione Lista Locale
+                    //***--- 2.Manage items to be registered with the museum profile ---***
                     addItemToList() {
-                        if (!this.tempItem.title) return alert("Inserisci almeno il titolo dell'item");
+                        if (!this.tempItem.title || !this.tempItem.description || !this.tempItem.price || !this.tempItem.length || !this.tempItem.languageLevel || !this.tempItem.itemType || !this.tempItem.artworkId) {
+                            if(this.tempItem.itemType === 'artwork' && !this.tempItem.license) {
+                                return alert("Inserisci i campi richiesti per registrare l'item(license needed too)!");
+                            }
+                            return alert("Inserisci i campi richiesti per registrare l'item!");
+                        }
                         this.itemsList.push({ ...this.tempItem });
                         // Reset form item
-                        this.tempItem = { title: '', description: '', price: '' };
+                        this.tempItem = { title: '', description: '', price: '', length: '3s', languageLevel: 'infantile', itemType: 'artwork', artworkId: '', license: 'CC0' };
                     },
 
                     removeItem(index) {
                         this.itemsList.splice(index, 1);
                     },
 
-                    // 3. Salvataggio Massivo
+                    // Logica di ricerca (Locale + Fallback Wikidata)
+                    async search() {
+                        if (this.searchQuery.length < 3) {
+                            this.results = [];
+                            return;
+                        }
+                        this.isSearching = true;
+                        try {
+                            // 1. Cerca nel tuo Database Locale
+                            /* TODO: connessione server endpoint per ricerca autori (es: /api/v1/marketplace/search-authors?q=caravaggio)
+
+                            const localResponse = await fetch(`/api/v1/marketplace/search-authors?q=${this.searchQuery}`);
+                            const localData = await localResponse.json();
+                            let combinedResults = (localData.authors || []).map(a => ({
+                                id: a.id,
+                                name: a.name,
+                                description: 'Contenuto già presente nel sistema',
+                                source: 'ArtAround'
+                            }));*/
+                            
+                            let combinedResults = []
+                            // 2. Se pochi risultati locali, cerca su Wikidata
+                            if (combinedResults.length < 3) {
+                                const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
+                                const wikiResponse = await fetch(wikiUrl);
+                                const wikiData = await wikiResponse.json();
+
+                                const wikiResults = (wikiData.search || []).map(i => ({
+                                    id: i.id,
+                                    name: i.label,
+                                    description: i.description,
+                                    source: 'Wikidata'
+                                }));
+                                combinedResults = [...combinedResults, ...wikiResults];
+                            }
+                            this.results = combinedResults;
+                        } catch (err) {
+                            console.error("Errore durante la ricerca:", err);
+                        } finally {
+                            this.isSearching = false;
+                        }
+                    },
+
+                    // Dropdown menu option selection
+                    selectSubject(item) {
+                        this.tempItem.artworkId = item.id;
+                        this.tempItem.title = item.name;
+                        this.searchQuery = item.name;
+                        this.results = []; // Chiude il dropdown
+                    },
+
+                    //***--- 3.Save museum profile and items to DB ---***
                     async saveEverything() {
                         if (this.codeStatus === 'taken') return alert("Cambia il codice identificativo!");
                         
