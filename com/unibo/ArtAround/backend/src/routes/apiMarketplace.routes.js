@@ -18,7 +18,8 @@ apiMarketplaceRouter.get('/create/searchItems', authorization, apiMarketplaceCon
 //apiMarketplaceRouter.get("/myMuseums", authorization, apiMarketplaceController.getMyMuseums) //fetch from homepage(frontend) to show user's museums in dropdown menu
 */
 apiMarketplaceRouter.get("/museums/checkCode", authorization, apiMarketplaceController.checkMuseumCode) //fetch from createMuseum(frontend)
-apiMarketplaceRouter.post("/museums/create/", authorization, apiMarketplaceController.createMuseum) //fetch from createMuseum(frontend)
+apiMarketplaceRouter.post("/museums/create", authorization, apiMarketplaceController.createMuseum) //fetch from createMuseum(frontend)
+apiMarketplaceRouter.get("/museums/search", authorization, apiMarketplaceController.searchMuseum) //fetch from joinMuseum(frontend)
 
 
 // --- BROWSING SECTION---

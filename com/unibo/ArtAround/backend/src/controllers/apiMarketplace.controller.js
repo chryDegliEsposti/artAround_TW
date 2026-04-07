@@ -217,6 +217,55 @@ const createMuseum = async (req, res) => {
     }
 };
 
+const searchMuseum = async (req, res) => {
+    try {
+        // 1. Recuperiamo i parametri dalla query string
+        // q: la stringa cercata (es: "Uffizi")
+        // field: il campo su cui cercare (es: "name" o "customCode")
+        const { q, field } = req.query;
+
+        // 2. Protezione: se la query è troppo corta, restituiamo un array vuoto
+        if (!q || q.length < 3) {
+            return res.status(200).json({
+                status: 'success',
+                data: []
+            });
+        }
+
+        // 3. Costruzione della Query Dinamica
+        // Usiamo le parentesi quadre [field] per usare il valore della variabile come chiave
+        const queryFilter = {};
+        // $regex: cerca la stringa all'interno del campo
+        // $options: 'i' rende la ricerca Case-Insensitive (ignora maiuscole/minuscole)
+        queryFilter[field] = { 
+            $regex: q, 
+            $options: 'i' 
+        };
+        console.log('Filtro di ricerca museo costruito:', queryFilter);
+        // 4. Esecuzione della ricerca
+        // .limit(10): non vogliamo sovraccaricare il frontend con troppi risultati
+        // .select(...): prendiamo solo i campi necessari per la lista UI
+        const museums = await Museum.find(queryFilter)
+            .select('name customCode city address')
+            .limit(10)
+            .lean(); // .lean() rende la query più veloce trasformandola in oggetti JS semplici
+
+        // 5. Risposta al frontend
+        res.status(200).json({
+            status: 'success',
+            results: museums.length,
+            data: museums
+        });
+
+    } catch (err) {
+        console.error('Errore durante la ricerca museo:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Errore interno del server durante la ricerca.'
+        });
+    }
+};
+
 const getVisitsForBrowsing = async (req, res) => {
     try {
         /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
@@ -414,5 +463,5 @@ module.exports = {
     purchaseItem,
     checkMuseumCode,
     createMuseum,
-
+    searchMuseum,
 }
