@@ -10,6 +10,12 @@ const MuseumSchema = new mongoose.Schema({
     longitude: { type: Number },
     latitude: { type: Number },
     creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+    pendingRequests: [{
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        requestedAt: { type: Date, default: Date.now }
+    }],
+
     collaborators: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], //list partecipanti museo (oltre al creator)
 
     //mapLink: { type: String }

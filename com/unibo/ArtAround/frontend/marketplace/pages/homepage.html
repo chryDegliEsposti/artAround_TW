@@ -169,6 +169,13 @@
                             <i class="fas fa-handshake mr-3 text-blue-600"></i>
                             Unisciti
                         </a>
+
+                        <a href="/marketplace/homepage/myMuseums" 
+                            @click="isCreateMenuOpen = false"
+                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
+                            <i class="fas fa-handshake mr-3 text-blue-600"></i>
+                            Lista musei
+                        </a>
                         <!-- option: manage personal museum(s) -->
                         <template x-for="museum in myMuseums" :key="museum._id">
                             <a :href="'/marketplace/homepage/museum/' + museum._id" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-50 last:border-0">
@@ -395,6 +402,7 @@
                         <p class="text-sm text-gray-500">78% di crescita questo mese</p>
                     </div>
                 </div>
+                
 
                 <!-- Quick Actions -->
                 <div class="bg-gradient-to-r from-purple-600 to-pink-500 rounded-xl shadow-md p-6 text-white">
@@ -454,6 +462,8 @@
             return {
                 userRole: 'creator', // Dovrebbe venire dal tuo auth state o localStorage
                 myMuseums: [],
+                pendingRequests: [],
+                loadingRequests: false,
                 
                 async init() {
                     // Recupera il ruolo dal localStorage salvato al login
@@ -461,12 +471,13 @@
                     this.userRole = userData.role || 'visitor';
                     
                     if (this.userRole === 'creator') {
-                        await this.loadMyMuseums();
+                        await this.loadMyMuseums(); 
+                        //TODO: check se serve caricare something utile
                     }
                     console.log('Dashboard initialized for:', this.userRole);
                 },
 
-                async loadMyMuseums() {
+                async loadMyMuseums() { //TODO: maybe serve ad init qualcosaltro
                     try {
                         const token = localStorage.getItem('apiToken');
                         const res = await fetch('/api/v1/users/my-museums', {
@@ -475,6 +486,7 @@
                         if (res.ok) {
                             const json = await res.json();
                             this.myMuseums = json.data || [];
+                            console.log('Musei caricati:', this.myMuseums);
                         }
                     } catch (err) {
                         console.error('Errore caricamento musei:', err);
@@ -490,7 +502,50 @@
                     } else {
                         window.location.href = '/marketplace/homepage/joinMuseum';
                     }
-                }
+                },
+
+                /* MAAAAYBE...
+                //methods for pending requests management (only for owners)
+                async fetchJoinRequests() {
+                    this.loadingRequests = true;
+                    try {
+                        const res = await fetch('/api/v1/marketplace/museums/pendingRequests', {
+                            headers: { 'Authorization': `Bearer ${localStorage.getItem('apiToken')}` }
+                        });
+                        console.log('Response pending requests:', res);
+                        const json = await res.json();
+                        
+                        // Filtriamo solo i musei che hanno effettivamente richieste pendenti
+                        this.pendingRequests = json.data.filter(m => m.requests.length > 0);
+                        console.log('Richieste pendenti caricate:', this.requests);
+                    } catch (err) {
+                        console.error("Errore recupero richieste:", err);
+                    } finally {
+                        this.loadingRequests = false;
+                    }
+                },
+
+                async handleJoinAction(museumId, requestId, action) {
+                    if (!confirm(`Sei sicuro di voler ${action === 'accept' ? 'accettare' : 'rifiutare'} questa richiesta?`)) return;
+
+                    try {
+                        const res = await fetch('/api/v1/marketplace/museums/handle-join', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
+                            },
+                            body: JSON.stringify({ museumId, requestId, action })
+                        });
+
+                        if (res.ok) {
+                            // Aggiorniamo la lista locale senza ricaricare la pagina
+                            await this.fetchJoinRequests();
+                        }
+                    } catch (err) {
+                        alert("Errore nell'operazione");
+                    }
+                }*/
             }
         }
     </script>

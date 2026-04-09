@@ -2,6 +2,8 @@ const Item = require('../models/Item');
 const Visit = require('../models/Visit');
 const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
 const Museum = require('../models/Museum'); //per check codice museo in createMuseum
+const mongoose = require('mongoose');
+
 
 const createItems = async (req, res) => {
     try {
@@ -266,6 +268,105 @@ const searchMuseum = async (req, res) => {
     }
 };
 
+const joinReqMuseum = async (req, res) => {
+    try {
+        const { museumId } = req.params; // ID del museo a cui si vuole richiedere l'accesso
+        const userId = req.userId; 
+
+        console.log(`User: ${userId} request to join museum: ${museumId}`);
+
+        // Verifica che il museo esista
+        const museum = await Museum.findById(museumId);
+        if (!museum) {
+            return res.status(404).json({ status: 'error', message: 'Museo non trovato' });
+        }
+
+        // Verifica se l'utente ha già richiesto di unirsi o è già collaboratore
+        if (museum.pendingRequests.includes(userId) || museum.collaborators.includes(userId)) { //TO-ADD:  || museum.creator.toString() === userId
+            return res.status(400).json({ status: 'error', message: 'Hai già accesso a questo museo o fatto richiesta di unirti' });
+        }
+
+        // Aggiungi l'utente alla lista dei collaboratori (in attesa di approvazione del creatore)
+        museum.pendingRequests.push({
+            userId: userId,
+            requestedAt: new Date()
+        });
+        await museum.save();
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Richiesta di collaborazione inviata con successo. Il creatore del museo riceverà una notifica per approvare la tua richiesta.',
+            data: {
+                museumId: museum._id,
+                museumName: museum.name
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore durante la richiesta di collaborazione al museo:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Errore interno del server durante la richiesta di collaborazione.'
+        });
+    }
+};
+
+/*const getPendingRequests = async (req, res) => {
+    try {
+        const userId = req.userId;
+        // Trova i musei di cui l'utente è creatore
+        const museums = await Museum.find({ creator: userId }); 
+        const pendingRequests = museums.map(museum => ({
+            museumId: museum._id,
+            museumName: museum.name,
+            requests: museum.pendingRequests 
+        }));
+        console.log('Richieste di collaborazione pendenti per i musei creati dall\'utente:', pendingRequests);
+        res.status(200).json({
+            status: 'success',
+            data: pendingRequests
+        });
+
+    } catch (err) {
+        console.error('Errore durante il recupero delle richieste di collaborazione:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Errore interno del server durante il recupero delle richieste di collaborazione.'
+        });
+    }
+};*/
+
+const getManagedMuseums = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        // Cerchiamo i musei dove l'utente è creator O collaboratore
+        // Usiamo i nomi dei campi esatti che hai nel DB (se è 'creator', usa 'creator')
+        const museums = await Museum.find({
+            $or: [
+                { creator: userId }, 
+                { collaborators: userId }
+            ]
+        })
+        .populate({
+            path: 'pendingRequests.userId',
+            select: 'username email', // Recupera solo questi dati dell'utente
+            model: 'User' 
+        })
+        .lean(); //mongoose docs -> js objs
+
+        console.log(`[Dashboard] Trovati ${JSON.stringify(museums,null,2)} musei per l'utente ${userId}`);
+
+        res.json({ 
+            status: 'success', 
+            data: museums 
+        });
+
+    } catch (err) {
+        res.status(500).json({ message: "Errore server" });
+    }
+}
+
 const getVisitsForBrowsing = async (req, res) => {
     try {
         /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
@@ -432,7 +533,6 @@ const purchaseItem = async (req, res) => {
             //purchasedItems = user.purchasedVisits.map(i => i.itemId.toString());
             purchasedItems = user.purchasedItems.map(i => {console.log(i); i.toString()});
         }
-
         return res.status(200).json({
             status: 'success',
             message: 'Visita acquistata con successo',
@@ -464,4 +564,6 @@ module.exports = {
     checkMuseumCode,
     createMuseum,
     searchMuseum,
+    joinReqMuseum,
+    getManagedMuseums,
 }

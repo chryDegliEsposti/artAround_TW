@@ -16,6 +16,7 @@ marketplaceRouter.get("/homepage/createVisits", authorization, marketplaceContro
 
 marketplaceRouter.get("/homepage/newMuseum", authorization, marketplaceController.getNewMuseum) //from homepage
 marketplaceRouter.get("/homepage/joinMuseum", authorization, marketplaceController.getJoinMuseum) //from homepage
+marketplaceRouter.get("/homepage/myMuseums", authorization, marketplaceController.getMyMuseums) //from homepage
 
 marketplaceRouter.get("/browseMarket", authorization, marketplaceController.getBrowseMarket) //from homepage
 

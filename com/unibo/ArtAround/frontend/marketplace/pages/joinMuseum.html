@@ -112,10 +112,10 @@
                     },
 
                     async requestJoin(museum) {
-                        if (!confirm(`Vuoi richiedere l'accesso per collaborare con "${museum.name}"?`)) return;
+                        if (!confirm(`Vuoi richiedere l'accesso per collaborare con "${museum}"?`)) return;
 
                         try {
-                            const response = await fetch(`/api/v1/marketplace/museums/${museum._id}/join`, {
+                            const response = await fetch(`/api/v1/marketplace/museums/join/${museum}`, {
                                 method: 'POST',
                                 headers: { 
                                     'Content-Type': 'application/json',
@@ -126,6 +126,7 @@
                             if (response.ok) {
                                 alert('Richiesta inviata con successo! Riceverai una notifica quando verrai approvato.');
                                 window.location.href = '/marketplace/homepage';
+
                             } else {
                                 const err = await response.json();
                                 alert(err.message || 'Errore nell\'invio della richiesta');
