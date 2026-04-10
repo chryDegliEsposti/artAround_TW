@@ -23,6 +23,7 @@ apiMarketplaceRouter.get("/museums/search", authorization, apiMarketplaceControl
 apiMarketplaceRouter.post("/museums/join/:museumId", authorization, apiMarketplaceController.joinReqMuseum) //fetch from joinMuseum(frontend)
 //apiMarketplaceRouter.get("/museums/pendingRequests", authorization, apiMarketplaceController.getPendingRequests) //fetch from homepage(frontend) to show pending requests in dashboard
 apiMarketplaceRouter.get("/museums/getManaged", authorization, apiMarketplaceController.getManagedMuseums) //fetch from homepage(frontend) to show pending requests in dashboard/myMuseums dropdown
+apiMarketplaceRouter.post("/museums/handleJoinRequest", authorization, apiMarketplaceController.handleJoinReq) //fetch from homepage(frontend) to show pending requests in dashboard/myMuseums dropdown
 
 
 // --- BROWSING SECTION---

@@ -355,7 +355,7 @@ const getManagedMuseums = async (req, res) => {
         })
         .lean(); //mongoose docs -> js objs
 
-        console.log(`[Dashboard] Trovati ${JSON.stringify(museums,null,2)} musei per l'utente ${userId}`);
+        console.log(`[Dashboard] Invio musei gestiti dall'utente ${userId}`);
 
         res.json({ 
             status: 'success', 
@@ -366,6 +366,60 @@ const getManagedMuseums = async (req, res) => {
         res.status(500).json({ message: "Errore server" });
     }
 }
+
+const handleJoinReq = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+        const { museumId, requestId, action } = req.body;
+
+        // Checks
+        //-existence
+        const museum = await Museum.findById(museumId);
+        if (!museum) {
+            return res.status(404).json({ status: 'error', message: 'Museo non trovato' });
+        }
+        //-authorized
+        if (museum.creator.toString() !== userId) {
+            return res.status(403).json({ status: 'error', message: 'Non sei autorizzato a gestire le richieste di questo museo' });
+        }       
+        //-request existence
+        const requestIndex = museum.pendingRequests.findIndex(
+            (req) => req._id.toString() === requestId
+        );
+        if (requestIndex === -1) {
+            return res.status(404).json({ message: "Richiesta non trovata o già stata gestita" });
+        }
+
+        // Management
+        if(action === 'accept') {
+            //1.Add user to collaborators
+            if (!museum.collaborators.includes(userId)) {
+                museum.collaborators.push(userId);
+            }
+            //2.Remove from pending
+            museum.pendingRequests.splice(requestIndex, 1);
+            await museum.save();
+            //3.Add museum to user's managedMuseums
+            await User.findByIdAndUpdate(userId, {
+                $push: { managedMuseums: museumId }
+            });
+            res.json({ status: 'success', message: 'Richiesta accettata, utente aggiunto come collaboratore' });
+
+        }else if (action === 'reject') {
+            //Remove from pending
+            museum.pendingRequests.splice(requestIndex, 1);
+            await museum.save();
+            res.json({ status: 'success', message: 'Richiesta rifiutata' });
+        }
+            
+    }catch (err) {
+        console.error('Errore durante la gestione della richiesta di collaborazione:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Errore interno del server durante la gestione della richiesta di collaborazione.'
+        });
+    }
+};
 
 const getVisitsForBrowsing = async (req, res) => {
     try {
@@ -566,4 +620,6 @@ module.exports = {
     searchMuseum,
     joinReqMuseum,
     getManagedMuseums,
+    handleJoinReq,
+
 }

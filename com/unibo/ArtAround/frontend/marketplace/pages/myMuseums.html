@@ -54,9 +54,9 @@
                                         <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
                                             <!-- requesting user info-->
                                             <div class="flex items-center space-x-3">
-                                                <div class="text-xs font-mono bg-gray-100 px-2 py-1 rounded" x-text="'ID: ' + req.userId._id"></div>
-                                                <p class="font-bold text-gray-700" x-text="req.userId.username"></p>
-                                                <p class="font-bold text-gray-700" x-text="req.userId.email"></p>
+                                                <div class="text-xs font-mono bg-gray-100 px-2 py-1 rounded" x-text="'ID: ' + req.userId?._id"></div>
+                                                <p class="font-bold text-gray-700" x-text="req.userId?.username"></p>
+                                                <p class="font-bold text-gray-700" x-text="req.userId?.email"></p>
                                             </div>
                                             <!-- accept/refuse-->
                                             <div class="flex gap-2">
@@ -67,7 +67,7 @@
                                             </div>
                                         </div>
                                     </template>
-
+                                    
                                     <template x-if="museum.pendingRequests && museum.pendingRequests.length === 0">
                                         <p class="text-center text-gray-400 text-sm py-4 italic">Nessuna richiesta in sospeso.</p>
                                     </template>
@@ -85,6 +85,7 @@
                 <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
             </div>
         </footer>
+
 
         <script>
             function myMuseumsManager() {
@@ -120,7 +121,7 @@
 
                     async handleAction(museumId, requestId, action) {
                         try {
-                            const res = await fetch('/api/v1/museums/handle-join', {
+                            const res = await fetch('/api/v1/marketplace/museums/handleJoinRequest', {
                                 method: 'POST',
                                 headers: { 
                                     'Content-Type': 'application/json',
@@ -129,7 +130,9 @@
                                 body: JSON.stringify({ museumId, requestId, action })
                             });
 
+                            const result = await res.json();
                             if (res.ok) {
+                                alert(result.message);
                                 // Ricarichiamo i dati per aggiornare la lista
                                 await this.loadMuseums();
                             }
