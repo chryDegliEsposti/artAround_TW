@@ -25,11 +25,13 @@ apiMarketplaceRouter.post("/museums/join/:museumId", authorization, apiMarketpla
 apiMarketplaceRouter.get("/museums/getManaged", authorization, apiMarketplaceController.getManagedMuseums) //fetch from homepage(frontend) to show pending requests in dashboard/myMuseums dropdown
 apiMarketplaceRouter.post("/museums/handleJoinRequest", authorization, apiMarketplaceController.handleJoinReq) //fetch from homepage(frontend) to show pending requests in dashboard/myMuseums dropdown
 
+// --- USER NOTIFICATION SECTION---
+apiMarketplaceRouter.get("/notifications", authorization, apiMarketplaceController.getNotifications) //fetch from homepage(frontend) to show notifications in dashboard
+apiMarketplaceRouter.patch("/notifications/markAsRead/:id", authorization, apiMarketplaceController.markNotificationsAsRead) //fetch from homepage(frontend) to mark all notifications as read
 
 // --- BROWSING SECTION---
 apiMarketplaceRouter.get("/browse/visits", authorization, apiMarketplaceController.getVisitsForBrowsing) //fetch from browseMarket(frontend)
 apiMarketplaceRouter.get("/browse/items", authorization, apiMarketplaceController.getItemsForBrowsing) //fetch from browseMarket(frontend)
-
 
 // --- PURCHASES SECTION ---
 apiMarketplaceRouter.post("/purchase/visit", authorization, apiMarketplaceController.purchaseVisit) //fetch from browseMarket(frontend)

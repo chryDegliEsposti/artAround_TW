@@ -2,9 +2,10 @@ const Item = require('../models/Item');
 const Visit = require('../models/Visit');
 const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
 const Museum = require('../models/Museum'); //per check codice museo in createMuseum
-const mongoose = require('mongoose');
+const Notification = require('../models/Notification'); //per creare notifiche in handleJoinReq
 
 
+// ----------------------------------- ITEMS HANDLERS ----------------------------------
 const createItems = async (req, res) => {
     try {
         // Estraiamo i dati inviati dal frontend (Alpine.js formData)
@@ -77,6 +78,7 @@ const createItems = async (req, res) => {
 };
 */
 
+// ----------------------------------- VISITS HANDLERS ----------------------------------
 const searchItemsForVisit = async (req, res) => {
     try {
         const museumId = req.query.museumId;
@@ -134,6 +136,7 @@ const createVisit = async (req, res) => {
     }
 };
 
+// ----------------------------------- MUSEUM OPERATIONS HANDLERS ----------------------------------
 const checkMuseumCode = async (req, res) => {
     try {
         const { code } = req.query;
@@ -391,6 +394,9 @@ const handleJoinReq = async (req, res) => {
         }
 
         // Management
+        const requesterId = museum.pendingRequests[requestIndex].userId; //info for notification
+        const museumName = museum.name;
+
         if(action === 'accept') {
             //1.Add user to collaborators
             if (!museum.collaborators.includes(userId)) {
@@ -403,12 +409,26 @@ const handleJoinReq = async (req, res) => {
             await User.findByIdAndUpdate(userId, {
                 $push: { managedMuseums: museumId }
             });
+            //4.Create notification for requester
+            await Notification.create({
+                recipient: requesterId,
+                message: `La tua richiesta per collaborare al museo "${museumName}" è stata accettata!`,
+                type: 'join_accepted',
+                museumName: museumName
+            });
             res.json({ status: 'success', message: 'Richiesta accettata, utente aggiunto come collaboratore' });
 
         }else if (action === 'reject') {
-            //Remove from pending
+            //1.Remove from pending
             museum.pendingRequests.splice(requestIndex, 1);
             await museum.save();
+            //2.Create notification for requester
+            await Notification.create({
+                recipient: requesterId,
+                message: `La tua richiesta per il museo "${museumName}" è stata declinata.`,
+                type: 'join_rejected',
+                museumName: museumName
+            });
             res.json({ status: 'success', message: 'Richiesta rifiutata' });
         }
             
@@ -421,6 +441,34 @@ const handleJoinReq = async (req, res) => {
     }
 };
 
+// ----------------------------------- USER NOTIFICATION HANDLERS ------------------------------
+const getNotifications = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const notifications = await Notification.find({ recipient: req.user.id })
+        .sort('-createdAt') //most recent first
+        .limit(20); 
+        res.json({ status: 'success', data: notifications });
+    } catch (err) {
+        console.error('Errore durante il recupero delle notifiche:', err);
+    }
+};
+
+const markNotificationsAsRead = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        await Notification.findOneAndUpdate(
+            { _id: req.params.id, recipient: req.user.id },
+            { read: true }
+        );
+        res.json({ status: 'success' });
+    } catch (err) {
+        console.error('Errore durante la marcatura della notifica come letta:', err);
+        res.status(500).json({ status: 'error', message: 'Errore interno del server' });    
+    }
+};
+
+// ----------------------------------- BROWSING DATA HANDLERS ----------------------------------
 const getVisitsForBrowsing = async (req, res) => {
     try {
         /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
@@ -503,7 +551,8 @@ const getItemsForBrowsing = async (req, res) => {
         });
     }
 };   
- 
+
+// ----------------------------------- PURCHASING HANDLERS ----------------------------------
 const purchaseVisit = async (req, res) => {
     try {
         console.log("Acquisto visita - request body:", req.body);
@@ -621,5 +670,6 @@ module.exports = {
     joinReqMuseum,
     getManagedMuseums,
     handleJoinReq,
-
+    getNotifications,
+    markNotificationsAsRead,
 }
