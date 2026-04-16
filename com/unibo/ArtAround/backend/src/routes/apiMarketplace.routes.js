@@ -37,6 +37,9 @@ apiMarketplaceRouter.get("/browse/items", authorization, apiMarketplaceControlle
 apiMarketplaceRouter.post("/purchase/visit", authorization, apiMarketplaceController.purchaseVisit) //fetch from browseMarket(frontend)
 apiMarketplaceRouter.post("/purchase/item", authorization, apiMarketplaceController.purchaseItem) //fetch from browseMarket(frontend)
 
+// --- FAVORITES TOGGLE SECTION ---
+apiMarketplaceRouter.post("/favorites/toggle", authorization, apiMarketplaceController.toggleFavorite) //fetch from browseMarket(frontend) to toggle favorites for both items and visits
+
 
 
 module.exports = apiMarketplaceRouter;

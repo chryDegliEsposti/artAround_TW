@@ -144,18 +144,15 @@
                         <!-- Immagine copertina -->
                         <div class="h-40 bg-gradient-to-r from-purple-500 to-pink-500 relative">
                             <div class="absolute top-3 right-3">
-                                <!-- Badge "Posseduta" basato su ownedVisitIds -->
-                                <span x-show="ownedVisits.includes(visit._id)" 
-                                    class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                                    <i class="fas fa-check-circle mr-1"></i>Posseduta
-                                </span>
-                                <!-- 1st price badge -->
-                                <span x-show="!ownedVisits.includes(visit._id) && visit.price && visit.price>0" class="bg-purple-600 text-white text-xs px-2 py-1 rounded-full">
-                                    €<span x-text="visit.price"></span>
-                                </span>
-                                <span x-show="!ownedVisits.includes(visit._id) && (!visit.price || visit.price===0)" class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                                    Gratis
-                                </span>
+    
+                                <!-- Test 'add to favorites' btn -->
+                                <button 
+                                    @click.stop="toggleSave(visit._id, 'visit')" 
+                                    class="absolute top-3 right-3 p-2 rounded-full transition-all duration-300 "
+                                    :class="isSaved(visit._id) ? 'bg-white text-red-500' : 'bg-black/20 text-white backdrop-blur-sm hover:bg-white hover:text-red-500'">
+                                    
+                                    <i :class="isSaved(visit._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                                </button>
                             </div>
 
                             <div class="absolute bottom-3 left-3">
@@ -195,6 +192,7 @@
                                     
                                     <span x-text="ownedVisits.includes(visit._id) ? 'Posseduta' : (purchasing[visit._id] ? 'Caricamento...' : 'Acquista')"></span>
                                 </button>
+
                             </div>
                         </div>
                     </div>
@@ -288,6 +286,8 @@
                 ownedVisits: [],  //for UX
                 ownedItems: [],     
                 activeTab: 'visits',
+                favoriteVisits: [],
+                favoriteItems: [],
                 
                 // Filters trackers
                 searchTerm: '',
@@ -318,8 +318,10 @@
                             const data = await visitsRes.json();
                             this.visits = data.data.visits || [];
                             this.ownedVisits = data.data.purchasedVisits || [];
+                            this.favoriteVisits = data.data.favoriteVisits || [];
                             console.log('Visite caricate:', this.visits.length);
                             console.log('Visite possedute:', this.ownedVisits);
+                            console.log('Visite salvate:', this.favoriteVisits);
                         }
                         
                         // Carica tutti gli item pubblici
@@ -330,9 +332,11 @@
                             const data = await itemsRes.json();
                             this.items = data.data.items || [];
                             this.ownedItems = data.data.purchasedItems || [];
+
                             console.log('Items caricati:', this.items.length);
                             console.log('Items posseduti:', this.ownedItems);
                         }
+
                         
                     } catch (error) {
                         console.error('Errore caricamento dati:', error);
@@ -512,6 +516,43 @@
                         } finally {
                             this.purchasing[item._id] = false;
                         }
+                    }
+                },
+                
+                // FAVORITES LOGIC
+                async isSaved(targetId) {
+                    return this.favoriteVisits.includes(targetId) || this.favoriteItems.includes(targetId);
+                },
+                async toggleSave(targetId, targetType) {
+                    // OPTIMISTIC UI: Cambiamo il cuore subito nel frontend
+                    const index = this.favoriteVisits.indexOf(targetId);
+                    if (index > -1) { //to remove from favorites
+                        this.favoriteVisits.splice(index, 1);
+                    } else { //to add to favorites
+                        this.favoriteVisits.push(targetId);
+                    }
+
+                    // Chiamata al backend in background
+                    try {
+                        console.log(`Toggling favorite for ${targetType} with ID:`, targetId);
+                        const token = localStorage.getItem('apiToken');
+                        const response = await fetch('/api/v1/marketplace/favorites/toggle', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json', 
+                                'Authorization': `Bearer ${token}` 
+                            },
+                            body: JSON.stringify({ targetId , targetType })
+                        });
+                        
+                        const data = await response.json();
+                        if (!response.ok) throw new Error();
+                        console.log('Toggle done:', data.message);
+
+                    } catch (err) {
+                        // Se il server fallisce, facciamo il "rollback" (rimettiamo il cuore com'era)
+                        // (Logica opzionale per estrema precisione)
+                        alert("Errore nel salvataggio, riprova");
                     }
                 }
             }

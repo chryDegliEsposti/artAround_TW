@@ -53,10 +53,7 @@
                 </button>
 
                 <!-- Menu a tendina (mostrato/nascosto con Alpine) -->
-                <div x-show="isProfileMenuOpen"
-                    @click.away="isProfileMenuOpen = false"
-                    class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border py-2 z-50">
-                    
+                <div x-cloak x-show="isProfileMenuOpen" @click.away="isProfileMenuOpen = false" class="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-xl border py-2 z-50">  
                     <!-- Info utente (opzionale) -->
                     <div class="px-4 py-3 border-b">
                         <p class="text-sm text-gray-500">Sei connesso come</p>
@@ -102,87 +99,111 @@
 
                 <a href="browseMarket" class="hover:text-purple-400 flex items-center">
                     <i class="fas fa-search mr-2"></i>Browse Contenuti</a>
-
-                <a href="editor.html" class="hover:text-purple-400 flex items-center">
-                    <i class="fas fa-edit mr-2"></i>Editor Visite</a>
-
-                <div class="relative" x-data="{ isCreateMenuOpen: false }">
-                    <button @click="isCreateMenuOpen = !isCreateMenuOpen" 
-                            class="hover:text-purple-400 flex items-center focus:outline-none">
-                        <i class="fas fa-plus-circle mr-2"></i>
-                        Crea contenuti
-                        <i class="fas fa-chevron-down ml-2 text-sm transition-transform"
-                        :class="{ 'rotate-180': isCreateMenuOpen }"></i>
-                    </button>
-
-                    <!-- Menu a tendina compatto -->
-                    <div x-show="isCreateMenuOpen"
-                        x-transition
-                        @click.away="isCreateMenuOpen = false"
-                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
-                        
-                        <a href="/marketplace/homepage/createItems" 
-                            @click="isCreateMenuOpen = false"
-                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
-                            <i class="fas fa-cube mr-3 text-blue-500"></i>
-                            Crea Items
-                        </a>
-                        
-                        <a href="/marketplace/homepage/createVisits" 
-                            @click="isCreateMenuOpen = false"
-                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-t">
-                            <i class="fas fa-map-marked-alt mr-3 text-green-500"></i>
-                            Imposta Visite
-                        </a>
-                    </div>
-                </div>
                 
-                <!-- Menu opzioni Musei -->
-                <div class="relative" x-data="{ isMuseumMenuOpen: false }" x-show="userRole === 'creator' || userRole === 'owner'">
-                    <button @click="isMuseumMenuOpen = !isMuseumMenuOpen" 
-                            class="hover:text-purple-400 flex items-center focus:outline-none transition">
-                        <i class="fas fa-university mr-2"></i>
-                        I miei Musei
-                        <i class="fas fa-chevron-down ml-2 text-sm transition-transform"
-                        :class="{ 'rotate-180': isMuseumMenuOpen }"></i>
-                    </button>
+                <!-- TODO module sections 
+                <template x-if="is('creator')">
+                    <section id="creator-tools">
+                        <h2 class="text-xl font-bold">I tuoi Musei</h2>
+                        </section>
+                </template>
 
-                    <div x-show="isMuseumMenuOpen"
-                        x-transition
-                        @click.away="isMuseumMenuOpen = false"
-                        class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                <template x-if="is('teacher')">
+                    <section id="teacher-tools">
+                        <h2 class="text-xl font-bold">Le tue Classi</h2>
+                        </section>
+                </template>
+
+                <template x-if="is('visitor')">
+                    <section id="visitor-feed">
+                        <h2 class="text-xl font-bold">Esplora Musei</h2>
+                        </section>
+                </template>
+                -->
+               
+                <template x-if="userRole === 'creator'"> 
+                    <div class="inline-flex items-center space-x-6">
+                        <a href="editor.html" class="hover:text-purple-400 flex items-center">
+                            <i class="fas fa-edit mr-2"></i>Editor Visite</a>
+
+                        <div class="relative" x-data="{ isCreateMenuOpen: false }">
+                            <button @click="isCreateMenuOpen = !isCreateMenuOpen" 
+                                    class="hover:text-purple-400 flex items-center focus:outline-none">
+                                <i class="fas fa-plus-circle mr-2"></i>
+                                Crea contenuti
+                                <i class="fas fa-chevron-down ml-2 text-sm transition-transform"
+                                :class="{ 'rotate-180': isCreateMenuOpen }"></i>
+                            </button>
+
+                            <!-- Menu a tendina compatto -->
+                            <div x-show="isCreateMenuOpen"
+                                x-transition
+                                @click.away="isCreateMenuOpen = false"
+                                class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                                
+                                <a href="/marketplace/homepage/createItems" 
+                                    @click="isCreateMenuOpen = false"
+                                    class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
+                                    <i class="fas fa-cube mr-3 text-blue-500"></i>
+                                    Crea Items
+                                </a>
+                                
+                                <a href="/marketplace/homepage/createVisits" 
+                                    @click="isCreateMenuOpen = false"
+                                    class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-t">
+                                    <i class="fas fa-map-marked-alt mr-3 text-green-500"></i>
+                                    Imposta Visite
+                                </a>
+                            </div>
+                        </div>
                         
-                        <a href="/marketplace/homepage/newMuseum" 
-                            @click="isCreateMenuOpen = false"
-                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-b">
-                            <i class="fas fa-plus-circle mr-3 text-purple-500"></i>
-                            Crea Nuovo
-                        </a>
+                        <!-- Menu opzioni Musei -->
+                        <div class="relative" x-data="{ isMuseumMenuOpen: false }" x-show="userRole === 'creator' || userRole === 'owner'">
+                            <button @click="isMuseumMenuOpen = !isMuseumMenuOpen" 
+                                    class="hover:text-purple-400 flex items-center focus:outline-none transition">
+                                <i class="fas fa-university mr-2"></i>
+                                I miei Musei
+                                <i class="fas fa-chevron-down ml-2 text-sm transition-transform"
+                                :class="{ 'rotate-180': isMuseumMenuOpen }"></i>
+                            </button>
 
-                        <a href="/marketplace/homepage/joinMuseum" 
-                            @click="isCreateMenuOpen = false"
-                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-b">
-                            <i class="fas fa-handshake mr-3 text-blue-600"></i>
-                            Unisciti
-                        </a>
+                            <div x-show="isMuseumMenuOpen"
+                                x-transition
+                                @click.away="isMuseumMenuOpen = false"
+                                class="absolute left-0 mt-2 w-48 bg-white rounded-lg shadow-lg border py-1 z-50">
+                                
+                                <a href="/marketplace/homepage/newMuseum" 
+                                    @click="isCreateMenuOpen = false"
+                                    class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-b">
+                                    <i class="fas fa-plus-circle mr-3 text-purple-500"></i>
+                                    Crea Nuovo
+                                </a>
 
-                        <a href="/marketplace/homepage/myMuseums" 
-                            @click="isCreateMenuOpen = false"
-                            class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
-                            <i class="fas fa-list mr-3 text-green-600"></i>
-                            Lista musei
-                        </a>
-                        <!-- OPTIONAL, MAYBE: manage personal museum(s) -->
-                        <template x-for="museum in myMuseums" :key="museum._id">
-                            <a :href="'/marketplace/homepage/museum/' + museum._id" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-50 last:border-0">
-                                <div class="flex justify-between items-center">
-                                    <span class="font-medium" x-text="museum.name"></span>
-                                    <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
-                                </div>
-                            </a>
-                        </template>
+                                <a href="/marketplace/homepage/joinMuseum" 
+                                    @click="isCreateMenuOpen = false"
+                                    class="block px-4 py-3 hover:bg-gray-100 text-gray-700 border-b">
+                                    <i class="fas fa-handshake mr-3 text-blue-600"></i>
+                                    Unisciti
+                                </a>
+
+                                <a href="/marketplace/homepage/myMuseums" 
+                                    @click="isCreateMenuOpen = false"
+                                    class="block px-4 py-3 hover:bg-gray-100 text-gray-700">
+                                    <i class="fas fa-list mr-3 text-green-600"></i>
+                                    Lista musei
+                                </a>
+                                <!-- OPTIONAL, MAYBE: manage personal museum(s) -->
+                                <template x-for="museum in myMuseums" :key="museum._id">
+                                    <a :href="'/marketplace/homepage/museum/' + museum._id" class="block px-4 py-3 hover:bg-gray-100 border-b border-gray-50 last:border-0">
+                                        <div class="flex justify-between items-center">
+                                            <span class="font-medium" x-text="museum.name"></span>
+                                            <i class="fas fa-chevron-right text-[10px] text-gray-300"></i>
+                                        </div>
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
 
                 <!-- Notification section -->
                 <div x-data="notificationManager()" class="relative ml-auto h-full">

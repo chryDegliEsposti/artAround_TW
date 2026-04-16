@@ -485,11 +485,13 @@ const getVisitsForBrowsing = async (req, res) => {
         .populate('museum')
         
         let purchasedVisits = [];
+        let favoriteVisits = [];
         if (req.user && req.user.id) {
             const user = await User.findById(req.user.id);
             if (user) {
                 // Estraiamo solo gli ID come stringhe per il frontend
                 purchasedVisits = user.purchasedVisits.map(id => id.toString());
+                favoriteVisits = user.favoriteVisits.map(id => id.toString());
             }
         }
 
@@ -497,7 +499,8 @@ const getVisitsForBrowsing = async (req, res) => {
             status: 'success',
             data: {
                 visits: visits,
-                purchasedVisits: purchasedVisits
+                purchasedVisits: purchasedVisits,
+                favoriteVisits: favoriteVisits
             }
         });
 
@@ -654,7 +657,42 @@ const purchaseItem = async (req, res) => {
     }
 };  
 
+// ----------------------------------- FAVORITE CONTENT TOGGLE HANDLERS ----------------------------------
+const toggleFavorite = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { targetId, targetType } = req.body; //targetType: 'visit' o 'item'
 
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 'error', message: 'Utente non trovato' });
+        }
+
+        let favoritesArray;
+        if (targetType === 'visit') {
+            favoritesArray = user.favoriteVisits;
+        } else if (targetType === 'item') {
+            favoritesArray = user.favoriteItems;
+        } else {
+            return res.status(400).json({ status: 'error', message: 'Tipo di contenuto non valido' });
+        }
+
+        const index = favoritesArray.findIndex(id => id.toString() === targetId);
+        if (index === -1) { //new save
+            favoritesArray.push(targetId);
+        } else { //already in favorites, remove it (toggle)
+            favoritesArray.splice(index, 1);
+        }
+
+        await user.save();
+
+        res.json({ status: 'success', message: 'Preferito aggiornato con successo' });
+
+    } catch (err) {
+        console.error('Errore durante il toggle dei preferiti:', err);
+        res.status(500).json({ status: 'error', message: 'Errore interno del server' });
+    }
+};
 
 module.exports = {
     createItems,
@@ -672,4 +710,5 @@ module.exports = {
     handleJoinReq,
     getNotifications,
     markNotificationsAsRead,
+    toggleFavorite,
 }

@@ -20,7 +20,8 @@ const UserSchema = new mongoose.Schema({
 
     purchasedVisits: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Visit' }],
     purchasedItems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }],
-
+    favoriteVisits: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Visit' }],
+    favoriteItems: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }],
 
 }, { timestamps: true });
 
