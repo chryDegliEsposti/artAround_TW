@@ -1,0 +1,215 @@
+import { useRef, useCallback, useEffect, useState } from 'react';
+import './BottomBar.css';
+
+export default function BottomBar({
+  onPrev,
+  onNext,
+  onPlayPause,
+  onMic,
+  onEasier,
+  onSeekBack,
+  onSeekForward,
+  isPlaying,
+  hasPrev,
+  hasNext,
+  progress = 0,
+  showDescription,
+  setShowDescription,
+  currentItem
+}) {
+  const dragStartY = useRef(null);
+  const dragStartTarget = useRef(null);
+  const scrollRef = useRef(null);
+
+  const handlePointerDown = useCallback((e) => {
+    dragStartY.current = e.clientY;
+    dragStartTarget.current = e.target;
+  }, []);
+
+  const handlePointerUp = useCallback((e) => {
+    if (dragStartY.current === null) return;
+    const deltaY = dragStartY.current - e.clientY;
+    const startTarget = dragStartTarget.current;
+    
+    // Check if we were at the top of the scroll when starting (if expanded)
+    const isAtTop = scrollRef.current ? scrollRef.current.scrollTop <= 0 : true;
+    
+    dragStartY.current = null;
+    dragStartTarget.current = null;
+
+    // Swipe up to expand, swipe down to collapse
+    if (Math.abs(deltaY) > 50) {
+      if (deltaY > 0) {
+        if (!showDescription) setShowDescription(true);
+      } else {
+        // Only collapse if swiping down from the top or on the header/hero
+        if (showDescription && (isAtTop || !startTarget?.closest('.expanded-main'))) {
+          setShowDescription(false);
+        }
+      }
+      return;
+    }
+
+    // Click on player-bar to expand
+    if (!showDescription && startTarget?.closest('.mini-player-clickable')) {
+      setShowDescription(true);
+    }
+  }, [showDescription, setShowDescription]);
+
+  // Handle back button/ESC (optional but good practice)
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape' && showDescription) setShowDescription(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showDescription, setShowDescription]);
+
+  const defaultImage = "https://lh3.googleusercontent.com/aida-public/AB6AXuDTzKRCzSpiNUuVAwuyvmEGFFt90q2Mnsktk9YLRrp31er3XCWdYC7FH0CpUi-hcmYSV5rM_gC4A2HHlyCARqz4ORSKnGaGhQjbpNHacgWwwC22EfafRpGbjbqVGnHOA9jJqQFMAUj8waMYD95vjc3hGNQdJQ-S0Dw707GSbXwlJx-n6_GllwnrBSNbxbDrBO6uIx9CXW73tD8COXoU93xr7kaoOclofwaaizWyz3yn5bBre-kFaEhZDD-z_2kTLtS6-sh49iMVQvQ";
+  const dummyText = "Arguably the most famous painting in the world, Leonardo da Vinci's portrait has captivated audiences for centuries. The work is celebrated for its sfumato technique—a subtle blending of colors and tones that creates a misty, atmospheric effect. Notice how the horizon lines on the left and right sides of the background don't quite match. This intentional asymmetry adds to the painting’s sense of movement and mystery, making the subject appear to shift depending on where you stand.";
+
+  const [liveDesc, setLiveDesc] = useState(dummyText);
+
+  useEffect(() => {
+    if (!currentItem) return;
+    const fetchDesc = async () => {
+      try {
+        const response = await fetch(`/api/v1/navigator/museums/item/${currentItem.id}`);
+        const data = await response.json();
+        if (data && data.description) {
+          setLiveDesc(data.description);
+        } else {
+          setLiveDesc(dummyText);
+        }
+      } catch (error) {
+        setLiveDesc(dummyText);
+      }
+    };
+    fetchDesc();
+  }, [currentItem]);
+
+  return (
+    <div
+      className={`bottom-sheet-container ${showDescription ? 'expanded' : 'collapsed'}`}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      style={{ touchAction: showDescription ? 'auto' : 'none' }}
+    >
+      {/* ---------------- COLLAPSED STATE (MINI PLAYER) ---------------- */}
+      <div className={`mini-player ${showDescription ? 'hidden' : ''}`}>
+        <div className="mini-player-clickable">
+          <div className="mini-player-info">
+            <div className="mini-player-img-container">
+              <img src={currentItem?.image || defaultImage} alt={currentItem?.name || "Artwork"} />
+            </div>
+            <div className="mini-player-text">
+              <span className="mini-player-title">{currentItem?.name || 'Loading...'}</span>
+              <span className="mini-player-subtitle">Now Playing</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="mini-player-controls">
+          <button className="icon-btn" onClick={onPrev} disabled={!hasPrev}>
+            <span className="material-symbols-outlined">skip_previous</span>
+          </button>
+          <button className="mini-play-btn" onClick={onPlayPause}>
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {isPlaying ? 'pause' : 'play_arrow'}
+            </span>
+          </button>
+          <button className="icon-btn" onClick={onNext} disabled={!hasNext}>
+            <span className="material-symbols-outlined">skip_next</span>
+          </button>
+        </div>
+        
+        {/* Progress Bar under mini player */}
+        <div className="mini-progress-track">
+           <div className="mini-progress-fill" style={{ width: `${progress}%` }}></div>
+        </div>
+      </div>
+
+      {/* ---------------- EXPANDED STATE (ARTWORK DETAIL) ---------------- */}
+      <div className={`expanded-view ${showDescription ? 'visible' : ''}`}>
+        <header className="expanded-header">
+          <button className="action-circle-btn" onClick={() => setShowDescription(false)}>
+            <span className="material-symbols-outlined">close</span>
+          </button>
+          <h1 className="expanded-logo">Digital Curator</h1>
+          <button className="action-circle-btn">
+            <span className="material-symbols-outlined">favorite</span>
+          </button>
+        </header>
+
+        <main className="expanded-main no-scrollbar" ref={scrollRef}>
+          <section className="hero-section">
+            <img src={currentItem?.image || defaultImage} className="hero-img" alt={currentItem?.name || "Artwork"} />
+            <div className="hero-gradient"></div>
+          </section>
+
+          <div className="content-section">
+            <div className="header-block">
+              <span className="room-label">Room 711 • Denon Wing</span>
+              <h2 className="artwork-title">{currentItem?.name || 'Masterpiece'}</h2>
+              <div className="artist-row">
+                <div className="artist-line"></div>
+                <span className="artist-name">{currentItem?.artist || 'Unknown Artist'}</span>
+              </div>
+            </div>
+
+            <button className="primary-action-btn" onClick={onPlayPause}>
+              <span className="btn-left">
+                <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  {isPlaying ? 'pause_circle' : 'play_circle'}
+                </span>
+                {isPlaying ? 'PAUSE AUDIO GUIDE' : 'PLAY AUDIO GUIDE'}
+              </span>
+              <span className="btn-right">4:25 MIN</span>
+            </button>
+
+            <div className="bento-grid">
+              <div className="bento-card">
+                <p className="bento-label">Period</p>
+                <p className="bento-value">High Renaissance</p>
+              </div>
+              <div className="bento-card">
+                <p className="bento-label">Medium</p>
+                <p className="bento-value">Oil on Poplar</p>
+              </div>
+            </div>
+
+            <article className="description-article">
+              <h3 className="desc-heading">The Enigma of the Smile</h3>
+              <p className="desc-body">
+                {currentItem?.desc || liveDesc}
+              </p>
+              
+              <div className="quote-card">
+                <div className="quote-icon">
+                  <span className="material-symbols-outlined">format_quote</span>
+                </div>
+                <p className="quote-text">"The smallest of actions is always better than the noblest of intentions."</p>
+                <p className="quote-author">{currentItem?.artist || 'Leonardo da Vinci'}</p>
+              </div>
+            </article>
+
+            <section className="tech-stats">
+              <div className="stat-row">
+                <span className="stat-label">Accession Number</span>
+                <span className="stat-value">INV. 779</span>
+              </div>
+              <div className="stat-row">
+                <span className="stat-label">Dimensions</span>
+                <span className="stat-value">77 cm × 53 cm</span>
+              </div>
+            </section>
+
+            <button className="dismiss-btn" onClick={() => setShowDescription(false)}>
+              CLOSE DETAILS
+            </button>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
