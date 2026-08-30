@@ -7,7 +7,8 @@ const authorization = require("../middlewares/auth.middleware");
 marketplaceRouter.get("/", marketplaceController.getIndex)  
 marketplaceRouter.get("/registration", marketplaceController.getSignup)  
 marketplaceRouter.get("/login", marketplaceController.getLogin)  
-
+marketplaceRouter.get("/qr-codes", marketplaceController.getQrCodes)
+marketplaceRouter.get("/homepage/qr-codes", marketplaceController.getQrCodes)
 
 //protected routes
 marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage) //from login/signup
@@ -19,6 +20,5 @@ marketplaceRouter.get("/homepage/joinMuseum", authorization, marketplaceControll
 marketplaceRouter.get("/homepage/myMuseums", authorization, marketplaceController.getMyMuseums) //from homepage
 
 marketplaceRouter.get("/browseMarket", authorization, marketplaceController.getBrowseMarket) //from homepage
-
 
 module.exports = marketplaceRouter;

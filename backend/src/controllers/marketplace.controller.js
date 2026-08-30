@@ -21,6 +21,7 @@ const getBrowseMarket = servePage("browseMarket")
 const getNewMuseum = servePage("newMuseum")
 const getJoinMuseum = servePage("joinMuseum")
 const getMyMuseums = servePage("myMuseums")
+const getQrCodes = servePage("qrCodes")
 
 module.exports = {
     getIndex,
@@ -33,4 +34,5 @@ module.exports = {
     getNewMuseum,
     getJoinMuseum,
     getMyMuseums,
+    getQrCodes,
 };

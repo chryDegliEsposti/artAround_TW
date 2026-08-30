@@ -32,10 +32,63 @@
             </a>
         </div>
 
-        <!-- title -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-2">Crea Nuova Visita</h1>
-            <p class="text-gray-600">Seleziona gli item dal catalogo e ordinali per creare il percorso della visita</p>
+        <!-- title & AI Generator Button -->
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800 mb-2">Crea Nuova Visita</h1>
+                <p class="text-gray-600">Seleziona gli item dal catalogo o genera automaticamente un percorso su vincoli con l'AI.</p>
+            </div>
+            <button type="button" @click="showAIModal = true" class="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-md flex items-center gap-2 transition shrink-0">
+                <i class="fas fa-wand-magic-sparkles"></i> Assistente AI: Genera su Vincoli
+            </button>
+        </div>
+
+        <!-- AI Generator Modal -->
+        <div x-show="showAIModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" x-transition>
+            <div @click.away="showAIModal = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900">Generatore Visita su Vincoli AI</h3>
+                    </div>
+                    <button @click="showAIModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
+                </div>
+                <p class="text-xs text-gray-500 mb-4">L'assistente AI selezionerà e ordinerà i migliori capolavori del museo generando step di navigazione logistica coerenti.</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Durata Desiderata</label>
+                        <select x-model="aiConstraints.duration" class="w-full border rounded-lg p-2.5 text-sm">
+                            <option value="30">30 Minuti (Tour Essenziale)</option>
+                            <option value="45">45 Minuti (Tour Completo)</option>
+                            <option value="60">60 Minuti (1 Ora - Approfondito)</option>
+                            <option value="90">90 Minuti (Specialistico)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Target / Livello di Conoscenza</label>
+                        <select x-model="aiConstraints.targetAudience" class="w-full border rounded-lg p-2.5 text-sm">
+                            <option value="medio">Turista / Visitatore Generale</option>
+                            <option value="infantile">Scolaresca / Ragazzi e Bambini</option>
+                            <option value="specialistico">Specialistico / Universitario</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Tema / Focus Artistico</label>
+                        <input type="text" x-model="aiConstraints.theme" class="w-full border rounded-lg p-2.5 text-sm" placeholder="es. I Grandi Capolavori della Pinacoteca">
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" @click="showAIModal = false" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Annulla</button>
+                    <button type="button" @click="generateVisitWithAI" :disabled="isGeneratingAIVisit" class="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 flex items-center gap-2">
+                        <i class="fas fa-wand-magic-sparkles" :class="isGeneratingAIVisit ? 'fa-spin' : ''"></i>
+                        <span x-text="isGeneratingAIVisit ? 'Generazione...' : 'Genera Percorso'"></span>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Form principale -->
@@ -258,6 +311,15 @@
                 visitDescription: '',
                 visitDuration: '60',
                 
+                // AI Visit Generation States
+                showAIModal: false,
+                isGeneratingAIVisit: false,
+                aiConstraints: {
+                    duration: '45',
+                    targetAudience: 'medio',
+                    theme: 'I Grandi Capolavori della Pinacoteca'
+                },
+
                 // Data
                 items: [], // Tutti gli item dal DB
                 visitItems: [], // Item selezionati per la visita
@@ -268,6 +330,48 @@
                 
                 // Loading states
                 loading: false,
+
+                async generateVisitWithAI() {
+                    this.isGeneratingAIVisit = true;
+                    try {
+                        const res = await fetch('/api/v1/navigator/ai/generate-visit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                duration: Number(this.aiConstraints.duration),
+                                targetAudience: this.aiConstraints.targetAudience,
+                                theme: this.aiConstraints.theme,
+                                museumId: this.museumId || 'PIN-BO'
+                            })
+                        });
+                        const data = await res.json();
+                        if (data && data.title) {
+                            this.visitTitle = data.title;
+                            this.visitDescription = data.description;
+                            this.visitDuration = data.duration.toString();
+                            
+                            // Select matching items in the catalog
+                            if (data.items && data.items.length > 0) {
+                                const selected = [];
+                                data.items.forEach(itemId => {
+                                    const match = this.items.find(it => it._id === itemId || it._id?.toString() === itemId?.toString());
+                                    if (match) selected.push(match);
+                                });
+                                this.visitItems = selected.length > 0 ? selected : this.items.slice(0, 6);
+                            } else {
+                                this.visitItems = this.items.slice(0, 6);
+                            }
+
+                            this.showAIModal = false;
+                            alert(`✨ Percorso "${data.title}" generato con successo dall'AI!`);
+                        }
+                    } catch (e) {
+                        console.error("AI Visit Generation Error:", e);
+                        alert("Impossibile generare la visita con AI al momento.");
+                    } finally {
+                        this.isGeneratingAIVisit = false;
+                    }
+                },
                 
                 //--- INIT(called by x-init) ---
                 async init() {

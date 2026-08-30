@@ -1,38 +1,60 @@
 const mongoose = require('mongoose');
 
 const VisitSchema = new mongoose.Schema({
-    //museum: { type: mongoose.Schema.Types.ObjectId, ref: 'Museum', required: true },
-    museum: { type: String, required: true },
+    museum: { type: mongoose.Schema.Types.ObjectId, ref: 'Museum' },
+    museumId: { type: String, default: "PIN-BO" },
     title: { type: String, required: true },
-    price: { type: Number, required: true },
-    duration: { type: Number },
     description: { type: String },
-    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    price: { type: Number, default: 0 },
+    duration: { type: Number, default: 60 }, // minuti stimati
+    image: { type: String },
+    
+    // Target e Livello di conoscenza
+    knowledgeLevel: {
+        type: String,
+        enum: ['infantile', 'elementare', 'medio', 'specialistico'],
+        default: 'medio'
+    },
+    targetAudience: {
+        type: String,
+        default: 'Tutti'
+    },
+    status: {
+        type: String,
+        enum: ['draft', 'published'],
+        default: 'published'
+    },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
 
-    /*steps: [{
+    // Campi per la Sincronizzazione Guida / Docente (Estensione 18-27)
+    isSync: { type: Boolean, default: false },
+    mnemonicName: { type: String }, // es. "Fenice rossa" per ingresso studenti
+    quiz: { type: mongoose.Schema.Types.ObjectId, ref: 'Quiz' },
+
+    // Sequenza ordinata di Step (Item + Indicazioni Logistiche separate)
+    steps: [{
         order: { type: Number, required: true },
-        tipo: { 
+        stepType: { 
             type: String, 
             enum: ['item', 'logistica'], 
             required: true 
         },
-        
-        itemId: { //option 1
+        itemId: { 
             type: mongoose.Schema.Types.ObjectId, 
-            ref: 'Item',
-            required: function() { return this.tipo === 'item'; }
+            ref: 'Item'
         },
-
-        testoLogistica: { //option 2
-            type: String,
-            required: function() { return this.tipo === 'logistica'; }
+        logisticsText: { 
+            type: String 
         },
+        targetPoiId: { type: Number },
+        roomName: { type: String },
+        estimatedSeconds: { type: Number, default: 30 }
+    }],
 
-        luogoRiferimento: { type: String }, //potrebbe essere un roomId o una zona del museo
-    }]*/
-
-    items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }], //array di item (solo quelli di tipo 'artwork' per ora, ma in futuro anche 'experience')
+    // Array di item per retrocompatibilità e query veloci
+    items: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Item' }]
 
 }, { timestamps: true });
 
-module.exports = mongoose.model('Visit', VisitSchema);
+module.exports = mongoose.models.Visit || mongoose.model('Visit', VisitSchema);
+

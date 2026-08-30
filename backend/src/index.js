@@ -30,7 +30,21 @@ const dbConnection = async () => {
 };
 
 //------------- START SERVER -----------------
+const http = require('http');
+const { Server } = require('socket.io');
+const { initSyncTourSockets } = require('./sockets/syncTour.socket');
+
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Initialize WebSocket synchronized tours
+initSyncTourSockets(io);
 
 //app configurations 
 app.use(express.json()); //per leggere req body in formato json(in auto)
@@ -41,19 +55,31 @@ app.use(errorsMiddleware);
 
 const PORT = process.env.PORT || 3000;
 
-// serve frontend as static files(to make it served by the API) 
-// NOTA: da qui serviti Marketplace e Navigator
+// serve frontend as static files
 const frontendRoot = path.resolve(__dirname, "../../client_marketplace");
 app.use(express.static(frontendRoot));
 
-// Eventually add navigator static folder if needed
-// const navigatorRoot = path.resolve(__dirname, "../../client_navigator/dist");
-// app.use('/navigator', express.static(navigatorRoot));
-console.log('Serving static from', frontendRoot);
+// Serve navigator React build static files
+const navigatorRoot = path.resolve(__dirname, "../../client_navigator/dist");
+app.use('/navigator', express.static(navigatorRoot));
+app.get('/navigator/*', (req, res) => {
+    res.sendFile(path.join(navigatorRoot, 'index.html'));
+});
+
+console.log('Serving marketplace from:', frontendRoot);
+console.log('Serving navigator from:', navigatorRoot);
+
+// Root landing redirect to marketplace
+app.get('/', (req, res) => {
+    res.redirect('/marketplace');
+});
+app.get('/qr-codes', (req, res) => {
+    res.redirect('/marketplace/qr-codes');
+});
 
 // ======= VIEW ONLY =======
-app.use("/marketplace", marketplaceRouter)
-//app.use("/navigator", navigatorRouter) ... LATER CON MERGE WORK MATTE
+app.use("/marketplace", marketplaceRouter);
+
 
 // ======= API ======= funzioni centralizzate per Marketplace e Navigator con API
 app.use("/api/v1/auth", authRouter); //richieste fetch da registration/login
@@ -65,28 +91,12 @@ app.use("/api/v1/navigator/visits", navVisitsRoute);
 app.use("/api/v1/navigator/ai", navAiRoute);
 
 
-//TODO ROUTE: aggiunge as I go a macchia d'olio...
-//app.use("/api/v1/users", usersRouter); 
-//app.use("/api/v1/visits", visitsRouter); 
-//app.use("/api/v1/navigator", visitsRouter);
-
-/*
-// Dati mock (poi sostituisci con database)
-const visits = [
-    { id: 1, title: 'Tour Museo', image: 'museo.jpg', status: 'published' },
-    { id: 2, title: 'Mostra Arte', image: 'arte.jpg', status: 'draft' }
-];
-*/
-
-/*app.get("/", (req, res) => {
-    res.sendFile('marketplace/pages/index.html', { root: frontendRoot });
-});
-*/
-
-app.listen(PORT, async () => {
+server.listen(PORT, async () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`WebSocket server initialized on port ${PORT}`);
 
     await dbConnection();
 });
+
 
 

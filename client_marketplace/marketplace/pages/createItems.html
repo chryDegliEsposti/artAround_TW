@@ -101,10 +101,25 @@
 
                     <!-- Description -->
                     <div class="mb-8">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Testo dell'Item</label>
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Testo dell'Item</label>
+                            <button type="button" 
+                                @click="generateWithAI" 
+                                :disabled="isGeneratingAI"
+                                class="text-xs font-bold px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 shadow-sm flex items-center gap-1.5 transition">
+                                <i class="fas fa-wand-magic-sparkles" :class="isGeneratingAI ? 'fa-spin' : ''"></i>
+                                <span x-text="isGeneratingAI ? 'Generazione in corso...' : 'Genera Testo con AI'"></span>
+                            </button>
+                        </div>
+                        <div x-show="formData.isAIGenerated" class="mb-2 p-2 bg-purple-50 border border-purple-200 rounded-lg flex items-center justify-between text-xs text-purple-700">
+                            <span class="flex items-center gap-1.5">
+                                <i class="fas fa-robot"></i> Contenuto generato con AI • <code class="font-mono">autore_contenuto: "AI"</code>
+                            </span>
+                            <span class="font-semibold text-[10px] bg-purple-200 px-2 py-0.5 rounded">AI Generated</span>
+                        </div>
                         <textarea x-model="formData.description" rows="6" 
                             class="w-full border border-gray-300 rounded-lg p-4 focus:ring-2 focus:ring-purple-500 outline-none"
-                            placeholder="Scrivi qui la tua spiegazione..."></textarea>
+                            placeholder="Scrivi qui la tua spiegazione oppure clicca 'Genera Testo con AI'..."></textarea>
                     </div>
 
                     <!-- Submit -->
@@ -130,18 +145,52 @@
                     searchQuery: '',
                     results: [],
                     isSearching: false,
+                    isGeneratingAI: false,
 
                     // form data to be sent to the server
                     formData: {
                         itemType: 'artwork', 
-                        subjectId: '',     // ID da Wikidata o DB Locale(dell'oggetto dell'Item es: autore, stile, movimento)
+                        subjectId: '',     // ID da Wikidata o DB Locale
                         title: '',          
                         description: '',    
                         length: '15s',
                         languageLevel: 'infantile',
-                        museum: '',         //from user profile 
-                        license: 'Proprietary', //TODO: license da aggiungere alla form (dropdown) + gestione lato backend (modello Item e endpoint)
+                        museum: '',         
+                        license: 'Proprietary',
+                        isAIGenerated: false,
                         price: 0
+                    },
+
+                    async generateWithAI() {
+                        const targetName = this.formData.title || this.searchQuery;
+                        if (!targetName) {
+                            alert("Seleziona o cerca prima un'opera o un autore per generare la descrizione.");
+                            return;
+                        }
+                        this.isGeneratingAI = true;
+                        try {
+                            const res = await fetch('/api/v1/navigator/ai/generate-item', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    title: targetName,
+                                    author: this.formData.author || 'Artista',
+                                    style: this.formData.style || 'Pittura',
+                                    length: this.formData.length,
+                                    languageLevel: this.formData.languageLevel
+                                })
+                            });
+                            const data = await res.json();
+                            if (data && data.description) {
+                                this.formData.description = data.description;
+                                this.formData.isAIGenerated = true;
+                            }
+                        } catch (e) {
+                            console.error("AI Generation Error:", e);
+                            alert("Impossibile contattare il motore AI.");
+                        } finally {
+                            this.isGeneratingAI = false;
+                        }
                     },
 
                     // Inizializzazione: recupera i dati dell'utente loggato

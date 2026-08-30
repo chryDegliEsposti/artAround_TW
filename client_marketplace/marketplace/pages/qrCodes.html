@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ArtAround - Foglio QR Code Stampabile (Pinacoteca di Bologna)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .qr-card { break-inside: avoid; border: 1px solid #ccc !important; box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+
+    <!-- Top Action Bar -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <a href="/marketplace" class="text-purple-600 hover:text-purple-800 flex items-center gap-2 font-semibold">
+                    <i class="fas fa-arrow-left"></i> Marketplace
+                </a>
+                <span class="text-gray-300">|</span>
+                <div>
+                    <h1 class="text-xl font-bold text-gray-900">Foglio QR Code per l'Esame</h1>
+                    <p class="text-xs text-gray-500">Pinacoteca Nazionale di Bologna • Simulazione Presenza Fisica</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <a href="/navigator" target="_blank" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                    <i class="fas fa-mobile-screen"></i> Apri Navigator
+                </a>
+                <button onclick="window.print()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium text-sm flex items-center gap-2 shadow-sm transition">
+                    <i class="fas fa-print"></i> Stampa / Salva PDF
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Info Banner -->
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 mb-8 no-print">
+            <div class="flex items-start gap-4">
+                <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                    <i class="fas fa-qrcode text-lg"></i>
+                </div>
+                <div>
+                    <h2 class="text-lg font-bold text-indigo-900 mb-1">Come utilizzare i QR Code durante la presentazione</h2>
+                    <p class="text-sm text-indigo-700 leading-relaxed mb-3">
+                        Inquadra questi QR Code con la fotocamera dello smartphone (o con il pulsante <strong>Scansiona QR</strong> del Navigator) per simulare l'arrivo davanti a ciascuna opera d'arte. Il Navigator riconoscerà istantaneamente il Q-ID Wikidata, sposterà la posizione virtuale sulla mappa indoor al piano corretto e avvierà la spiegazione audio.
+                    </p>
+                    <div class="flex flex-wrap gap-2 text-xs font-semibold">
+                        <span class="bg-white text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">12 Opere Reali</span>
+                        <span class="bg-white text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">Wikidata Q-ID Compatibile</span>
+                        <span class="bg-white text-indigo-700 px-3 py-1 rounded-full border border-indigo-200">Trigger Audio Automatico</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Codes Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="qrContainer">
+            <!-- Cards populated via JS -->
+        </div>
+    </main>
+
+    <footer class="text-center py-8 text-xs text-gray-400 border-t border-gray-200 mt-12 no-print">
+        ArtAround • Progetto Tecnologie Web 2025/2026 • Pinacoteca Nazionale di Bologna (PIN-BO)
+    </footer>
+
+    <script>
+        const artworks = [
+            {
+                name: "Ritratto di frate in veste di San Tommaso d'Aquino",
+                artist: "Girolamo Mazzola Bedoli",
+                qid: "Q126599960",
+                floor: "Piano 1 (L1)",
+                room: "Sala 7 • Manierismo Emiliano",
+                year: "1550 circa",
+                poiId: 5007
+            },
+            {
+                name: "Estasi di santa Cecilia",
+                artist: "Raffaello Sanzio",
+                qid: "Q2453886",
+                floor: "Piano 1 (L1)",
+                room: "Sala 6 • Rinascimento",
+                year: "1514-1516",
+                poiId: 5006
+            },
+            {
+                name: "Strage degli innocenti",
+                artist: "Guido Reni",
+                qid: "Q3824424",
+                floor: "Piano 2 (L2)",
+                room: "Sala 10 • Seicento Bolognese",
+                year: "1611",
+                poiId: 5011
+            },
+            {
+                name: "San Giorgio e il drago",
+                artist: "Vitale da Bologna",
+                qid: "Q3947230",
+                floor: "Piano 1 (L1)",
+                room: "Sala 2 • Trecento e Gotico",
+                year: "1335-1340",
+                poiId: 5002
+            },
+            {
+                name: "Madonna di Santa Margherita",
+                artist: "Parmigianino",
+                qid: "Q3842416",
+                floor: "Piano 1 (L1)",
+                room: "Sala 8 • Manierismo",
+                year: "1530",
+                poiId: 5008
+            },
+            {
+                name: "Assunzione della Vergine",
+                artist: "Annibale Carracci",
+                qid: "Q3627389",
+                floor: "Piano 2 (L2)",
+                room: "Sala 9 • I Carracci",
+                year: "1592",
+                poiId: 5009
+            },
+            {
+                name: "Annunciazione",
+                artist: "Ludovico Carracci",
+                qid: "Q3618174",
+                floor: "Piano 2 (L2)",
+                room: "Sala 9 • I Carracci",
+                year: "1584",
+                poiId: 5010
+            },
+            {
+                name: "San Sebastiano soccorso da Irene",
+                artist: "Guercino",
+                qid: "Q3947885",
+                floor: "Piano 2 (L2)",
+                room: "Sala 11 • Barocco",
+                year: "1619",
+                poiId: 5012
+            },
+            {
+                name: "Polittico di Bologna",
+                artist: "Giotto e bottega",
+                qid: "Q3907519",
+                floor: "Piano 1 (L1)",
+                room: "Sala 1 • Gotico",
+                year: "1330 circa",
+                poiId: 5001
+            },
+            {
+                name: "Madonna in gloria e santi",
+                artist: "Pietro Perugino",
+                qid: "Q3842426",
+                floor: "Piano 1 (L1)",
+                room: "Sala 5 • Rinascimento Umbro",
+                year: "1500-1501",
+                poiId: 5005
+            },
+            {
+                name: "Matrimonio mistico di santa Caterina",
+                artist: "Lorenzo Costa",
+                qid: "Q11500002",
+                floor: "Piano 1 (L1)",
+                room: "Sala 4 • Rinascimento Ferrarese",
+                year: "1505 circa",
+                poiId: 5004
+            },
+            {
+                name: "Pala Felicini",
+                artist: "Francesco Francia",
+                qid: "Q11500001",
+                floor: "Piano 1 (L1)",
+                room: "Sala 3 • Primo Rinascimento",
+                year: "1494",
+                poiId: 5003
+            }
+        ];
+
+        const container = document.getElementById('qrContainer');
+
+        artworks.forEach((art, index) => {
+            const card = document.createElement('div');
+            card.className = "qr-card bg-white rounded-2xl p-5 border border-gray-200 shadow-sm flex flex-col items-center text-center transition hover:shadow-md";
+
+            const qrDivId = `qrcode-${index}`;
+
+            card.innerHTML = `
+                <div class="w-full flex justify-between items-center mb-3 text-xs text-gray-500">
+                    <span class="bg-gray-100 text-gray-700 px-2.5 py-1 rounded-md font-semibold">${art.floor}</span>
+                    <span class="font-mono bg-purple-50 text-purple-700 px-2 py-0.5 rounded border border-purple-200">${art.qid}</span>
+                </div>
+
+                <div class="bg-white p-3 border-2 border-gray-100 rounded-2xl shadow-inner mb-4 flex items-center justify-center" id="${qrDivId}"></div>
+
+                <h3 class="font-bold text-gray-900 text-sm leading-tight mb-1 line-clamp-2">${art.name}</h3>
+                <p class="text-xs font-semibold text-purple-600 mb-1">${art.artist}</p>
+                <p class="text-xs text-gray-400 mb-3">${art.room} • ${art.year}</p>
+
+                <div class="w-full pt-3 border-t border-gray-100 mt-auto flex justify-between items-center text-xs text-gray-500">
+                    <span>POI #${art.poiId}</span>
+                    <button onclick="navigator.clipboard.writeText('${art.qid}'); alert('Codice ${art.qid} copiato!')" class="text-purple-600 hover:text-purple-800 font-medium no-print">
+                        <i class="far fa-copy"></i> Copia Q-ID
+                    </button>
+                </div>
+            `;
+
+            container.appendChild(card);
+
+            // Generate QR Code with Wikidata Q-ID payload
+            new QRCode(document.getElementById(qrDivId), {
+                text: art.qid,
+                width: 140,
+                height: 140,
+                colorDark: "#1f1f2e",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        });
+    </script>
+</body>
+</html>

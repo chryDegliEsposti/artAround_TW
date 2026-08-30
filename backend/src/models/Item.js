@@ -1,48 +1,60 @@
 const mongoose = require('mongoose');
 
 const ItemSchema = new mongoose.Schema({
-    //INFORMATION about the item
+    // Informazioni principali sull'item
     itemType: {
         type: String,
         enum: ['artwork', 'artist', 'style', 'movement', 'historical_event', 'other'],
         required: true,
-        //default: 'artwork'
-        default: 'other'
+        default: 'artwork'
     },
     artworkId: {
         type: String,
-        required: function() { return this.itemType === 'artwork'; },
-        index: true //db optimization for search by artworkId
-        // Esempio: "Q126599960" (per il quadro di Bedoli)
+        index: true // Q-number Wikidata per l'opera (es: "Q126599960")
+    },
+    authorId: {
+        type: String // Q-number Wikidata per l'autore (es: "Q1527051")
+    },
+    styleId: {
+        type: String // Q-number Wikidata per lo stile/movimento (es: "Q131808")
     },
     title: { type: String, required: true },
     description: { type: String, required: true },
-    author: {type: String}, /*{ type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },*/
-    creator: {type: String}, /*{ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, String for now, to avoid auth issues in development*/ 
-    style: { type: mongoose.Schema.Types.ObjectId, ref: 'Item' },
+    author: { type: String }, // Nome visualizzato dell'artista (es. "Girolamo Mazzola Bedoli")
+    creator: { type: String }, // Autore del contenuto/guida (username o 'AI')
+    style: { type: String }, // Nome visualizzato dello stile (es. "Manierismo")
     recognitionImage: {
-        type: String, //url dell'immagine...
+        type: String // URL immagine di riconoscimento
     },
 
-    //to FILTER by audience level
+    // Parametri per filtro audience / personalizzazione
     length: {
         type: String,
-        enum: ['3s', '15s', '1min', '4min'], 
-        required: true
+        enum: ['3s', '15s', '40s', '1min', '4min'], 
+        required: true,
+        default: '15s'
     },
     languageLevel: {
         type: String,
         enum: ['infantile', 'elementare', 'medio', 'specialistico'],
-        required: true
+        required: true,
+        default: 'medio'
     },
 
-    //WHERE the item can be found (for artworks, the museum it belongs to; for artists, the museum where most of their works are displayed, etc.)
+    // Museo di appartenenza
     museumId: { 
         type: String, 
-        required : true 
+        required: true 
+    },
+    museum: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Museum'
+    },
+    poiId: {
+        type: Number // ID numerico del POI sulla mappa indoor
     },
 
-    //For the artworks MARKETPLACE
+    // Parametri Marketplace & Licenza
     license: { 
         type: String, 
         enum: [
@@ -56,14 +68,23 @@ const ItemSchema = new mongoose.Schema({
             'Proprietary',   // Tutti i diritti riservati
             'Custom'         // Licenza personalizzata
         ],
-        required: function() { return this.itemType === 'artwork'; },
+        default: 'CC-BY-SA'
     },
     price: {
         type: Number,
-        required: function() { return this.itemType === 'artwork'; },
+        default: 0,
         min: 0
+    },
+
+    // Metadati Generative AI (per tracciare item generati al volo da LLM)
+    isAIGenerated: {
+        type: Boolean,
+        default: false
+    },
+    aiPromptContext: {
+        type: String
     }
 
 }, { timestamps: true });
 
-module.exports = mongoose.model('Item', ItemSchema);
+module.exports = mongoose.models.Item || mongoose.model('Item', ItemSchema);

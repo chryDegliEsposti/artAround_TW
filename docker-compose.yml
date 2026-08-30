@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: artaround-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - artaround-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: artaround-app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongodb:27017/artaround
+      - JWT_SECRET=artaround_secret_key_tw_2025_2026_super_secure
+      - JWT_EXPIRES_IN=7d
+    depends_on:
+      - mongodb
+    networks:
+      - artaround-network
+
+networks:
+  artaround-network:
+    driver: bridge
+
+volumes:
+  mongo_data:

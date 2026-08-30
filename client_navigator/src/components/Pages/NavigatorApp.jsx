@@ -5,6 +5,7 @@ import {
   Map as MapIcon,
   Mic,
   Accessibility as EasierIcon,
+  Accessibility,
   Droplets as ToiletIcon,
   Utensils as RestaurantIcon,
   Camera,
@@ -16,13 +17,25 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  LocateFixed
+  LocateFixed,
+  Zap,
+  Sparkles,
+  Radio,
+  Users,
+  Award
 } from 'lucide-react';
 import BottomBar from '../UI/BottomBar';
 import ItemDescription from '../UI/ItemDescription';
 import QRScanner from '../UI/QRScanner';
+import TeleportModal from '../UI/TeleportModal';
+import VoiceControlModal from '../UI/VoiceControlModal';
+import AccessibilityModal from '../UI/AccessibilityModal';
+import SyncSessionModal from '../UI/SyncSessionModal';
+import QuizModal from '../UI/QuizModal';
 import { useSpeaker } from '../../utils/useSpeaker';
+import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 import { createCollisionGrid, findPath } from '../../utils/gridPathfinding';
+import { io } from 'socket.io-client';
 import L from 'leaflet';
 import './NavigatorApp.css';
 
@@ -1138,8 +1151,35 @@ export default function NavigatorApp() {
   const [showPopup, setShowPopup] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [isTeleportOpen, setIsTeleportOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
+  const [accessibleRoute, setAccessibleRoute] = useState(false);
+  const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1);
+  const [speechRate, setSpeechRate] = useState(1.0);
+  const [autoPlayAudio, setAutoPlayAudio] = useState(false);
+  const [highContrast, setHighContrast] = useState(false);
+  const [notificationToast, setNotificationToast] = useState(null);
   const [aiResponse, setAiResponse] = useState(null);
   const [hasTriggeredCurrent, setHasTriggeredCurrent] = useState(false);
+
+  // Synchronized Tour & Socket.io States
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
+  const [activeQuizData, setActiveQuizData] = useState(null);
+  const [isTeacherMode, setIsTeacherMode] = useState(false);
+  const [isSyncedVisitor, setIsSyncedVisitor] = useState(false);
+  const [activeMnemonic, setActiveMnemonic] = useState('');
+  const [connectedVisitorsCount, setConnectedVisitorsCount] = useState(0);
+  const [teacherQuizResults, setTeacherQuizResults] = useState([]);
+  const socketRef = useRef(null);
+
+  const showToast = (message) => {
+    setNotificationToast(message);
+    setTimeout(() => {
+      setNotificationToast(null);
+    }, 4500);
+  };
 
   // TTS Speaker
   const { speak, pause: pauseSpeaking, stop: stopSpeaking, seek, isSpeaking, currentTime, duration } = useSpeaker();
@@ -1185,6 +1225,34 @@ export default function NavigatorApp() {
   // User simulated position (started near the first exhibit)
   const startPos = items?.length > 0 ? { x: items[0].x, y: items[0].y + 40 } : { x: 250, y: 250 };
   const [userPos, setUserPos] = useState(startPos);
+
+  const handleTeleportTarget = (poi) => {
+    setIsTeleportOpen(false);
+    if (!poi || !poi.position) return;
+
+    const targetX = tx(poi.position.x || 0);
+    const targetY = ty(poi.position.y || 0) + 25; // position right in front of the artwork/service
+
+    setUserPos({ x: targetX, y: targetY });
+    setCameraPos({ x: targetX, y: targetY });
+    setIsTrackingUser(true);
+
+    if (poi.layerId && poi.layerId !== activeLayerId) {
+      setActiveLayerId(poi.layerId);
+    }
+
+    if (poi.type === 'exhibit') {
+      const idx = items.findIndex(it => it.id === poi.id || (poi.artworkId && it.artworkId === poi.artworkId));
+      if (idx !== -1) {
+        setCurrentIndex(idx);
+      }
+      setShowDescription(true);
+      showToast(`⚡ Teletrasportato davanti a: ${poi.name}`);
+    } else {
+      showToast(`📍 Raggiunto: ${poi.name || poi.type}`);
+    }
+  };
+
 
   useEffect(() => {
     const layerLines = (museumData.lines || []).filter(l => l.layerId === activeLayerId);
@@ -1541,17 +1609,240 @@ export default function NavigatorApp() {
   const handleSeekBack = () => seek(Math.max(0, currentTime - 5));
   const handleSeekForward = () => seek(Math.min(duration || 9999, currentTime + 5));
 
-  const handleMicRequest = async () => {
-    try {
-      // simulate recording and request
-      setAiResponse("Listening...");
-      const response = await fetch(`/api/v1/navigator/ai/request/AIResponse/${state?.visitId || 'default'}`);
-      const data = await response.json();
-      setAiResponse(data.message || "Something went wrong.");
-    } catch (error) {
-      console.error("AI Mic request failed.", error);
-      setAiResponse("AI not available currently.");
+  // Initialize Socket.io connection
+  useEffect(() => {
+    const socket = io('/sync-tour', {
+      transports: ['websocket', 'polling']
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      console.log('Connected to /sync-tour websocket');
+    });
+
+    socket.on('sync:state_changed', (data) => {
+      if (data) {
+        if (data.currentIndex !== undefined) setCurrentIndex(data.currentIndex);
+        if (data.activeLayerId !== undefined) setActiveLayerId(data.activeLayerId);
+        if (data.userPos) setUserPos(data.userPos);
+        if (data.isPlaying && currentItem?.desc) {
+          speak(currentItem.desc, currentItem.id);
+        }
+        if (data.message) {
+          showToast(`📡 Docente: ${data.message}`);
+        }
+      }
+    });
+
+    socket.on('sync:participant_count', (data) => {
+      if (data && data.count !== undefined) {
+        setConnectedVisitorsCount(data.count);
+        if (data.visitorName) {
+          showToast(`👤 ${data.visitorName} si è unito alla visita!`);
+        }
+      }
+    });
+
+    socket.on('sync:quiz_started', (data) => {
+      if (data && data.quiz) {
+        setActiveQuizData(data.quiz);
+        setIsQuizModalOpen(true);
+        showToast("📝 Il Docente ha avviato il Quiz di fine visita!");
+      }
+    });
+
+    socket.on('teacher:quiz_result', (data) => {
+      if (data && data.allResults) {
+        setTeacherQuizResults(data.allResults);
+        showToast(`📊 Quiz consegnato da ${data.result.visitorName}: ${data.result.score}/${data.result.total}`);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [currentItem, speak]);
+
+  const handleStartTeacherSession = (mnemonic) => {
+    const name = mnemonic || 'Fenice rossa';
+    setActiveMnemonic(name);
+    setIsTeacherMode(true);
+    setIsSyncedVisitor(false);
+    if (socketRef.current) {
+      socketRef.current.emit('teacher:create_session', {
+        mnemonicName: name,
+        museumId: 'PIN-BO'
+      });
     }
+    showToast(`🎓 Sessione Docente avviata: "${name}"`);
+  };
+
+  const handleJoinVisitorSession = (mnemonic, visitorName) => {
+    const name = mnemonic || 'Fenice rossa';
+    setActiveMnemonic(name);
+    setIsSyncedVisitor(true);
+    setIsTeacherMode(false);
+    if (socketRef.current) {
+      socketRef.current.emit('visitor:join_session', {
+        mnemonicName: name,
+        visitorName: visitorName || 'Studente'
+      });
+    }
+    showToast(`🟢 Sincronizzato con la stanza "${name}"`);
+  };
+
+  const handleLeaveSyncSession = () => {
+    setIsTeacherMode(false);
+    setIsSyncedVisitor(false);
+    setActiveMnemonic('');
+    showToast("Sessione sincronizzata terminata");
+  };
+
+  const handleBroadcastState = (type) => {
+    if (!socketRef.current || !activeMnemonic) return;
+    if (type === 'POS') {
+      socketRef.current.emit('teacher:update_state', {
+        mnemonicName: activeMnemonic,
+        userPos,
+        activeLayerId,
+        message: 'Posizione gruppo aggiornata sulla mappa.'
+      });
+      showToast("📡 Posizione trasmessa a tutti gli studenti");
+    } else if (type === 'NEXT') {
+      if (currentIndex < items.length - 1) {
+        const nextIdx = currentIndex + 1;
+        setCurrentIndex(nextIdx);
+        socketRef.current.emit('teacher:update_state', {
+          mnemonicName: activeMnemonic,
+          currentIndex: nextIdx,
+          userPos,
+          activeLayerId,
+          message: 'Passaggio alla prossima opera.'
+        });
+      }
+    } else if (type === 'PREV') {
+      if (currentIndex > 0) {
+        const prevIdx = currentIndex - 1;
+        setCurrentIndex(prevIdx);
+        socketRef.current.emit('teacher:update_state', {
+          mnemonicName: activeMnemonic,
+          currentIndex: prevIdx,
+          userPos,
+          activeLayerId,
+          message: 'Passaggio all\'opera precedente.'
+        });
+      }
+    } else if (type === 'AUDIO') {
+      if (currentItem?.desc) {
+        speak(currentItem.desc, currentItem.id);
+      }
+      socketRef.current.emit('teacher:update_state', {
+        mnemonicName: activeMnemonic,
+        isPlaying: true,
+        message: 'Avvio spiegazione audio per il gruppo.'
+      });
+      showToast("🔊 Audio avviato su tutti i dispositivi");
+    }
+  };
+
+  const handleStartGroupQuiz = () => {
+    if (!socketRef.current || !activeMnemonic) return;
+    socketRef.current.emit('teacher:start_quiz', {
+      mnemonicName: activeMnemonic
+    });
+    showToast("📝 Quiz inviato a tutti i dispositivi!");
+  };
+
+  const handleSubmitQuizResults = (results) => {
+    if (socketRef.current && activeMnemonic) {
+      socketRef.current.emit('visitor:submit_quiz', {
+        mnemonicName: activeMnemonic,
+        score: results.score,
+        total: results.total,
+        answers: results.answers
+      });
+    }
+  };
+
+  // Voice Command Dispatcher (Web Speech API)
+  const handleVoiceCommand = useCallback((cmd) => {
+    if (!cmd) return;
+    switch (cmd.type) {
+      case 'NAV_NEXT':
+        if (currentIndex < items.length - 1) {
+          setCurrentIndex(prev => prev + 1);
+        }
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'NAV_PREV':
+        if (currentIndex > 0) {
+          setCurrentIndex(prev => prev - 1);
+        }
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'AUDIO_PLAY':
+        if (currentItem?.desc) {
+          speak(currentItem.desc, currentItem.id);
+        }
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'AUDIO_PAUSE':
+        pauseSpeaking();
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'AUDIO_REPLAY':
+        seek(0);
+        if (currentItem?.desc) speak(currentItem.desc, currentItem.id);
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'UI_EXPAND':
+        setShowDescription(true);
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'UI_COLLAPSE':
+        setShowDescription(false);
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'TELEPORT_EXHIBIT':
+      case 'TELEPORT_FACILITY':
+        if (cmd.target) {
+          handleTeleportTarget(cmd.target);
+          showToast("🗣️ " + cmd.feedback);
+        }
+        break;
+      case 'CHANGE_LAYER':
+        setActiveLayerId(cmd.layerId);
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'TOGGLE_ACCESSIBILITY':
+        setAccessibleRoute(prev => !prev);
+        showToast("🗣️ " + cmd.feedback);
+        break;
+      case 'SHOW_HELP':
+        setIsVoiceModalOpen(true);
+        break;
+      default:
+        if (cmd.feedback) showToast("🗣️ " + cmd.feedback);
+        break;
+    }
+  }, [currentIndex, items.length, currentItem, speak, pauseSpeaking, seek, handleTeleportTarget]);
+
+  const {
+    isListening,
+    transcript,
+    lastFeedback,
+    startListening,
+    stopListening,
+    executeManualCommand
+  } = useSpeechRecognition({
+    onCommand: handleVoiceCommand,
+    pois: museumData.pois || [],
+    currentIndex,
+    itemsLength: items.length
+  });
+
+  const handleMicRequest = () => {
+    setIsVoiceModalOpen(true);
   };
 
   const handleCameraScan = () => {
@@ -1613,15 +1904,35 @@ export default function NavigatorApp() {
           <div className="pulse-core"></div>
         </div>
 
+        {notificationToast && (
+          <div className="teleport-toast-notification slide-in-top">
+            <span>{notificationToast}</span>
+            <button onClick={() => setNotificationToast(null)}><X size={14} /></button>
+          </div>
+        )}
+
         {isCameraActive && (
           <QRScanner
             onScanSuccess={(text) => {
               setIsCameraActive(false);
-              alert(`QR Scan result: ${text}`);
+              const cleanText = text.trim();
+              const pois = museumData.pois || [];
+              const matchedPoi = pois.find(p => 
+                (p.artworkId && p.artworkId.toUpperCase() === cleanText.toUpperCase()) ||
+                (p.id && p.id.toString() === cleanText) ||
+                (cleanText.toUpperCase().includes(p.artworkId?.toUpperCase() || '___NONE___')) ||
+                (p.name && cleanText.toLowerCase().includes(p.name.toLowerCase()))
+              );
+
+              if (matchedPoi) {
+                handleTeleportTarget(matchedPoi);
+                showToast(`📷 Opera riconosciuta da QR: ${matchedPoi.name}`);
+              } else {
+                showToast(`ℹ️ QR Scansionato: "${cleanText}" (Nessuna opera associata nel museo)`);
+              }
             }}
             onScanError={(err) => {
-              console.error('QRScanner error', err);
-              setIsCameraActive(false);
+              console.warn('QRScanner error', err);
             }}
             onClose={() => setIsCameraActive(false)}
           />
@@ -1632,9 +1943,45 @@ export default function NavigatorApp() {
           <button
             className={`util-btn ${isCameraActive ? 'active' : ''}`}
             onClick={handleCameraScan}
-            title="Scan QR Code"
+            title="Scansiona QR Code Opera"
           >
             <Camera size={24} />
+          </button>
+
+          <button
+            className="util-btn teleport-btn-trigger"
+            onClick={() => setIsTeleportOpen(true)}
+            title="Modulo Teletrasporto Virtuale"
+            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff' }}
+          >
+            <Zap size={22} color="#fbbf24" />
+          </button>
+
+          <button
+            className={`util-btn ${isSyncModalOpen || isSyncedVisitor || isTeacherMode ? 'active' : ''}`}
+            onClick={() => setIsSyncModalOpen(true)}
+            title="Visita Sincronizzata Real-Time (Docente/Studenti)"
+            style={isSyncedVisitor || isTeacherMode ? { background: '#10b981', color: '#fff' } : { background: 'rgba(16, 185, 129, 0.15)', color: '#fff' }}
+          >
+            <Radio size={22} color={isSyncedVisitor || isTeacherMode ? '#fff' : '#34d399'} className={isSyncedVisitor || isTeacherMode ? 'animate-pulse' : ''} />
+          </button>
+
+          <button
+            className={`util-btn ${isVoiceModalOpen ? 'active' : ''}`}
+            onClick={() => setIsVoiceModalOpen(true)}
+            title="Comandi Vocali Web Speech API"
+            style={{ background: isListening ? '#ef4444' : 'rgba(239, 68, 68, 0.15)', color: '#fff' }}
+          >
+            <Mic size={22} color={isListening ? '#fff' : '#f87171'} />
+          </button>
+
+          <button
+            className={`util-btn ${accessibleRoute ? 'active' : ''}`}
+            onClick={() => setIsAccessibilityModalOpen(true)}
+            title="Accessibilità & Strada Facile"
+            style={accessibleRoute ? { background: '#2563eb', color: '#fff' } : {}}
+          >
+            <Accessibility size={22} color={accessibleRoute ? '#fff' : '#60a5fa'} />
           </button>
 
           <div className="layer-controls">
@@ -1730,12 +2077,72 @@ export default function NavigatorApp() {
         />
       )}
 
+      {isTeleportOpen && (
+        <TeleportModal
+          pois={museumData.pois || []}
+          activeLayerId={activeLayerId}
+          onTeleport={handleTeleportTarget}
+          onClose={() => setIsTeleportOpen(false)}
+        />
+      )}
+
+      <VoiceControlModal
+        isOpen={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        isListening={isListening}
+        transcript={transcript}
+        lastFeedback={lastFeedback}
+        onStartListening={startListening}
+        onStopListening={stopListening}
+        onSelectCommand={executeManualCommand}
+      />
+
+      <AccessibilityModal
+        isOpen={isAccessibilityModalOpen}
+        onClose={() => setIsAccessibilityModalOpen(false)}
+        accessibleRoute={accessibleRoute}
+        onToggleAccessibleRoute={() => {
+          setAccessibleRoute(prev => !prev);
+          showToast(`Percorso accessibile ${!accessibleRoute ? 'ATTIVATO (senza scale)' : 'DISATTIVATO'}`);
+        }}
+        fontSizeMultiplier={fontSizeMultiplier}
+        onChangeFontSize={setFontSizeMultiplier}
+        speechRate={speechRate}
+        onChangeSpeechRate={setSpeechRate}
+        autoPlayAudio={autoPlayAudio}
+        onToggleAutoPlayAudio={() => setAutoPlayAudio(prev => !prev)}
+        highContrast={highContrast}
+        onToggleHighContrast={() => setHighContrast(prev => !prev)}
+      />
+
+      <SyncSessionModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        isTeacherMode={isTeacherMode}
+        isSyncedVisitor={isSyncedVisitor}
+        activeMnemonic={activeMnemonic}
+        connectedVisitorsCount={connectedVisitorsCount}
+        onStartTeacherSession={handleStartTeacherSession}
+        onJoinVisitorSession={handleJoinVisitorSession}
+        onLeaveSyncSession={handleLeaveSyncSession}
+        onBroadcastState={handleBroadcastState}
+        onStartGroupQuiz={handleStartGroupQuiz}
+        teacherQuizResults={teacherQuizResults}
+      />
+
+      <QuizModal
+        isOpen={isQuizModalOpen}
+        onClose={() => setIsQuizModalOpen(false)}
+        quiz={activeQuizData}
+        onSubmitResults={handleSubmitQuizResults}
+      />
+
       <BottomBar
         onPrev={handlePrev}
         onNext={handleNext}
         onPlayPause={togglePlay}
         onMic={handleMicRequest}
-        onEasier={() => alert("Finding easier route...")}
+        onEasier={() => setIsAccessibilityModalOpen(true)}
         onSeekBack={handleSeekBack}
         onSeekForward={handleSeekForward}
         isPlaying={isPlaying}
@@ -1745,6 +2152,8 @@ export default function NavigatorApp() {
         showDescription={showDescription}
         setShowDescription={setShowDescription}
         currentItem={currentItem}
+        fontSizeMultiplier={fontSizeMultiplier}
+        highContrast={highContrast}
       />
     </div>
   );
