@@ -15,12 +15,24 @@ const getIndex = servePage("index")
 const getSignup = servePage("registration")
 const getLogin = servePage("login")
 const getHomepage = servePage("homepage")
+
 const getCreateItems = servePage("createItems")
 const getCreateVisits = servePage("createVisits") 
+
 const getBrowseMarket = servePage("browseMarket")
+
 const getNewMuseum = servePage("newMuseum")
 const getJoinMuseum = servePage("joinMuseum")
 const getMyMuseums = servePage("myMuseums")
+
+const getMyLibrary = servePage("myLibrary")
+const getCreateTeacherVisits = servePage("createTeacherVisits")
+const getMyContent = servePage("myContent")
+const getCreateClass = servePage("createClass");
+const getManageClasses = servePage("manageClasses");
+
+const getJoinClassroom = servePage("joinClassroom");
+const getMyClasses = servePage("myClasses");
 
 module.exports = {
     getIndex,
@@ -33,4 +45,11 @@ module.exports = {
     getNewMuseum,
     getJoinMuseum,
     getMyMuseums,
+    getMyLibrary,
+    getCreateTeacherVisits,
+    getMyContent,
+    getCreateClass,
+    getManageClasses,
+    getJoinClassroom,
+    getMyClasses,
 };

@@ -1,0 +1,248 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>La mia libreria - ArtAround</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50 text-gray-800"
+        x-data="myLibraryApp()"
+        x-init="init()">
+
+        <header class="bg-white border-b border-gray-100">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="/marketplace/homepage"
+                class="flex items-center gap-3 text-purple-600 hover:text-purple-800">
+                <span class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center">
+                <i class="fas fa-book-open"></i>
+                </span>
+                <span class="font-bold text-lg">ArtAround</span>
+            </a>
+
+            <a href="/marketplace/homepage"
+                class="text-sm font-semibold text-gray-600 hover:text-purple-600">
+                <i class="fas fa-arrow-left mr-2"></i>Dashboard
+            </a>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto px-4 py-10">
+            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-wide text-purple-600">
+                        Area personale
+                    </p>
+                    <h1 class="text-3xl font-bold mt-1">La mia libreria</h1>
+                    <p class="text-gray-500 mt-2">
+                        Qui trovi tutti i contenuti che hai acquistato nel Marketplace.
+                    </p>
+                </div>
+
+                <a href="/marketplace/browseMarket"
+                    class="inline-flex items-center justify-center bg-purple-600 text-white font-semibold px-5 py-3 rounded-xl hover:bg-purple-700 transition">
+                    <i class="fas fa-store mr-2"></i>Esplora Marketplace
+                </a>
+            </div>
+            
+            <!-- CONTENT TABS-->
+            <div class="flex gap-3 border-b border-gray-200 mb-6">
+                <button @click="activeTab = 'visits'"
+                    :class="activeTab === 'visits'
+                    ? 'text-purple-600 border-purple-600'
+                    : 'text-gray-500 border-transparent'"
+                    class="px-4 py-3 border-b-2 font-semibold transition">
+                    <i class="fas fa-route mr-2"></i>
+                    Visite acquistate
+                    <span class="ml-1 text-xs bg-gray-100 px-2 py-1 rounded-full"
+                    x-text="purchasedVisits.length"></span>
+                </button>
+
+                <button @click="activeTab = 'items'"
+                    :class="activeTab === 'items'
+                    ? 'text-purple-600 border-purple-600'
+                    : 'text-gray-500 border-transparent'"
+                    class="px-4 py-3 border-b-2 font-semibold transition">
+                    <i class="fas fa-book-open mr-2"></i>
+                        Items acquistati
+                    <span class="ml-1 text-xs bg-gray-100 px-2 py-1 rounded-full"
+                    x-text="purchasedItems.length"></span>
+                </button>
+
+                <template x-if="user.role === 'teacher'">
+                    <a href="/marketplace/homepage/myContent"
+                        class="px-4 py-3 border-b-2 font-semibold transition text-gray-500 border-transparent hover:text-purple-600 hover:border-purple-600">
+                        <i class="fa-solid fa-brush mr-2"></i>
+                        I miei contenuti creati
+                    </a>
+                </template>
+            </div>
+
+            <div x-show="loading" class="py-16 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl text-purple-600 mr-3"></i>
+                Caricamento della libreria…
+            </div>
+
+            <!-- VISITE ACQUISTATE -->
+            <section x-show="!loading && activeTab === 'visits'" x-cloak>
+                <template x-if="purchasedVisits.length === 0">
+                    <div class="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center">
+                        <i class="fas fa-route text-4xl text-gray-300 mb-4"></i>
+                        <h2 class="font-bold text-lg">Nessuna visita acquistata</h2>
+                        <p class="text-gray-500 mt-1">
+                            Quando acquisterai una visita, la troverai qui.
+                        </p>
+                    </div>
+                </template>
+
+                <div class="space-y-4">
+                    <template x-for="visit in purchasedVisits" :key="visit._id">
+                        <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col md:flex-row md:items-center gap-5">
+                            <div class="w-12 h-12 shrink-0 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <i class="fas fa-route text-xl"></i>
+                            </div>
+
+                            <div class="flex-1">
+                            <h2 class="font-bold text-lg" x-text="visit.title"></h2>
+
+                            <p class="text-sm text-gray-500 mt-1"
+                                x-text="visit.description || 'Nessuna descrizione disponibile.'"></p>
+
+                            <div class="flex flex-wrap gap-3 mt-3 text-xs text-gray-500">
+                                <span>
+                                <i class="fas fa-list-ol mr-1"></i>
+                                <span x-text="(visit.items || []).length"></span> tappe
+                                </span>
+
+                                <span x-show="visit.duration">
+                                <i class="far fa-clock mr-1"></i>
+                                <span x-text="visit.duration"></span> min
+                                </span>
+
+                                <span x-show="visit.museum">
+                                <i class="fas fa-landmark mr-1"></i>
+                                <span x-text="visit.museum.name || visit.museum"></span>
+                                </span>
+                            </div>
+                            </div>
+
+                            <button @click="openNavigator(visit)"
+                            class="shrink-0 bg-purple-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-purple-700 transition">
+                            Apri nel Navigator
+                            </button>
+                        </article>
+                    </template>
+                </div>
+            </section>
+
+            <!-- ITEM ACQUISTATI -->
+            <section x-show="!loading && activeTab === 'items'" x-cloak>
+                <template x-if="purchasedItems.length === 0">
+                    <div class="bg-white border border-dashed border-gray-300 rounded-2xl p-10 text-center">
+                    <i class="fas fa-book-open text-4xl text-gray-300 mb-4"></i>
+                    <h2 class="font-bold text-lg">Nessun item acquistato</h2>
+                    <p class="text-gray-500 mt-1">
+                        Quando acquisterai un item, lo troverai qui.
+                    </p>
+                    </div>
+                </template>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    <template x-for="item in purchasedItems" :key="item._id">
+                    <article class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+                        <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <h2 class="font-bold text-lg" x-text="item.title"></h2>
+                            <p class="text-sm text-gray-500 mt-2 line-clamp-3"
+                            x-text="item.description"></p>
+                        </div>
+
+                        <span class="text-xs font-bold bg-blue-100 text-blue-700 rounded-full px-2.5 py-1"
+                            x-text="item.itemType"></span>
+                        </div>
+
+                        <div class="flex flex-wrap gap-2 mt-5">
+                        <span class="text-xs bg-gray-100 px-2.5 py-1 rounded-full"
+                            x-text="item.length"></span>
+
+                        <span class="text-xs bg-gray-100 px-2.5 py-1 rounded-full"
+                            x-text="item.languageLevel"></span>
+                        </div>
+
+                        <button @click="showItem(item)"
+                        class="w-full mt-5 border border-blue-200 text-blue-700 py-2.5 rounded-xl font-semibold hover:bg-blue-50 transition">
+                            Visualizza
+                        </button>
+                    </article>
+                    </template>
+                </div>
+            </section>
+
+
+        </main>
+
+        <script>
+            function myLibraryApp() {
+                return {
+                    activeTab: 'visits',
+                    loading: true,
+                    purchasedVisits: [],
+                    purchasedItems: [],
+                    user: {},
+
+
+                    async init() {
+                        const token = localStorage.getItem('apiToken');
+                        this.user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                        if (!token) {
+                            window.location.href = '/marketplace/login';
+                            return;
+                        }
+
+                        try {
+                            const [visitsResponse, itemsResponse] = await Promise.all([
+                            fetch('/api/v1/marketplace/browse/visits', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            }),
+                            fetch('/api/v1/marketplace/browse/items', {
+                                headers: { Authorization: `Bearer ${token}` }
+                            })
+                            ]);
+
+                            const visitsData = await visitsResponse.json();
+                            const itemsData = await itemsResponse.json();
+
+                            const purchasedVisitIds = visitsData?.data?.purchasedVisits || [];
+                            const purchasedItemIds = itemsData?.data?.purchasedItems || [];
+
+                            this.purchasedVisits = (visitsData?.data?.visits || [])
+                            .filter(visit => purchasedVisitIds.includes(visit._id));
+
+                            this.purchasedItems = (itemsData?.data?.items || [])
+                            .filter(item => purchasedItemIds.includes(item._id));
+
+                        } catch (error) {
+                            console.error('Errore nel caricamento della libreria:', error);
+                            alert('Non è stato possibile caricare la libreria.');
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+
+                    openNavigator(visit) {
+                        alert(`Il Navigator aprirà la visita: ${visit.title}`);
+                    },
+
+                    showItem(item) {
+                        alert(`${item.title}\n\n${item.description}`);
+                    }
+                }
+            }
+        </script>
+    </body>
+</html>

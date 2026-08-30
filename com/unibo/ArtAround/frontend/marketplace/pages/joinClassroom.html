@@ -1,0 +1,116 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+            <title>Unisciti a una classe - ArtAround</title>
+
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50" x-data="joinClassroomApp()" x-init="init()">
+
+            <header class="bg-white border-b border-gray-100">
+                <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+                    <a href="/marketplace/homepage" class="text-purple-600 font-semibold hover:text-purple-800">
+                        <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                    </a>
+
+                    <a href="/marketplace/homepage/myClasses" class="text-sm font-semibold text-gray-600 hover:text-purple-600">
+                        <i class="fas fa-users mr-2"></i>Le mie classi
+                    </a>
+                </div>
+            </header>
+
+            <main class="max-w-4xl mx-auto px-4 py-12">
+                <div class="max-w-2xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-8">
+                    <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center mb-5">
+                        <i class="fas fa-user-plus text-2xl"></i>
+                    </div>
+
+                    <p class="text-sm font-semibold text-purple-600 uppercase tracking-wide">Area studente</p>
+
+                    <h1 class="text-3xl font-bold text-gray-800 mt-1">Unisciti a una classe</h1>
+
+                    <p class="text-gray-500 mt-2">Inserisci il codice comunicato dal tuo docente.</p>
+
+                    <form @submit.prevent="joinClassroom" class="mt-8">
+                        <label class="block">
+                            <span class="font-semibold text-gray-700">Codice classe</span>
+
+                            <input
+                                x-model="joinCode"
+                                required
+                                maxlength="30"
+                                @input="joinCode = joinCode.toUpperCase().replace(/\s+/g, '-')"
+                                placeholder="Es. STORIA-3B"
+                                class="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg uppercase focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+
+                            <p class="text-xs text-gray-500 mt-2">Puoi iscriverti a più classi, anche con docenti diversi.</p>
+                        </label>
+
+                        <button
+                            type="submit"
+                            :disabled="saving || !joinCode"
+                            class="w-full px-6 py-3 mt-6 text-white font-bold rounded-lg bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:ring-purple-200 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed transition">
+                            
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            <span x-text="saving ? 'Iscrizione…' : 'Unisciti alla classe'"></span>
+                        </button>
+                    </form>
+                </div>
+            </main>
+
+            <script>
+                function joinClassroomApp() {
+                    return {
+                        joinCode: '',
+                        saving: false,
+
+                        init() {
+                            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                            if (user.role !== 'visitor') {
+                                alert('Questa pagina è riservata agli studenti.');
+                                window.location.href = '/marketplace/homepage';
+                            }
+                        },
+
+                        async joinClassroom() {
+                            this.saving = true;
+
+                            try {
+                                const response = await fetch('/api/v1/marketplace/classrooms/join', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                    },
+                                    body: JSON.stringify({joinCode: this.joinCode})
+                                });
+                                const data = await response.json();
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        data.message || 'Impossibile iscriversi alla classe.'
+                                    );
+                                }
+
+                                alert(`Iscrizione completata!\n\nClasse: ${data.data.classroom.name}`);
+                                window.location.href = '/marketplace/homepage/myClasses';
+
+                            } catch (error) {
+                                alert(error.message);
+                            } finally {
+                                this.saving = false;
+                            }
+                        }
+                    }
+                }
+            </script>
+        </body>
+</html>

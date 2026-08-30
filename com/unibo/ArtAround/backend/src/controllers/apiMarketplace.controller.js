@@ -3,6 +3,7 @@ const Visit = require('../models/Visit');
 const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
 const Museum = require('../models/Museum'); //per check codice museo in createMuseum
 const Notification = require('../models/Notification'); //per creare notifiche in handleJoinReq
+const Classroom = require('../models/Classroom'); //per creare classroom per teachers
 
 
 // ----------------------------------- ITEMS HANDLERS ----------------------------------
@@ -694,6 +695,434 @@ const toggleFavorite = async (req, res) => {
     }
 };
 
+
+// ----------------------------------- TEACHER DATA HANDLERS ----------------------------------
+const getMyContent = async (req, res) => {
+    try {
+        // Designed only for teachers role, to retrieve their created items and guided visits
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Questa sezione è riservata ai docenti.'
+            });
+        }
+
+        const userId = req.user.id.toString();
+        //Retrieve content created by the teacher
+        //-items
+        const items = await Item.find({ creator: userId })
+            .sort({ createdAt: -1 });
+
+        //-guided visits for teacher's students
+        const guidedVisits = await Visit.find({
+            author: req.user.id,
+            visitType: 'guided'
+        })
+            .populate('items')
+            .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            status: 'success',
+            data: {
+                items,
+                guidedVisits
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore nel recupero dei contenuti del docente:', err);
+        res.status(500).json({
+            status: 'error',
+            message: 'Impossibile recuperare i contenuti generati.'
+        });
+    }
+};
+
+
+// ----------------------------------- TEACHER CLASSROOM HANDLERS ----------------------------------
+const normalizeJoinCode = (code) => {
+    return code
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '-');
+};
+
+const createClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può creare una classe.'
+            });
+        }
+
+        const { name, joinCode } = req.body;
+        if (!name || !joinCode) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Nome e codice della classe sono obbligatori.'
+            });
+        }
+
+        const normalizedCode = normalizeJoinCode(joinCode);
+
+        const existingClassroom = await Classroom.findOne({
+            joinCode: normalizedCode
+        });
+        if (existingClassroom) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Questo codice classe è già in uso.'
+            });
+        }
+
+        const classroom = await Classroom.create({
+            name: name.trim(),
+            joinCode: normalizedCode,
+            teacher: req.user.id
+        });
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Classe creata con successo.',
+            data: {
+                classroom
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore creazione classe:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile creare la classe.'
+        });
+    }
+};
+
+const getMyClassrooms = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può vedere le proprie classi.'
+            });
+        }
+
+        const classrooms = await Classroom.find({
+            teacher: req.user.id
+        })
+            .populate('students', 'username email')
+            .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                classrooms
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore recupero classi:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile recuperare le classi.'
+        });
+    }
+};
+
+const updateClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può modificare una classe.'
+            });
+        }
+
+        const classroom = await Classroom.findOne({
+            _id: req.params.id,
+            teacher: req.user.id
+        });
+
+        if (!classroom) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Classe non trovata o non autorizzata.'
+            });
+        }
+
+        const { name, joinCode } = req.body;
+
+        if (name) {
+            classroom.name = name.trim();
+        }
+
+        if (joinCode) {
+            const normalizedCode = normalizeJoinCode(joinCode);
+
+            const codeAlreadyUsed = await Classroom.findOne({
+                joinCode: normalizedCode,
+                _id: { $ne: classroom._id }
+            });
+
+            if (codeAlreadyUsed) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Questo codice classe è già in uso.'
+                });
+            }
+
+            classroom.joinCode = normalizedCode;
+        }
+
+        await classroom.save();
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Classe aggiornata con successo.',
+            data: {
+                classroom
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore modifica classe:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile modificare la classe.'
+        });
+    }
+};
+
+const removeStudentFromClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può modificare una classe.'
+            });
+        }
+
+        const classroom = await Classroom.findOne({
+            _id: req.params.id,
+            teacher: req.user.id
+        });
+
+        if (!classroom) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Classe non trovata o non autorizzata.'
+            });
+        }
+
+        classroom.students = classroom.students.filter(
+            studentId => studentId.toString() !== req.params.studentId
+        );
+
+        await classroom.save();
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Studente rimosso dalla classe.'
+        });
+
+    } catch (err) {
+        console.error('Errore rimozione studente:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile rimuovere lo studente.'
+        });
+    }
+};
+
+const deleteClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può eliminare una classe.'
+            });
+        }
+
+        const classroom = await Classroom.findOneAndDelete({
+            _id: req.params.id,
+            teacher: req.user.id
+        });
+
+        if (!classroom) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Classe non trovata o non autorizzata.'
+            });
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Classe eliminata con successo.'
+        });
+
+    } catch (err) {
+        console.error('Errore eliminazione classe:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile eliminare la classe.'
+        });
+    }
+};
+
+// ----------------------------------- CLASSROOM JOIN HANDLERS ----------------------------------
+const joinClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'visitor') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo gli studenti possono iscriversi a una classe.'
+            });
+        }
+
+        const { joinCode } = req.body;
+        if (!joinCode || !joinCode.trim()) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Inserisci il codice della classe.'
+            });
+        }
+
+        const normalizedCode = joinCode
+            .trim()
+            .toUpperCase()
+            .replace(/\s+/g, '-');
+
+        const classroom = await Classroom.findOne({
+            joinCode: normalizedCode
+        });
+
+        if (!classroom) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Nessuna classe trovata con questo codice.'
+            });
+        }
+
+        const alreadyJoined = classroom.students.some(
+            studentId => studentId.toString() === req.user.id.toString()
+        );
+
+        if (alreadyJoined) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Sei già iscritto a questa classe.'
+            });
+        }
+
+        classroom.students.push(req.user.id);
+        await classroom.save();
+
+        await classroom.populate('teacher', 'username');
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Ti sei iscritto correttamente alla classe.',
+            data: {
+                classroom
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore iscrizione alla classe:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile iscriversi alla classe.'
+        });
+    }
+};
+
+// student can retrieve the classrooms they joined
+const getJoinedClassrooms = async (req, res) => {
+    try {
+        if (req.user.role !== 'visitor') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Questa sezione è riservata agli studenti.'
+            });
+        }
+
+        const classrooms = await Classroom.find({
+            students: req.user.id
+        })
+        .populate('teacher', 'username')
+        .sort({ createdAt: -1 });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                classrooms
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore recupero classi studente:', err);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile recuperare le classi.'
+        });
+    }
+};
+
+// Student can leave a classroom they joined
+const leaveClassroom = async (req, res) => {
+    try {
+        if (req.user.role !== 'visitor') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo uno studente può uscire da una classe.'
+            });
+        }
+
+        const classroom = await Classroom.findById(req.params.id);
+        if (!classroom) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Classe non trovata.'
+            });
+        }
+
+        const alreadyJoined = classroom.students.some(
+            studentId => studentId.toString() === req.user.id.toString()
+        );
+
+        if (!alreadyJoined) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Non fai parte di questa classe.'
+            });
+        }
+
+        classroom.students = classroom.students.filter(
+            studentId => studentId.toString() !== req.user.id.toString()
+        );
+        await classroom.save();
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Hai lasciato la classe.'
+        });
+
+    } catch (err) {
+        console.error('Errore uscita dalla classe:', err);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile uscire dalla classe.'
+        });
+    }
+};
+
 module.exports = {
     createItems,
     searchItemsForVisit,
@@ -711,4 +1140,16 @@ module.exports = {
     getNotifications,
     markNotificationsAsRead,
     toggleFavorite,
+    
+    getMyContent,
+
+    createClassroom,
+    getMyClassrooms,
+    updateClassroom,
+    removeStudentFromClassroom,
+    deleteClassroom,
+    
+    joinClassroom,
+    getJoinedClassrooms,
+    leaveClassroom,
 }

@@ -1,0 +1,421 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Crea visita guidata · ArtAround</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50 text-gray-800"
+        x-data="guidedVisitApp()"
+        x-init="init()">
+
+        <header class="bg-white border-b border-gray-100">
+            <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <a href="/marketplace/homepage" class="flex items-center gap-3 text-amber-600 hover:text-amber-800">
+                <span class="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                </span>
+                <span class="font-bold text-lg">ArtAround</span>
+            </a>
+
+            <a href="/marketplace/homepage"class="text-sm font-semibold text-gray-600 hover:text-amber-600">
+                <i class="fas fa-arrow-left mr-2"></i> Dashboard
+            </a>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-10">
+            <div class="mb-8">
+                <p class="text-sm font-semibold uppercase tracking-wide text-amber-600">
+                    Area docente
+                </p>
+                <h1 class="text-3xl font-bold mt-1">Crea visita guidata</h1>
+                <p class="text-gray-500 mt-2">
+                    Seleziona contenuti e visite dalla tua libreria, poi salva una visita privata pronta per il Navigator.
+                </p>
+            </div>
+
+            <div x-show="loading" class="py-16 text-center text-gray-500">
+                <i class="fas fa-spinner fa-spin text-2xl text-amber-600 mr-3"></i>
+                Caricamento delle risorse…
+            </div>
+
+            <form x-show="!loading" x-cloak @submit.prevent="saveGuidedVisit" class="grid grid-cols-1 xl:grid-cols-3 gap-7">
+                <section class="xl:col-span-2 space-y-6">
+
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h2 class="font-bold text-xl">Dettagli della visita</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                        <label class="block">
+                            <span class="text-sm font-semibold">Titolo</span>
+                            <input
+                                x-model.trim="title"
+                                required
+                                class="w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg
+                                        focus:ring-2 focus:ring-amber-500
+                                        outline-none transition"
+                                placeholder="Es. Il Rinascimento con la 3B"
+                            >
+                        </label>
+
+                        <label class="block">
+                            <span class="text-sm font-semibold">Nome della visita</span>
+                            <input
+                                x-model.trim="accessCode"
+                                required
+                                maxlength="40"
+                                class="w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg uppercase focus:ring-2 focus:ring-amber-500 outline-none transition"
+                                placeholder="Es. FENICE ROSSA"
+                            >
+                        </label>
+                    </div>
+
+                    <label class="block mt-4">
+                        <span class="text-sm font-semibold">Descrizione</span>
+                        <textarea
+                            x-model.trim="description"
+                            rows="3"
+                            class="w-full px-4 py-3 mt-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                            placeholder="Per chi è pensata questa visita?"
+                        > </textarea>
+                    </label>
+
+                    <p class="text-xs text-gray-500 mt-3">
+                        <i class="fas fa-lock mr-1"></i>
+                        La visita viene salvata come privata e guidata: non comparirà nel Marketplace pubblico.
+                    </p>
+                    </div>
+
+                    <!-- CONTENUTI CREATI -->
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b">
+                            <h2 class="font-bold text-xl">1. I miei contenuti creati</h2>
+                            <p class="text-sm text-gray-500 mt-1">Contenuti creati direttamente dal tuo profilo.</p>
+                        </div>
+
+                        <div class="divide-y max-h-80 overflow-y-auto">
+                            <template x-if="myCreatedItems.length === 0">
+                            <p class="p-6 text-sm text-gray-500">
+                                Non hai ancora creato contenuti.
+                            </p>
+                            </template>
+
+                            <template x-for="item in myCreatedItems" :key="item._id">
+                                <label class="p-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer">
+                                    <input type="checkbox"
+                                        :checked="isSelected(item._id)"
+                                        @change="toggleItem(item)"
+                                        class="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                                    >
+
+                                    <span class="flex-1">
+                                    <span class="font-semibold block" x-text="item.title"></span>
+                                    <span class="text-xs text-gray-500"
+                                        x-text="`${item.itemType} · ${item.length} · ${item.languageLevel}`"></span>
+                                    </span>
+                                </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- CONTENUTI ACQUISTATI -->
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b">
+                            <h2 class="font-bold text-xl">2. Contenuti acquistati</h2>
+                            <p class="text-sm text-gray-500 mt-1">
+                            Contenuti presenti nella tua libreria personale.
+                            </p>
+                        </div>
+
+                        <div class="divide-y max-h-80 overflow-y-auto">
+                            <template x-if="purchasedItems.length === 0">
+                            <p class="p-6 text-sm text-gray-500">
+                                Non hai acquistato contenuti.
+                            </p>
+                            </template>
+
+                            <template x-for="item in purchasedItems" :key="item._id">
+                            <label class="p-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox"
+                                :checked="isSelected(item._id)"
+                                @change="toggleItem(item)"
+                                class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+
+                                <span class="flex-1">
+                                <span class="font-semibold block" x-text="item.title"></span>
+                                <span class="text-xs text-gray-500"
+                                    x-text="`${item.itemType} · ${item.length} · ${item.languageLevel}`"></span>
+                                </span>
+                            </label>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- VISITE CREATE -->
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-6 border-b">
+                            <h2 class="font-bold text-xl">3. Le visite private già create</h2>
+                            <p class="text-sm text-gray-500 mt-1">
+                            Aggiungi tutte le tappe di una tua visita esistente.
+                            </p>
+                        </div>
+
+                        <div class="divide-y max-h-80 overflow-y-auto">
+                            <template x-if="myVisits.length === 0">
+                            <p class="p-6 text-sm text-gray-500">
+                                Non hai ancora creato visite.
+                            </p>
+                            </template>
+
+                            <template x-for="visit in myVisits" :key="visit._id">
+                            <label class="p-4 flex items-center gap-4 hover:bg-gray-50 cursor-pointer">
+                                <input type="checkbox"
+                                :checked="selectedSourceVisits.includes(visit._id)"
+                                @change="toggleSourceVisit(visit)"
+                                class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+
+                                <span class="flex-1">
+                                <span class="font-semibold block" x-text="visit.title"></span>
+                                <span class="text-xs text-gray-500">
+                                    <span x-text="(visit.items || []).length"></span> tappe
+                                </span>
+                                </span>
+                            </label>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- RIEPILOGO -->
+                <aside class="xl:col-span-1">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 xl:sticky xl:top-6">
+                        <div class="flex items-center justify-between">
+                            <h2 class="font-bold text-xl">La tua visita</h2>
+                            <span class="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full"
+                            x-text="`${selectedItems.length} contenuti`"></span>
+                        </div>
+
+                        <p class="text-sm text-gray-500 mt-2">
+                            L’ordine può essere perfezionato in seguito nell’editor della visita.
+                        </p>
+
+                        <ol class="mt-5 space-y-3 max-h-96 overflow-y-auto">
+                            <template x-if="selectedItems.length === 0">
+                            <li class="text-sm text-gray-400 italic">
+                                Seleziona almeno un contenuto.
+                            </li>
+                            </template>
+
+                            <template x-for="(item, index) in selectedItems" :key="item._id">
+                                <li class="flex items-start gap-3 text-sm">
+                                    <span class="w-6 h-6 shrink-0 rounded-full bg-amber-100 text-amber-700 font-bold text-xs flex items-center justify-center" x-text="index + 1"></span>
+
+                                    <span class="flex-1 font-medium" x-text="item.title"></span>
+
+                                    <button type="button" @click="toggleItem(item)" class="text-gray-400 hover:text-red-500">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </li>
+                            </template>
+                        </ol>
+
+                        <button type="submit" :disabled="saving || !title || !accessCode || selectedItems.length === 0" class="w-full mt-6 bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 focus:ring-4 focus:ring-amber-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                            <i class="fas fa-save mr-2"></i>
+                            <span x-text="saving ? 'Salvataggio…' : 'Salva visita guidata'"></span>
+                        </button>
+                    </div>
+                </aside>
+            </form>
+        </main>
+
+        <script>
+            function guidedVisitApp() {
+            return {
+                loading: true,
+                saving: false,
+                user: null,
+
+                title: '',
+                description: '',
+                accessCode: '',
+
+                allItems: [],
+                allVisits: [],
+                purchasedItemIds: [],
+
+                selectedItems: [],
+                selectedSourceVisits: [],
+
+                get myCreatedItems() {
+                return this.allItems.filter(item =>
+                    String(item.creator) === String(this.user?.id)
+                );
+                },
+
+                get purchasedItems() {
+                return this.allItems.filter(item =>
+                    this.purchasedItemIds.includes(item._id)
+                );
+                },
+
+                get myVisits() {
+                return this.allVisits.filter(visit =>
+                    String(visit.author?._id || visit.author) === String(this.user?.id)
+                );
+                },
+
+                async init() {
+                const token = localStorage.getItem('apiToken');
+                this.user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                if (!token) {
+                    window.location.href = '/marketplace/login';
+                    return;
+                }
+
+                if (this.user.role !== 'teacher') {
+                    alert('Questa pagina è riservata ai docenti.');
+                    window.location.href = '/marketplace/homepage';
+                    return;
+                }
+
+                try {
+                    const [visitsResponse, itemsResponse] = await Promise.all([
+                    fetch('/api/v1/marketplace/browse/visits', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    fetch('/api/v1/marketplace/browse/items', {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                    ]);
+
+                    const visitsData = await visitsResponse.json();
+                    const itemsData = await itemsResponse.json();
+
+                    this.allVisits = visitsData?.data?.visits || [];
+                    this.allItems = itemsData?.data?.items || [];
+                    this.purchasedItemIds = itemsData?.data?.purchasedItems || [];
+
+                } catch (error) {
+                    console.error(error);
+                    alert('Non è stato possibile caricare le risorse.');
+                } finally {
+                    this.loading = false;
+                }
+                },
+
+                isSelected(id) {
+                return this.selectedItems.some(item => item._id === id);
+                },
+
+                toggleItem(item) {
+                if (this.isSelected(item._id)) {
+                    this.selectedItems = this.selectedItems.filter(
+                    selected => selected._id !== item._id
+                    );
+                } else {
+                    this.selectedItems.push(item);
+                }
+                },
+
+                toggleSourceVisit(visit) {
+                const selected = this.selectedSourceVisits.includes(visit._id);
+
+                if (selected) {
+                    this.selectedSourceVisits = this.selectedSourceVisits.filter(
+                    id => id !== visit._id
+                    );
+
+                    (visit.items || []).forEach(id => {
+                    const item = this.allItems.find(
+                        candidate => candidate._id === String(id)
+                    );
+
+                    if (item) {
+                        this.selectedItems = this.selectedItems.filter(
+                        selectedItem => selectedItem._id !== item._id
+                        );
+                    }
+                    });
+
+                    return;
+                }
+
+                this.selectedSourceVisits.push(visit._id);
+
+                (visit.items || []).forEach(id => {
+                    const item = this.allItems.find(
+                    candidate => candidate._id === String(id)
+                    );
+
+                    if (item && !this.isSelected(item._id)) {
+                    this.selectedItems.push(item);
+                    }
+                });
+                },
+
+                async saveGuidedVisit() {
+                this.saving = true;
+
+                try {
+                    const museumId =
+                    this.selectedItems[0]?.museumId ||
+                    this.user.museumId;
+
+                    if (!museumId) {
+                    throw new Error(
+                        'Ogni visita guidata deve essere associata a un museo.'
+                    );
+                    }
+
+                    const response = await fetch(
+                    '/api/v1/marketplace/create/visits',
+                    {
+                        method: 'POST',
+                        headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                        },
+                        body: JSON.stringify({
+                        title: this.title,
+                        description: this.description,
+                        museumId,
+                        items: this.selectedItems.map(item => item._id),
+                        createdBy: this.user.id,
+
+                        visitType: 'guided',
+                        visibility: 'private',
+                        accessCode: this.accessCode,
+                        sourceVisits: this.selectedSourceVisits
+                        })
+                    }
+                    );
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                    throw new Error(
+                        data.message || 'Impossibile salvare la visita guidata.'
+                    );
+                    }
+
+                    alert('Visita guidata salvata correttamente.');
+                    window.location.href = '/marketplace/homepage';
+
+                } catch (error) {
+                    alert(error.message);
+                } finally {
+                    this.saving = false;
+                }
+                }
+            }
+            }
+        </script>
+    </body>
+</html>

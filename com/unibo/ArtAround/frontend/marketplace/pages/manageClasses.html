@@ -1,0 +1,252 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>Le mie classi · ArtAround</title>
+
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50"
+        x-data="manageClassesApp()"
+        x-init="init()">
+
+        <header class="bg-white border-b border-gray-100">
+            <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/marketplace/homepage"
+                class="text-emerald-600 font-semibold hover:text-emerald-800">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Dashboard
+            </a>
+
+            <a href="/marketplace/homepage/createClass"
+                class="bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition">
+                <i class="fas fa-plus mr-2"></i>
+                Crea classe
+            </a>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto px-4 py-10">
+            <div class="mb-8">
+            <p class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">
+                Area docente
+            </p>
+
+            <h1 class="text-3xl font-bold text-gray-800 mt-1">
+                Le mie classi
+            </h1>
+
+            <p class="text-gray-500 mt-2">
+                Consulta i codici di accesso e gli studenti iscritti a ogni classe.
+            </p>
+            </div>
+
+            <div x-show="loading" class="py-16 text-center text-gray-500">
+            <i class="fas fa-spinner fa-spin text-2xl text-emerald-600 mr-3"></i>
+            Caricamento classi…
+            </div>
+
+            <template x-if="!loading && classrooms.length === 0">
+            <div class="bg-white rounded-2xl border border-dashed border-gray-300 p-10 text-center">
+                <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
+
+                <h2 class="font-bold text-lg">Non hai ancora creato classi</h2>
+
+                <p class="text-gray-500 mt-1">
+                Crea la prima classe per invitare i tuoi studenti.
+                </p>
+
+                <a href="/marketplace/homepage/createClass"
+                class="inline-flex mt-5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700">
+                <i class="fas fa-plus mr-2"></i>
+                Crea classe
+                </a>
+            </div>
+            </template>
+
+            <div x-show="!loading" class="space-y-5">
+            <template x-for="classroom in classrooms" :key="classroom._id">
+                <article class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+                        <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                            <i class="fas fa-users text-xl"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="font-bold text-xl" x-text="classroom.name"></h2>
+
+                            <p class="text-sm text-gray-500 mt-1">
+                                <span x-text="(classroom.students || []).length"></span>
+                                studenti iscritti 
+                            </p>
+                        </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center gap-3">
+                        <div class="bg-gray-100 rounded-xl px-4 py-2">
+                            <span class="text-xs text-gray-500 block">Codice studenti</span>
+                            <span class="font-mono font-bold text-emerald-700"
+                            x-text="classroom.joinCode"></span>
+                        </div>
+
+                        <button @click="copyCode(classroom.joinCode)" class="border border-gray-200 text-gray-700 px-4 py-2 rounded-xl font-semibold hover:bg-gray-50">
+                            <i class="fas fa-copy mr-1"></i>
+                            Copia
+                        </button>
+
+                        <button @click="toggleClassroom(classroom._id)" class="border border-emerald-200 text-emerald-700 px-4 py-2 rounded-xl font-semibold hover:bg-emerald-50">
+                            <span x-text="openClassroom === classroom._id ? 'Nascondi studenti' : 'Vedi studenti'"></span>
+                        </button>
+
+                        <button @click="deleteClassroom(classroom)" class="border border-red-200 text-red-600 px-4 py-2 rounded-xl font-semibold hover:bg-red-50">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        </div>
+                    </div>
+
+                    <div x-show="openClassroom === classroom._id" x-cloak class="border-t bg-gray-50 p-6">
+                        <h3 class="font-bold text-gray-700 mb-4">Studenti iscritti</h3>
+
+                        <template x-if="!classroom.students || classroom.students.length === 0">
+                            <p class="text-sm text-gray-500 italic">Nessuno studente si è ancora iscritto con il codice della classe.</p>
+                        </template>
+
+                        <div class="space-y-3">
+                            <template x-for="student in classroom.students" :key="student._id">
+                                <div class="bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between">
+                                    <div>
+                                        <p class="font-semibold" x-text="student.username"></p>
+                                        <p class="text-sm text-gray-500" x-text="student.email"></p>
+                                    </div>
+
+                                    <button @click="removeStudent(classroom, student)" class="text-sm text-red-600 font-semibold hover:text-red-800">
+                                        Rimuovi
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </article>
+            </template>
+            </div>
+        </main>
+
+        <script>
+            function manageClassesApp() {
+                return {
+                    classrooms: [],
+                    loading: true,
+                    openClassroom: null,
+
+                    async init() {
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                        if (user.role !== 'teacher') {
+                            alert('Questa pagina è riservata ai docenti.');
+                            window.location.href = '/marketplace/homepage';
+                            return;
+                        }
+
+                        await this.loadClassrooms();
+                    },
+
+                    async loadClassrooms() {
+                        this.loading = true;
+
+                        try {
+                            const response = await fetch('/api/v1/marketplace/classrooms/mine', {
+                                headers: {
+                                    Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                }
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message || 'Impossibile recuperare le classi.'
+                                );
+                            }
+
+                            this.classrooms = data.data.classrooms || [];
+
+                        } catch (error) {
+                            alert(error.message);
+                        } finally {
+                            this.loading = false;
+                        }
+                    },
+
+                    toggleClassroom(id) {
+                        this.openClassroom === id ? null : id;
+                    },
+
+                    async copyCode(code) {
+                        await navigator.clipboard.writeText(code);
+                        alert(`Codice "${code}" copiato.`);
+                    },
+
+                    async removeStudent(classroom, student) {
+                        if (!confirm(`Rimuovere ${student.username} dalla classe?`)) {
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(`/api/v1/marketplace/classrooms/${classroom._id}/students/${student._id}`,{
+                                method: 'DELETE',
+                                headers: {
+                                    Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                }
+                            });
+
+                            const data = await response.json();
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message || 'Impossibile rimuovere lo studente.'
+                                );
+                            }
+                            await this.loadClassrooms();
+
+                        } catch (error) {
+                            alert(error.message);
+                        }
+                    },
+
+                    async deleteClassroom(classroom) {
+                        if (!confirm(`Eliminare definitivamente la classe "${classroom.name}"?`)) {
+                            return;
+                        }
+
+                        try {
+                            const response = await fetch(`/api/v1/marketplace/classrooms/${classroom._id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                    Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                }
+                            });
+
+                            const data = await response.json();
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message || 'Impossibile eliminare la classe.'
+                                );
+                            }
+                            await this.loadClassrooms();
+
+                        } catch (error) {
+                            alert(error.message);
+                        }
+                    }
+                }
+            }
+        </script>
+        </body>
+</html>

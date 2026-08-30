@@ -1,0 +1,131 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+        <title>Crea classe · ArtAround</title>
+
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+        <link rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50"
+        x-data="createClassApp()"
+        x-init="init()">
+
+        <header class="bg-white border-b border-gray-100">
+            <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+                <a href="/marketplace/homepage" class="text-emerald-600 font-semibold hover:text-emerald-800">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Dashboard
+                </a>
+
+                <a href="/marketplace/homepage/manageClasses" class="text-sm font-semibold text-gray-600 hover:text-emerald-600">
+                    <i class="fas fa-users mr-2"></i>
+                    Le mie classi
+                </a>
+            </div>
+        </header>
+
+        <main class="max-w-4xl mx-auto px-4 py-12">
+            <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+                <div class="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center mb-5">
+                    <i class="fas fa-users text-2xl"></i>
+                </div>
+
+                <p class="text-sm font-semibold text-emerald-600 uppercase tracking-wide">Area docente</p>
+                <h1 class="text-3xl font-bold text-gray-800 mt-1">Crea una classe</h1>
+                <p class="text-gray-500 mt-2">Crea un gruppo di studenti e comunica loro il codice per iscriversi.</p>
+
+                <form @submit.prevent="saveClassroom" class="mt-8 space-y-6">
+                    <label class="block">
+                        <span class="font-semibold text-gray-700">Nome della classe </span>
+                        <input
+                            x-model.trim="name"
+                            required
+                            placeholder="Es. 3B Liceo Galvani"
+                            class="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                        >
+                    </label>
+
+                    <label class="block">
+                        <span class="font-semibold text-gray-700">Codice per gli studenti</span>
+                        <input
+                            x-model="joinCode"
+                            required
+                            maxlength="30"
+                            @input="joinCode = joinCode.toUpperCase().replace(/\s+/g, '-')"
+                            placeholder="Es. STORIA-3B"
+                            class="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg uppercase focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                        >
+                        <p class="text-xs text-gray-500 mt-2">Comunica questo codice agli studenti, che lo inseriranno nella loro area personale.</p>
+                        
+  
+                    </label>
+
+                    <button type="submit" :disabled="saving || !name || !joinCode" class="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                        <i class="fas fa-save mr-2"></i>
+                        <span x-text="saving ? 'Salvataggio…' : 'Salva classe'"></span>
+                    </button>
+                </form>
+            </div>
+        </main>
+
+        <script>
+            function createClassApp() {
+                return {
+                    name: '',
+                    joinCode: '',
+                    saving: false,
+
+                    init() {
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                        if (user.role !== 'teacher') {
+                            alert('Questa pagina è riservata ai docenti.');
+                            window.location.href = '/marketplace/homepage';
+                        }
+                    },
+
+                    async saveClassroom() {
+                        this.saving = true;
+
+                        try {
+                            const response = await fetch('/api/v1/marketplace/classrooms', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                },
+                                body: JSON.stringify({
+                                    name: this.name,
+                                    joinCode: this.joinCode
+                                })
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message || 'Impossibile creare la classe.'
+                                );
+                            }
+
+                            alert(`Classe creata!\n\nCodice da comunicare agli studenti: ${data.data.classroom.joinCode}`);
+                            window.location.href = '/marketplace/homepage/manageClasses';
+
+                        } catch (error) {
+                            alert(error.message);
+                        } finally {
+                            this.saving = false;
+                        }
+                    }
+                }
+            }
+        </script>
+    </body>
+</html>

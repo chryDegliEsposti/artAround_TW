@@ -1,0 +1,156 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+            <title>Le mie classi - ArtAround</title>
+
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50" x-data="myClassesApp()" x-init="init()">
+
+            <header class="bg-white border-b border-gray-100">
+                <div class="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
+                    <a href="/marketplace/homepage" class="text-purple-600 font-semibold hover:text-purple-800">
+                        <i class="fas fa-arrow-left mr-2"></i>Dashboard
+                    </a>
+
+                    <a href="/marketplace/homepage/joinClassroom" class="bg-purple-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-purple-700 transition">
+                        <i class="fas fa-user-plus mr-2"></i>Unisciti a una classe
+                    </a>
+                </div>
+            </header>
+
+            <main class="max-w-6xl mx-auto px-4 py-10">
+                <div class="mb-8">
+                <p class="text-sm font-semibold text-purple-600 uppercase tracking-wide">Area studente</p>
+
+                <h1 class="text-3xl font-bold text-gray-800 mt-1">Le mie classi</h1>
+
+                <p class="text-gray-500 mt-2">Qui trovi tutte le classi a cui sei iscritto.</p>
+                </div>
+
+                <div x-show="loading" class="py-16 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl text-purple-600 mr-3"></i>
+                    Caricamento classi…
+                </div>
+
+                <template x-if="!loading && classrooms.length === 0">
+                    <div class="bg-white rounded-xl border border-dashed border-gray-300 p-10 text-center">
+                        <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
+
+                        <h2 class="font-bold text-lg">Non sei ancora iscritto a nessuna classe</h2>
+
+                        <p class="text-gray-500 mt-1">Inserisci il codice che ti ha comunicato il docente.</p>
+
+                        <a href="/marketplace/homepage/joinClassroom"class="inline-flex mt-5 bg-purple-600 text-white px-4 py-2.5 rounded-lg font-semibold hover:bg-purple-700 transition">
+                            <i class="fas fa-user-plus mr-2"></i>Unisciti a una classe
+                        </a>
+                    </div>
+                </template>
+
+                <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                    <template x-for="classroom in classrooms" :key="classroom._id">
+                        <article class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                            <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
+                                <i class="fas fa-users text-xl"></i>
+                            </div>
+
+                            <h2 class="font-bold text-xl" x-text="classroom.name"></h2>
+
+                            <p class="text-sm text-gray-500 mt-2">
+                                Docente:
+                                <span class="font-semibold"
+                                x-text="classroom.teacher?.username || 'Docente ArtAround'"></span>
+                            </p>
+
+                            <div class="mt-5 pt-5 border-t">
+                                <button @click="leaveClassroom(classroom)" class="text-sm text-red-600 font-semibold hover:text-red-800">
+                                    <i class="fas fa-sign-out-alt mr-1"></i>Esci dalla classe
+                                </button>
+                            </div>
+                        </article>
+                    </template>
+                </div>
+            </main>
+
+            <script>
+                function myClassesApp() {
+                    return {
+                        classrooms: [],
+                        loading: true,
+
+                        async init() {
+                            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                            if (user.role !== 'visitor') {
+                                alert('Questa pagina è riservata agli studenti.');
+                                window.location.href = '/marketplace/homepage';
+                                return;
+                            }
+
+                            await this.loadClassrooms();
+                        },
+
+                        async loadClassrooms() {
+                            this.loading = true;
+
+                            try {
+                                const response = await fetch('/api/v1/marketplace/classrooms/joined', {
+                                    headers: {
+                                        Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                    }
+                                });
+
+                                const data = await response.json();
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        data.message || 'Impossibile recuperare le classi.'
+                                    );
+                                }
+                                this.classrooms = data.data.classrooms || [];
+
+                            } catch (error) {
+                                alert(error.message);
+                            } finally {
+                                this.loading = false;
+                            }
+                        },
+
+                        async leaveClassroom(classroom) {
+                            if (!confirm(`Vuoi uscire dalla classe "${classroom.name}"?`)) {
+                                return;
+                            }
+
+                            try {
+                                const response = await fetch(`/api/v1/marketplace/classrooms/${classroom._id}/leave`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                    }
+                                });
+
+                                const data = await response.json();
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        data.message || 'Impossibile uscire dalla classe.'
+                                    );
+                                }
+                                await this.loadClassrooms();
+
+                            } catch (error) {
+                                alert(error.message);
+                            }
+                        }
+                    }
+                }
+            </script>
+        </body>
+</html>

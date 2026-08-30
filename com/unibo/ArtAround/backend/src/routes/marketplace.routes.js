@@ -20,5 +20,17 @@ marketplaceRouter.get("/homepage/myMuseums", authorization, marketplaceControlle
 
 marketplaceRouter.get("/browseMarket", authorization, marketplaceController.getBrowseMarket) //from homepage
 
+//from TEACHER homepage MAYBE anche da homepage creator e visitors???
+marketplaceRouter.get("/homepage/myLibrary", authorization, marketplaceController.getMyLibrary) 
+marketplaceRouter.get("/homepage/createTeacherVisits", authorization, marketplaceController.getCreateTeacherVisits) //from homepage
+marketplaceRouter.get("/homepage/myContent", authorization, marketplaceController.getMyContent) //from myLibrary or homepage
+
+marketplaceRouter.get("/homepage/createClass", authorization, marketplaceController.getCreateClass) //from myContent or homepage
+marketplaceRouter.get("/homepage/manageClasses", authorization, marketplaceController.getManageClasses) //from myContent or homepage
+
+marketplaceRouter.get("/homepage/joinClassroom", authorization, marketplaceController.getJoinClassroom);
+marketplaceRouter.get("/homepage/myClasses", authorization, marketplaceController.getMyClasses);
+
+
 
 module.exports = marketplaceRouter;

@@ -40,6 +40,20 @@ apiMarketplaceRouter.post("/purchase/item", authorization, apiMarketplaceControl
 // --- FAVORITES TOGGLE SECTION ---
 apiMarketplaceRouter.post("/favorites/toggle", authorization, apiMarketplaceController.toggleFavorite) //fetch from browseMarket(frontend) to toggle favorites for both items and visits
 
+// --- MY CONTENT SECTION(for teacher) ---
+apiMarketplaceRouter.get("/myContent", authorization, apiMarketplaceController.getMyContent) //fetch from myContent(frontend) to show teacher's created content
+
+// --- CLASSROOMS SECTION(for teacher) ---
+apiMarketplaceRouter.post("/classrooms", authorization, apiMarketplaceController.createClassroom);
+apiMarketplaceRouter.get("/classrooms/mine", authorization, apiMarketplaceController.getMyClassrooms);
+apiMarketplaceRouter.patch("/classrooms/:id", authorization, apiMarketplaceController.updateClassroom);
+apiMarketplaceRouter.delete("/classrooms/:id/students/:studentId", authorization, apiMarketplaceController.removeStudentFromClassroom);
+apiMarketplaceRouter.delete("/classrooms/:id", authorization, apiMarketplaceController.deleteClassroom);
+
+// --- CLASSROOM STUDENT SECTION ---
+apiMarketplaceRouter.post("/classrooms/join", authorization, apiMarketplaceController.joinClassroom);
+apiMarketplaceRouter.get("/classrooms/joined", authorization, apiMarketplaceController.getJoinedClassrooms);
+apiMarketplaceRouter.delete("/classrooms/:id/leave", authorization, apiMarketplaceController.leaveClassroom);
 
 
 module.exports = apiMarketplaceRouter;
