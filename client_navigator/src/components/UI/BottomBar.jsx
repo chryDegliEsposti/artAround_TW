@@ -245,59 +245,8 @@ export default function BottomBar({
                 </span>
                 {isPlaying ? 'PAUSA GUIDA AUDIO' : 'ASCOLTA GUIDA AUDIO'}
               </span>
-              <span className="btn-right">{selectedLang.toUpperCase()} HD</span>
+              <span className="btn-right">AUDIO HD</span>
             </button>
-
-            {/* AI Real-time Controls Bar */}
-            <div className="ai-realtime-bar my-4 p-3 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col gap-2.5">
-              {/* Language Switcher */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">translate</span> Lingua:
-                </span>
-                <div className="flex gap-1.5">
-                  {[
-                    { code: 'it', label: '🇮🇹 IT' },
-                    { code: 'en', label: '🇬🇧 EN' },
-                    { code: 'es', label: '🇪🇸 ES' },
-                    { code: 'fr', label: '🇫🇷 FR' },
-                    { code: 'de', label: '🇩🇪 DE' }
-                  ].map(l => (
-                    <button
-                      key={l.code}
-                      onClick={() => handleLanguageChange(l.code)}
-                      disabled={isAiProcessing}
-                      className={`px-2 py-1 text-xs font-bold rounded-lg transition ${selectedLang === l.code ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tone Level Switcher */}
-              <div className="flex items-center justify-between border-t border-zinc-800 pt-2">
-                <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">psychology</span> Tono:
-                </span>
-                <div className="flex gap-1.5">
-                  {[
-                    { code: 'infantile', label: '👶 Ragazzi' },
-                    { code: 'medio', label: '👤 Standard' },
-                    { code: 'specialistico', label: '🎓 Esperto' }
-                  ].map(t => (
-                    <button
-                      key={t.code}
-                      onClick={() => handleToneChange(t.code)}
-                      disabled={isAiProcessing}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition ${selectedTone === t.code ? 'bg-purple-600 text-white font-bold' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
 
             <div className="bento-grid">
               <div className="bento-card">
@@ -311,16 +260,9 @@ export default function BottomBar({
             </div>
 
             <article className="description-article" style={{ fontSize: `${fontSizeMultiplier * 1}rem`, lineHeight: 1.6 }}>
-              <div className="flex justify-between items-center mb-1">
-                <h3 className="desc-heading">Descrizione dell'Opera</h3>
-                {selectedLang !== 'it' && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-950 px-2 py-0.5 rounded border border-indigo-800">
-                    Traduzione AI ({selectedLang.toUpperCase()})
-                  </span>
-                )}
-              </div>
+              <h3 className="desc-heading">Descrizione dell'Opera</h3>
               <p className="desc-body">
-                {isAiProcessing ? 'Generazione traduzione AI in corso...' : liveData.description}
+                {liveData.description}
               </p>
             </article>
 

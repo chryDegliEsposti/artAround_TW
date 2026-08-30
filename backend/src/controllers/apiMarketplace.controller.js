@@ -14,6 +14,7 @@ const createItems = async (req, res) => {
             subjectId, 
             title, 
             description, 
+            image,
             length, 
             languageLevel, 
             museum, 
@@ -28,6 +29,7 @@ const createItems = async (req, res) => {
             artworkId: itemType === 'artwork' ? subjectId : undefined, // Solo per artworks, altrimenti undefined
             title,
             description,
+            image: image || undefined,
             length,
             languageLevel,
             museum,
@@ -183,11 +185,17 @@ const createMuseum = async (req, res) => {
             name: museum.name,
             museumId: museum.code.toUpperCase(),
             description: museum.description,
+            image: museum.image || undefined,
             creator: userId,
             city: museum.city,
             address: museum.address,
             longitude: museum.longitude,
             latitude: museum.latitude,
+            museumCenter: museum.museumCenter || (museum.latitude && museum.longitude ? [Number(museum.latitude), Number(museum.longitude)] : undefined),
+            layers: museum.layers && museum.layers.length > 0 ? museum.layers : [{ id: 1, name: 'Layer 1' }],
+            lines: museum.lines || [],
+            areas: museum.areas || [],
+            pois: museum.pois || []
         });
         // 3. Create museum's items (if any)  
         if (items && items.length > 0) {

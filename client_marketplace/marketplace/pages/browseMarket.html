@@ -182,16 +182,24 @@
                                     </span>
                                 </div>
 
-                                <!-- Buy visit button -->
-                                <button 
-                                    @click="purchaseVisit(visit)"
-                                    :class="ownedVisits.includes(visit._id) ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'"
-                                    class="px-4 py-2 text-white rounded-lg transition-colors text-sm"
-                                >
-                                    <i class="fas mr-1" :class="ownedVisits.includes(visit._id) ? 'fa-check' : 'fa-shopping-cart'"></i>
-                                    
-                                    <span x-text="ownedVisits.includes(visit._id) ? 'Posseduta' : (purchasing[visit._id] ? 'Caricamento...' : 'Acquista')"></span>
-                                </button>
+                                <!-- Buy or Start Tour button -->
+                                <template x-if="ownedVisits.includes(visit._id)">
+                                    <button 
+                                        @click="startTour(visit._id)"
+                                        class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-colors text-sm flex items-center gap-1.5 shadow"
+                                    >
+                                        <i class="fas fa-play-circle"></i> Avvia Tour
+                                    </button>
+                                </template>
+                                <template x-if="!ownedVisits.includes(visit._id)">
+                                    <button 
+                                        @click="purchaseVisit(visit)"
+                                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors text-sm flex items-center gap-1.5"
+                                    >
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <span x-text="purchasing[visit._id] ? 'Caricamento...' : 'Acquista'"></span>
+                                    </button>
+                                </template>
 
                             </div>
                         </div>
@@ -517,6 +525,10 @@
                             this.purchasing[item._id] = false;
                         }
                     }
+                },
+
+                startTour(visitId) {
+                    window.location.href = `/navigator/tour?visitId=${visitId}`;
                 },
                 
                 // FAVORITES LOGIC

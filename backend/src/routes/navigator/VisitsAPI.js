@@ -1,6 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const Visit = require('../../models/Visit');
+const Quiz = require('../../models/Quiz');
+
+/**
+ * GET /api/v1/navigator/visits/quiz
+ * Get the latest active quiz
+ */
+router.get('/quiz', async (req, res) => {
+    try {
+        const quiz = await Quiz.findOne().populate('visit');
+        if (!quiz) return res.status(404).json({ error: 'Nessun quiz trovato' });
+        res.json(quiz);
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /api/v1/navigator/visits/quiz/:visitId
+ * Get the quiz for a specific visit
+ */
+router.get('/quiz/:visitId', async (req, res) => {
+    try {
+        const quiz = await Quiz.findOne({ visit: req.params.visitId }).populate('visit');
+        if (!quiz) {
+            // fallback: return default quiz
+            const defaultQuiz = await Quiz.findOne().populate('visit');
+            if (defaultQuiz) return res.json(defaultQuiz);
+            return res.status(404).json({ error: 'Quiz non trovato per questa visita' });
+        }
+        res.json(quiz);
+    } catch(e) {
+        res.status(500).json({ error: e.message });
+    }
+});
 
 /**
  * GET /api/v1/navigator/visits/get/upcomingVisits

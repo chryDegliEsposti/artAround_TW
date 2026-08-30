@@ -42,11 +42,69 @@
                                 </div>
                             </div>
                             <input type="text" x-model="museumData.name" placeholder="Nome Museo" class="col-span-2 p-2 border rounded">
-                            <span class="md:col-span-1 text-sm text-gray-500">Posizione geografica struttura</span> <br>
+                            <textarea x-model="museumData.description" placeholder="Descrizione del museo..." class="col-span-2 p-2 border rounded" rows="2"></textarea>
+                            
+                            <!-- Foto Museo -->
+                            <div class="col-span-2 bg-purple-50 p-3 rounded-lg border border-purple-200">
+                                <label class="block text-sm font-bold text-purple-900 mb-1">
+                                    <i class="fas fa-camera mr-1"></i> Foto / Immagine di Copertina Museo
+                                </label>
+                                <div class="flex gap-2">
+                                    <input type="text" x-model="museumData.image" placeholder="URL Immagine (oppure carica file sotto)" class="flex-1 p-2 border rounded bg-white text-sm">
+                                    <label class="cursor-pointer bg-purple-600 text-white px-3 py-2 rounded text-sm font-bold hover:bg-purple-700 transition flex items-center">
+                                        <i class="fas fa-upload mr-1"></i> Sfoglia
+                                        <input type="file" accept="image/*" @change="handleMuseumImageUpload" class="hidden">
+                                    </label>
+                                </div>
+                                <template x-if="museumData.image">
+                                    <div class="mt-2 flex items-center gap-3">
+                                        <img :src="museumData.image" alt="Preview Museo" class="w-16 h-16 object-cover rounded-lg border">
+                                        <span class="text-xs text-green-700 font-semibold">✅ Foto caricata con successo</span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <span class="col-span-2 text-sm font-semibold text-gray-700 mt-2">Posizione geografica e Pianta Indoor</span>
                             <input type="text" x-model="museumData.address" placeholder="Indirizzo" class="p-2 border rounded">
                             <input type="text" x-model="museumData.city" placeholder="Citta'" class="p-2 border rounded">
-                            <input type="text" x-model="museumData.longitude" placeholder="Longitudine" class="p-2 border rounded">
-                            <input type="text" x-model="museumData.latitude" placeholder="Latitudine" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.latitude" placeholder="Latitudine (es. 44.4975)" class="p-2 border rounded">
+                            <input type="text" x-model="museumData.longitude" placeholder="Longitudine (es. 11.3533)" class="p-2 border rounded">
+
+                            <!-- Bottone Editor Mappa e Allegato JSON -->
+                            <div class="col-span-2 mt-2 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+                                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                    <div>
+                                        <h4 class="font-bold text-indigo-900 flex items-center">
+                                            <i class="fas fa-map-marked-alt mr-2"></i> Pianta Indoor 2D (Editor Mappa)
+                                        </h4>
+                                        <p class="text-xs text-indigo-700 mt-0.5">Disegna pareti, piani e punti di interesse partendo dalle coordinate inserite.</p>
+                                    </div>
+                                    <button type="button" @click="openEditor()" 
+                                        class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg text-sm transition flex items-center shrink-0">
+                                        <i class="fas fa-draw-polygon mr-2"></i> Apri nell'Editor Mappa
+                                    </button>
+                                </div>
+
+                                <!-- Status allegato mappa -->
+                                <div class="mt-3 pt-3 border-t border-indigo-200 flex items-center justify-between">
+                                    <template x-if="attachedMapData">
+                                        <div class="flex items-center gap-2 text-xs text-green-700 font-bold">
+                                            <i class="fas fa-check-circle text-green-600 text-base"></i>
+                                            <span>Mappa Allegata: <span x-text="`${attachedMapData.layers?.length || 1} Piani, ${attachedMapData.lines?.length || 0} Pareti, ${attachedMapData.pois?.length || 0} POI`"></span></span>
+                                        </div>
+                                    </template>
+                                    <template x-if="!attachedMapData">
+                                        <div class="text-xs text-gray-500 italic">
+                                            Nessuna pianta personalizzata allegata (verrà utilizzata la pianta standard).
+                                        </div>
+                                    </template>
+                                    <template x-if="attachedMapData">
+                                        <button type="button" @click="clearAttachedMap()" class="text-xs text-red-600 hover:underline">
+                                            Rimuovi allegato
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                     </section>
 
@@ -189,9 +247,10 @@
             function createMuseumManager() {
                 return {
                     // Form STATE for museum details
-                    museumData: { code: '', name: '', address: '', city: '', longitude: '', latitude: '' },
+                    museumData: { code: '', name: '', description: '', address: '', city: '', longitude: '11.3533', latitude: '44.4975', image: '' },
                     codeStatus: '', // museumId: 'available', 'taken'
                     codeMessage: '',
+                    attachedMapData: null,
                     
                     tempItem: { title: '', description: '', price: '', length: '3s', languageLevel: 'infantile', itemType: 'artwork', artworkId: '', license: 'CC0' },
                     itemsList: [],
@@ -199,6 +258,58 @@
                     searchQuery: '',
                     results: [],
                     isSearching: false,
+
+                    init() {
+                        // 1. Ripristina i dati del form se si torna dall'Editor Mappa
+                        const pending = sessionStorage.getItem('pendingMuseumForm');
+                        if (pending) {
+                            try {
+                                const parsed = JSON.parse(pending);
+                                if (parsed.museumData) this.museumData = { ...this.museumData, ...parsed.museumData };
+                                if (parsed.itemsList) this.itemsList = parsed.itemsList;
+                            } catch(e) {}
+                        }
+
+                        // 2. Controlla se è presente una pianta esportata dall'Editor Mappa
+                        const mapJson = localStorage.getItem('tempMuseumMapJson');
+                        if (mapJson) {
+                            try {
+                                this.attachedMapData = JSON.parse(mapJson);
+                            } catch(e) {
+                                console.error("Errore parsing mappa allegata:", e);
+                            }
+                        }
+                    },
+
+                    openEditor() {
+                        // Salva lo stato corrente del form prima di andare all'Editor
+                        sessionStorage.setItem('pendingMuseumForm', JSON.stringify({
+                            museumData: this.museumData,
+                            itemsList: this.itemsList
+                        }));
+
+                        const lat = this.museumData.latitude || '44.4975';
+                        const lng = this.museumData.longitude || '11.3533';
+                        const returnUrl = encodeURIComponent(window.location.pathname);
+                        window.location.href = `/navigator/editor?lat=${lat}&lng=${lng}&returnUrl=${returnUrl}`;
+                    },
+
+                    clearAttachedMap() {
+                        if (confirm("Vuoi rimuovere la pianta indoor allegata?")) {
+                            this.attachedMapData = null;
+                            localStorage.removeItem('tempMuseumMapJson');
+                        }
+                    },
+
+                    handleMuseumImageUpload(event) {
+                        const file = event.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            this.museumData.image = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    },
 
                     //***--- 1.check museumId uniqueness ---****
                     async checkCode() {
@@ -241,34 +352,16 @@
                         }
                         this.isSearching = true;
                         try {
-                            // 1. Cerca nel tuo Database Locale
-                            /* TODO: connessione server endpoint per ricerca autori (es: /api/v1/marketplace/search-authors?q=caravaggio)
+                            const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
+                            const wikiResponse = await fetch(wikiUrl);
+                            const wikiData = await wikiResponse.json();
 
-                            const localResponse = await fetch(`/api/v1/marketplace/search-authors?q=${this.searchQuery}`);
-                            const localData = await localResponse.json();
-                            let combinedResults = (localData.authors || []).map(a => ({
-                                id: a.id,
-                                name: a.name,
-                                description: 'Contenuto già presente nel sistema',
-                                source: 'ArtAround'
-                            }));*/
-                            
-                            let combinedResults = []
-                            // 2. Se pochi risultati locali, cerca su Wikidata
-                            if (combinedResults.length < 3) {
-                                const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
-                                const wikiResponse = await fetch(wikiUrl);
-                                const wikiData = await wikiResponse.json();
-
-                                const wikiResults = (wikiData.search || []).map(i => ({
-                                    id: i.id,
-                                    name: i.label,
-                                    description: i.description,
-                                    source: 'Wikidata'
-                                }));
-                                combinedResults = [...combinedResults, ...wikiResults];
-                            }
-                            this.results = combinedResults;
+                            this.results = (wikiData.search || []).map(i => ({
+                                id: i.id,
+                                name: i.label,
+                                description: i.description,
+                                source: 'Wikidata'
+                            }));
                         } catch (err) {
                             console.error("Errore durante la ricerca:", err);
                         } finally {
@@ -289,6 +382,11 @@
                         if (this.codeStatus === 'taken') return alert("Cambia il codice identificativo!");
                         
                         try {
+                            const payloadMuseum = {
+                                ...this.museumData,
+                                ...(this.attachedMapData || {})
+                            };
+
                             const res = await fetch('/api/v1/marketplace/museums/create', {
                                 method: 'POST',
                                 headers: { 
@@ -296,14 +394,19 @@
                                     'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
                                 },
                                 body: JSON.stringify({
-                                    museum: this.museumData,
+                                    museum: payloadMuseum,
                                     items: this.itemsList
                                 })
                             });
 
                             if (res.ok) {
                                 alert('Profilo dati museo registrato con successo!');
+                                sessionStorage.removeItem('pendingMuseumForm');
+                                localStorage.removeItem('tempMuseumMapJson');
                                 window.location.href = '/marketplace/homepage';
+                            } else {
+                                const errJson = await res.json();
+                                alert('Errore: ' + (errJson.message || 'Salvataggio fallito'));
                             }
                         } catch (err) {
                             alert('Errore durante il salvataggio.');

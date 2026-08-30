@@ -8,7 +8,6 @@ import {
   Accessibility,
   Droplets as ToiletIcon,
   Utensils as RestaurantIcon,
-  Camera,
   MoreVertical,
   Plus,
   Minus,
@@ -18,7 +17,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LocateFixed,
-  Zap,
   Sparkles,
   Radio,
   Users,
@@ -26,8 +24,6 @@ import {
 } from 'lucide-react';
 import BottomBar from '../UI/BottomBar';
 import ItemDescription from '../UI/ItemDescription';
-import QRScanner from '../UI/QRScanner';
-import TeleportModal from '../UI/TeleportModal';
 import VoiceControlModal from '../UI/VoiceControlModal';
 import AccessibilityModal from '../UI/AccessibilityModal';
 import SyncSessionModal from '../UI/SyncSessionModal';
@@ -1127,31 +1123,84 @@ export default function NavigatorApp() {
   const tx = useCallback((x) => x * scale + offsetX, [scale, offsetX]);
   const ty = useCallback((y) => y * scale + offsetY, [scale, offsetY]);
 
-  useEffect(() => {
-    const tourItems = (museumData.pois || [])
-      .filter(poi => poi.type === 'exhibit')
-      .map(poi => ({
-        id: poi.id,
-        name: poi.name,
-        desc: poi.desc || `You are currently navigating toward the famous ${poi.name}. This is one of the museum's most prized exhibits.`,
-        x: tx(poi.position.x),
-        y: ty(poi.position.y),
-        layerId: poi.layerId
-      }));
-    setItems(tourItems);
-  }, [museumData, tx, ty]);
-
-  const { state } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const canvasRef = useRef(null);
+
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const visitId = searchParams.get('visitId') || location.state?.visitId || location.state?.id;
+
+  const [activeVisitTitle, setActiveVisitTitle] = useState(location.state?.museum || 'Tour Pinacoteca');
+  const [authError, setAuthError] = useState(null);
+
+  // 1. Authentication Check (Must be logged in to access the tour)
+  useEffect(() => {
+    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+    const user = localStorage.getItem('user') || localStorage.getItem('userData');
+    if (!token && !user) {
+      setAuthError('Accesso riservato: effettua il login per accedere al tour del museo.');
+    }
+  }, []);
+
+  // 2. Load Visit Data if visitId is provided, otherwise fallback to museum exhibits
+  useEffect(() => {
+    if (visitId) {
+      fetch(`/api/v1/navigator/visits/get/${visitId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data && (data._id || data.title)) {
+            if (data.title) setActiveVisitTitle(data.title);
+            if (data.quiz) setActiveQuizData(data.quiz);
+
+            if (data.items && data.items.length > 0) {
+              const loadedItems = data.items.map((it, idx) => ({
+                id: it._id || idx,
+                artworkId: it.artworkId,
+                name: it.title || it.name,
+                desc: it.description || it.desc || `Stai esplorando l'opera ${it.title}.`,
+                artist: it.author || it.creator?.username || 'Pinacoteca Nazionale di Bologna',
+                image: it.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=500',
+                x: it.position?.x !== undefined ? tx(it.position.x) : (tx(100) + (idx % 4) * 50),
+                y: it.position?.y !== undefined ? ty(it.position.y) : (ty(100) + Math.floor(idx / 4) * 50),
+                layerId: it.layerId || 1
+              }));
+              setItems(loadedItems);
+              return;
+            }
+          }
+          // Fallback to exhibits from museumData
+          loadMuseumExhibits();
+        })
+        .catch(err => {
+          console.warn("Errore caricamento visita specifica, uso opere museo:", err);
+          loadMuseumExhibits();
+        });
+    } else {
+      loadMuseumExhibits();
+    }
+
+    function loadMuseumExhibits() {
+      const tourItems = (museumData.pois || [])
+        .filter(poi => poi.type === 'exhibit')
+        .map(poi => ({
+          id: poi.id,
+          name: poi.name,
+          desc: poi.desc || `Stai esplorando l'opera ${poi.name}.`,
+          artist: 'Pinacoteca Nazionale di Bologna',
+          image: poi.image || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=500',
+          x: tx(poi.position.x),
+          y: ty(poi.position.y),
+          layerId: poi.layerId
+        }));
+      setItems(tourItems);
+    }
+  }, [visitId, museumData, tx, ty]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isTeleportOpen, setIsTeleportOpen] = useState(false);
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
   const [accessibleRoute, setAccessibleRoute] = useState(false);
@@ -1160,7 +1209,6 @@ export default function NavigatorApp() {
   const [autoPlayAudio, setAutoPlayAudio] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [notificationToast, setNotificationToast] = useState(null);
-  const [aiResponse, setAiResponse] = useState(null);
   const [hasTriggeredCurrent, setHasTriggeredCurrent] = useState(false);
 
   // Synchronized Tour & Socket.io States
@@ -1192,7 +1240,7 @@ export default function NavigatorApp() {
   // Pathfinding and Navigation States
   const [collisionGrid, setCollisionGrid] = useState(null);
   const [currentPath, setCurrentPath] = useState([]);
-  const [mapZoom, setMapZoom] = useState(4.5); // Default significantly zoomed in for human-to-museum scale
+  const [mapZoom, setMapZoom] = useState(4.5);
   const moveIntervalRef = useRef(null);
 
   // Layer Management
@@ -1205,7 +1253,7 @@ export default function NavigatorApp() {
     if (currentItem?.layerId && currentItem.layerId !== activeLayerId) {
       setActiveLayerId(currentItem.layerId);
     }
-  }, [currentIndex, currentItem]);
+  }, [currentIndex, currentItem, activeLayerId]);
 
   // Native Full-Screen Scale
   const [windowSize, setWindowSize] = useState({ w: window.innerWidth, h: window.innerHeight });
@@ -1226,33 +1274,16 @@ export default function NavigatorApp() {
   const startPos = items?.length > 0 ? { x: items[0].x, y: items[0].y + 40 } : { x: 250, y: 250 };
   const [userPos, setUserPos] = useState(startPos);
 
-  const handleTeleportTarget = (poi) => {
-    setIsTeleportOpen(false);
+  const handleSelectTarget = (poi) => {
     if (!poi || !poi.position) return;
-
-    const targetX = tx(poi.position.x || 0);
-    const targetY = ty(poi.position.y || 0) + 25; // position right in front of the artwork/service
-
-    setUserPos({ x: targetX, y: targetY });
-    setCameraPos({ x: targetX, y: targetY });
-    setIsTrackingUser(true);
-
-    if (poi.layerId && poi.layerId !== activeLayerId) {
-      setActiveLayerId(poi.layerId);
-    }
-
     if (poi.type === 'exhibit') {
       const idx = items.findIndex(it => it.id === poi.id || (poi.artworkId && it.artworkId === poi.artworkId));
       if (idx !== -1) {
         setCurrentIndex(idx);
+        showToast(`🎯 Opera selezionata: ${poi.name}`);
       }
-      setShowDescription(true);
-      showToast(`⚡ Teletrasportato davanti a: ${poi.name}`);
-    } else {
-      showToast(`📍 Raggiunto: ${poi.name || poi.type}`);
     }
   };
-
 
   useEffect(() => {
     const layerLines = (museumData.lines || []).filter(l => l.layerId === activeLayerId);
@@ -1520,22 +1551,32 @@ export default function NavigatorApp() {
     stopSpeaking(); 
   }, [currentIndex, stopSpeaking]);
 
-  // Controller Logic
+  // Controller Logic (Smooth, Sliding Collision & Keyboard Support)
   const moveUser = (dx, dy) => {
     setUserPos(prev => {
-      const step = 4;
-      // Convert abstract direction to dynamic relative size (optional: could stay static 4px)
+      const step = 6;
       const nx = prev.x + dx * step;
       const ny = prev.y + dy * step;
 
-
-      if (!collisionGrid) return prev;
+      if (!collisionGrid) return { x: nx, y: ny };
 
       const c = Math.floor(nx / collisionGrid.gridSize);
       const r = Math.floor(ny / collisionGrid.gridSize);
 
-      if (c >= 0 && c < collisionGrid.cols && r >= 0 && r < collisionGrid.rows && collisionGrid.grid[r][c] === 0) {
-        return { x: nx, y: ny };
+      if (c >= 0 && c < collisionGrid.cols && r >= 0 && r < collisionGrid.rows) {
+        if (collisionGrid.grid[r] && collisionGrid.grid[r][c] === 0) {
+          return { x: nx, y: ny };
+        }
+        // Try sliding horizontally
+        const rY = Math.floor(prev.y / collisionGrid.gridSize);
+        if (collisionGrid.grid[rY] && collisionGrid.grid[rY][c] === 0) {
+          return { x: nx, y: prev.y };
+        }
+        // Try sliding vertically
+        const cX = Math.floor(prev.x / collisionGrid.gridSize);
+        if (collisionGrid.grid[r] && collisionGrid.grid[r][cX] === 0) {
+          return { x: prev.x, y: ny };
+        }
       }
       return prev;
     });
@@ -1544,9 +1585,9 @@ export default function NavigatorApp() {
   const startMove = (dx, dy) => {
     if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
     setIsPlaying(false);
-    setIsTrackingUser(true); // Snap camera back to user when moving!
+    setIsTrackingUser(true);
     moveUser(dx, dy);
-    moveIntervalRef.current = setInterval(() => moveUser(dx, dy), 50);
+    moveIntervalRef.current = setInterval(() => moveUser(dx, dy), 40);
   };
 
   const stopMove = () => {
@@ -1555,6 +1596,28 @@ export default function NavigatorApp() {
       moveIntervalRef.current = null;
     }
   };
+
+  // Keyboard Controller Support (Arrow keys / WASD)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+      if (['ArrowUp', 'KeyW', 'w', 'W'].includes(e.key || e.code)) {
+        setIsTrackingUser(true);
+        moveUser(0, -1);
+      } else if (['ArrowDown', 'KeyS', 's', 'S'].includes(e.key || e.code)) {
+        setIsTrackingUser(true);
+        moveUser(0, 1);
+      } else if (['ArrowLeft', 'KeyA', 'a', 'A'].includes(e.key || e.code)) {
+        setIsTrackingUser(true);
+        moveUser(-1, 0);
+      } else if (['ArrowRight', 'KeyD', 'd', 'D'].includes(e.key || e.code)) {
+        setIsTrackingUser(true);
+        moveUser(1, 0);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [collisionGrid]);
 
   // Canvas Panning Controls
   const handlePointerDown = (e) => {
@@ -1806,7 +1869,7 @@ export default function NavigatorApp() {
       case 'TELEPORT_EXHIBIT':
       case 'TELEPORT_FACILITY':
         if (cmd.target) {
-          handleTeleportTarget(cmd.target);
+          handleSelectTarget(cmd.target);
           showToast("🗣️ " + cmd.feedback);
         }
         break;
@@ -1825,7 +1888,7 @@ export default function NavigatorApp() {
         if (cmd.feedback) showToast("🗣️ " + cmd.feedback);
         break;
     }
-  }, [currentIndex, items.length, currentItem, speak, pauseSpeaking, seek, handleTeleportTarget]);
+  }, [currentIndex, items.length, currentItem, speak, pauseSpeaking, seek, handleSelectTarget]);
 
   const {
     isListening,
@@ -1845,10 +1908,6 @@ export default function NavigatorApp() {
     setIsVoiceModalOpen(true);
   };
 
-  const handleCameraScan = () => {
-    setIsCameraActive(prev => !prev);
-  };
-
   const getScreenCoords = (abstractX, abstractY) => {
     const cx = isTrackingUser ? userPos.x : cameraPos.x;
     const cy = isTrackingUser ? userPos.y : cameraPos.y;
@@ -1862,11 +1921,60 @@ export default function NavigatorApp() {
 
   return (
     <div className="navigator-container">
+      {/* Auth Barrier Overlay */}
+      {authError && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          backdropFilter: 'blur(8px)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#18181b',
+            border: '1px solid #27272a',
+            borderRadius: '20px',
+            padding: '30px',
+            maxWidth: '420px',
+            width: '100%',
+            textAlign: 'center',
+            color: '#fff',
+            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)'
+          }}>
+            <div style={{ fontSize: '40px', marginBottom: '15px' }}>🔒</div>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>Accesso Riservato</h3>
+            <p style={{ fontSize: '14px', color: '#a1a1aa', marginBottom: '25px', lineHeight: 1.5 }}>
+              {authError}
+            </p>
+            <button 
+              onClick={() => window.location.href = '/marketplace/login'}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#7c3aed',
+                color: '#fff',
+                fontWeight: 'bold',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '15px'
+              }}
+            >
+              Effettua il Login
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="navigator-header">
         <button className="back-btn" onClick={() => navigate(-1)}>
           <ArrowLeft size={24} />
         </button>
-        <h2>{state?.museum || 'Museum Tour'}</h2>
+        <h2>{activeVisitTitle}</h2>
         <div style={{ width: 24 }}></div> {/* spacer */}
       </div>
 
@@ -1877,12 +1985,6 @@ export default function NavigatorApp() {
 
 
 
-        {aiResponse && (
-          <div className="ai-feedback fade-in">
-            <span>{aiResponse}</span>
-            <button onClick={() => setAiResponse(null)}><X size={14} /></button>
-          </div>
-        )}
 
         <canvas
           ref={canvasRef}
@@ -1911,52 +2013,8 @@ export default function NavigatorApp() {
           </div>
         )}
 
-        {isCameraActive && (
-          <QRScanner
-            onScanSuccess={(text) => {
-              setIsCameraActive(false);
-              const cleanText = text.trim();
-              const pois = museumData.pois || [];
-              const matchedPoi = pois.find(p => 
-                (p.artworkId && p.artworkId.toUpperCase() === cleanText.toUpperCase()) ||
-                (p.id && p.id.toString() === cleanText) ||
-                (cleanText.toUpperCase().includes(p.artworkId?.toUpperCase() || '___NONE___')) ||
-                (p.name && cleanText.toLowerCase().includes(p.name.toLowerCase()))
-              );
-
-              if (matchedPoi) {
-                handleTeleportTarget(matchedPoi);
-                showToast(`📷 Opera riconosciuta da QR: ${matchedPoi.name}`);
-              } else {
-                showToast(`ℹ️ QR Scansionato: "${cleanText}" (Nessuna opera associata nel museo)`);
-              }
-            }}
-            onScanError={(err) => {
-              console.warn('QRScanner error', err);
-            }}
-            onClose={() => setIsCameraActive(false)}
-          />
-        )}
-
-        {/* Left Side Utility Buttons */}
+        {/* Left Side Utility Buttons for 18-27 Track */}
         <div className="utility-buttons-left">
-          <button
-            className={`util-btn ${isCameraActive ? 'active' : ''}`}
-            onClick={handleCameraScan}
-            title="Scansiona QR Code Opera"
-          >
-            <Camera size={24} />
-          </button>
-
-          <button
-            className="util-btn teleport-btn-trigger"
-            onClick={() => setIsTeleportOpen(true)}
-            title="Modulo Teletrasporto Virtuale"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff' }}
-          >
-            <Zap size={22} color="#fbbf24" />
-          </button>
-
           <button
             className={`util-btn ${isSyncModalOpen || isSyncedVisitor || isTeacherMode ? 'active' : ''}`}
             onClick={() => setIsSyncModalOpen(true)}
@@ -2077,14 +2135,6 @@ export default function NavigatorApp() {
         />
       )}
 
-      {isTeleportOpen && (
-        <TeleportModal
-          pois={museumData.pois || []}
-          activeLayerId={activeLayerId}
-          onTeleport={handleTeleportTarget}
-          onClose={() => setIsTeleportOpen(false)}
-        />
-      )}
 
       <VoiceControlModal
         isOpen={isVoiceModalOpen}

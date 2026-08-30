@@ -73,9 +73,6 @@ console.log('Serving navigator from:', navigatorRoot);
 app.get('/', (req, res) => {
     res.redirect('/marketplace');
 });
-app.get('/qr-codes', (req, res) => {
-    res.redirect('/marketplace/qr-codes');
-});
 
 // ======= VIEW ONLY =======
 app.use("/marketplace", marketplaceRouter);

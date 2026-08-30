@@ -341,11 +341,25 @@ export default function Editor() {
 
       <div className={`editor-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <button className="back-to-app" onClick={() => navigate('/')}>
-            <ArrowLeft size={20} /> Back
+          <button className="back-to-app" onClick={() => {
+            const returnUrl = searchParams.get('returnUrl');
+            if (returnUrl) window.location.href = returnUrl;
+            else navigate('/');
+          }}>
+            <ArrowLeft size={20} /> {searchParams.get('returnUrl') ? 'Torna al Museo' : 'Back'}
           </button>
           <h2>Map Editor</h2>
-          <p className="sidebar-desc">Select a tool and click the map to draw. Click the active tool again to deselect and navigate map.</p>
+          <p className="sidebar-desc">Disegna pareti, stanze e punti di interesse. Quando hai finito, salva per allegare la mappa.</p>
+        </div>
+
+        <div className="tool-section" style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px', borderRadius: '8px' }}>
+          <button 
+            className="tool-btn success" 
+            onClick={saveAndReturnToNewMuseum} 
+            style={{ background: '#16a34a', color: '#fff', fontWeight: 'bold', width: '100%' }}
+          >
+            💾 Salva & Allega al Museo
+          </button>
         </div>
 
         <div className="tool-section">
