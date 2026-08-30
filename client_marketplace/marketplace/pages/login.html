@@ -137,7 +137,13 @@
                     localStorage.setItem('apiToken', resData.data.token);
                     localStorage.setItem('user', JSON.stringify(resData.data.user)); //to use in dashboard...
                     
-                    window.location.href = '/marketplace/homepage';
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirect = urlParams.get("redirect");
+                    if(redirect) {
+                        window.location.href = redirect;
+                    } else {
+                        window.location.href = "/marketplace/homepage";
+                    }
 
                 }else{
                     const errorData = await res.json();

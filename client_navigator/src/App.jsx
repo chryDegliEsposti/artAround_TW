@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Pages/Layout';
 import MapView from './components/Pages/MapView';
 import MyVisits from './components/Pages/MyVisits';
+import Account from "./components/Pages/Account";
 import NavigatorApp from './components/Pages/NavigatorApp';
 import Overview from './components/Pages/Overview';
 import ExploreMuseum from './components/Pages/ExploreMuseum';
@@ -15,6 +16,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<MapView />} />
           <Route path="my-visits" element={<MyVisits />} />
+<Route path="account" element={<Account />} />
           <Route path="tour" element={<NavigatorApp />} />
           <Route path="overview" element={<Overview />} />
           <Route path="museum/:id" element={<ExploreMuseum />} />

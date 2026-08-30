@@ -17,8 +17,9 @@ function VisitCard({ visit, isUpcoming }) {
   };
 
   const openGoogleMaps = () => {
-    // Mock coordinates, ideally from visit data
-    window.open(`https://www.google.com/maps/dir/?api=1&destination=45.4642,9.1900`, '_blank');
+    const lat = visit.lat || 44.4975;
+    const lng = visit.lng || 11.3533;
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, '_blank');
   };
 
   return (
@@ -67,13 +68,16 @@ export default function MyVisits() {
     const fetchVisits = async () => {
       setLoading(true);
       try {
-        const upResponse = await fetch('/api/v1/navigator/visits/get/upcomingVisits');
-        const upData = await upResponse.json();
-        setUpcomingVisits(upData);
+        const token = localStorage.getItem('apiToken');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-        const pastResponse = await fetch('/api/v1/navigator/visits/get/pastVisits');
+        const upResponse = await fetch('/api/v1/navigator/visits/get/upcomingVisits', { headers });
+        const upData = await upResponse.json();
+        if (Array.isArray(upData)) setUpcomingVisits(upData);
+
+        const pastResponse = await fetch('/api/v1/navigator/visits/get/pastVisits', { headers });
         const pastData = await pastResponse.json();
-        setPastVisits(pastData);
+        if (Array.isArray(pastData)) setPastVisits(pastData);
       } catch (error) {
         console.error('Error fetching visits:', error);
       } finally {

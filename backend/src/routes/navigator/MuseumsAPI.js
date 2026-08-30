@@ -128,8 +128,19 @@ router.get('/museumData', async (req, res) => {
  */
 router.get('/exploreData', async (req, res) => {
     try {
-        const museum = await Museum.findOne();
-        const items = await Item.find({ length: '15s', languageLevel: 'medio' }).limit(10);
+        let museum = null;
+        if (req.query.id && req.query.id.match(/^[0-9a-fA-F]{24}$/)) {
+            museum = await Museum.findById(req.query.id);
+        } else {
+            museum = await Museum.findOne();
+        }
+
+        let itemQuery = { length: '15s', languageLevel: 'medio' };
+        if (museum) {
+            itemQuery.museum = museum._id;
+        }
+        
+        const items = await Item.find(itemQuery).limit(10);
 
         const masterpieces = items.map(item => ({
             id: item._id,

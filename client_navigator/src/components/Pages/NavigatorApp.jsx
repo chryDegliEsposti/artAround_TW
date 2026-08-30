@@ -26,14 +26,10 @@ import {
 } from 'lucide-react';
 import BottomBar from '../UI/BottomBar';
 import ItemDescription from '../UI/ItemDescription';
-import QRScanner from '../UI/QRScanner';
-import TeleportModal from '../UI/TeleportModal';
-import VoiceControlModal from '../UI/VoiceControlModal';
 import AccessibilityModal from '../UI/AccessibilityModal';
 import SyncSessionModal from '../UI/SyncSessionModal';
 import QuizModal from '../UI/QuizModal';
 import { useSpeaker } from '../../utils/useSpeaker';
-import { useSpeechRecognition } from '../../utils/useSpeechRecognition';
 import { createCollisionGrid, findPath } from '../../utils/gridPathfinding';
 import { io } from 'socket.io-client';
 import L from 'leaflet';
@@ -1112,37 +1108,67 @@ const transformDataForCanvas = (data, canvasSize = 500, padding = 40) => {
 };
 
 export default function NavigatorApp() {
-  const [museumData, setMuseumData] = useState(mockMuseumData);
+  const { state } = useLocation();
+  const navigate = useNavigate();
+  
+  const [museumData, setMuseumData] = useState(null);
+  const [visitData, setVisitData] = useState(null);
   const [items, setItems] = useState([]);
+  const [loadingError, setLoadingError] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
-      const data = await fetchMuseumData();
-      setMuseumData(data);
+      try {
+        const visitId = state?.visitId || window.location.pathname.split('/').pop();
+        if (!visitId || visitId === 'tour') {
+           return setLoadingError("ID Visita non fornito.");
+        }
+
+        const token = localStorage.getItem('apiToken');
+        if (!token) return setLoadingError("Non autorizzato. Effettua il login.");
+
+        const response = await fetch(`/api/v1/navigator/visits/tourData/${visitId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          setMuseumData(data.museum);
+          setVisitData(data.visit);
+        } else {
+          setLoadingError(data.error || "Errore nel caricamento del tour.");
+        }
+      } catch (err) {
+        setLoadingError("Errore di rete.");
+      }
     };
     loadData();
-  }, []);
+  }, [state?.visitId]);
 
-  const { scale, offsetX, offsetY } = useMemo(() => transformDataForCanvas(museumData), [museumData]);
+  const { scale, offsetX, offsetY } = useMemo(() => {
+    if (!museumData) return { scale: 1, offsetX: 0, offsetY: 0 };
+    return transformDataForCanvas(museumData);
+  }, [museumData]);
+  
   const tx = useCallback((x) => x * scale + offsetX, [scale, offsetX]);
   const ty = useCallback((y) => y * scale + offsetY, [scale, offsetY]);
 
   useEffect(() => {
+    if (!museumData) return;
     const tourItems = (museumData.pois || [])
       .filter(poi => poi.type === 'exhibit')
       .map(poi => ({
         id: poi.id,
         name: poi.name,
-        desc: poi.desc || `You are currently navigating toward the famous ${poi.name}. This is one of the museum's most prized exhibits.`,
+        desc: poi.desc || `Stai navigando verso ${poi.name}.`,
         x: tx(poi.position.x),
         y: ty(poi.position.y),
-        layerId: poi.layerId
+        layerId: poi.layerId,
+        artworkId: poi.artworkId
       }));
     setItems(tourItems);
   }, [museumData, tx, ty]);
-
-  const { state } = useLocation();
-  const navigate = useNavigate();
   const canvasRef = useRef(null);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1151,8 +1177,6 @@ export default function NavigatorApp() {
   const [showPopup, setShowPopup] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isTeleportOpen, setIsTeleportOpen] = useState(false);
-  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
   const [accessibleRoute, setAccessibleRoute] = useState(false);
   const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1);
@@ -1529,7 +1553,7 @@ export default function NavigatorApp() {
       const ny = prev.y + dy * step;
 
 
-      if (!collisionGrid) return prev;
+      if (!collisionGrid) return { x: nx, y: ny };
 
       const c = Math.floor(nx / collisionGrid.gridSize);
       const r = Math.floor(ny / collisionGrid.gridSize);
@@ -1765,85 +1789,7 @@ export default function NavigatorApp() {
   };
 
   // Voice Command Dispatcher (Web Speech API)
-  const handleVoiceCommand = useCallback((cmd) => {
-    if (!cmd) return;
-    switch (cmd.type) {
-      case 'NAV_NEXT':
-        if (currentIndex < items.length - 1) {
-          setCurrentIndex(prev => prev + 1);
-        }
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'NAV_PREV':
-        if (currentIndex > 0) {
-          setCurrentIndex(prev => prev - 1);
-        }
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'AUDIO_PLAY':
-        if (currentItem?.desc) {
-          speak(currentItem.desc, currentItem.id);
-        }
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'AUDIO_PAUSE':
-        pauseSpeaking();
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'AUDIO_REPLAY':
-        seek(0);
-        if (currentItem?.desc) speak(currentItem.desc, currentItem.id);
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'UI_EXPAND':
-        setShowDescription(true);
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'UI_COLLAPSE':
-        setShowDescription(false);
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'TELEPORT_EXHIBIT':
-      case 'TELEPORT_FACILITY':
-        if (cmd.target) {
-          handleTeleportTarget(cmd.target);
-          showToast("🗣️ " + cmd.feedback);
-        }
-        break;
-      case 'CHANGE_LAYER':
-        setActiveLayerId(cmd.layerId);
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'TOGGLE_ACCESSIBILITY':
-        setAccessibleRoute(prev => !prev);
-        showToast("🗣️ " + cmd.feedback);
-        break;
-      case 'SHOW_HELP':
-        setIsVoiceModalOpen(true);
-        break;
-      default:
-        if (cmd.feedback) showToast("🗣️ " + cmd.feedback);
-        break;
-    }
-  }, [currentIndex, items.length, currentItem, speak, pauseSpeaking, seek, handleTeleportTarget]);
 
-  const {
-    isListening,
-    transcript,
-    lastFeedback,
-    startListening,
-    stopListening,
-    executeManualCommand
-  } = useSpeechRecognition({
-    onCommand: handleVoiceCommand,
-    pois: museumData.pois || [],
-    currentIndex,
-    itemsLength: items.length
-  });
-
-  const handleMicRequest = () => {
-    setIsVoiceModalOpen(true);
-  };
 
   const handleCameraScan = () => {
     setIsCameraActive(prev => !prev);
@@ -1859,6 +1805,22 @@ export default function NavigatorApp() {
   };
 
   const userScreenPos = getScreenCoords(userPos.x, userPos.y);
+
+  if (loadingError) {
+    return (
+      <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#111', color: '#ff6b6b' }}>
+        <h2>{loadingError}</h2>
+      </div>
+    );
+  }
+
+  if (!museumData || !visitData) {
+    return (
+      <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#111', color: '#fff' }}>
+        <h2>Caricamento tour in corso...</h2>
+      </div>
+    );
+  }
 
   return (
     <div className="navigator-container">
@@ -2077,25 +2039,7 @@ export default function NavigatorApp() {
         />
       )}
 
-      {isTeleportOpen && (
-        <TeleportModal
-          pois={museumData.pois || []}
-          activeLayerId={activeLayerId}
-          onTeleport={handleTeleportTarget}
-          onClose={() => setIsTeleportOpen(false)}
-        />
-      )}
 
-      <VoiceControlModal
-        isOpen={isVoiceModalOpen}
-        onClose={() => setIsVoiceModalOpen(false)}
-        isListening={isListening}
-        transcript={transcript}
-        lastFeedback={lastFeedback}
-        onStartListening={startListening}
-        onStopListening={stopListening}
-        onSelectCommand={executeManualCommand}
-      />
 
       <AccessibilityModal
         isOpen={isAccessibilityModalOpen}
@@ -2141,7 +2085,6 @@ export default function NavigatorApp() {
         onPrev={handlePrev}
         onNext={handleNext}
         onPlayPause={togglePlay}
-        onMic={handleMicRequest}
         onEasier={() => setIsAccessibilityModalOpen(true)}
         onSeekBack={handleSeekBack}
         onSeekForward={handleSeekForward}

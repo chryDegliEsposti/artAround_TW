@@ -261,18 +261,29 @@ export default function Editor() {
     setActiveLayerId(id);
   };
 
+  const generateJSON = () => ({
+    museumCenter: center,
+    layers,
+    lines,
+    areas,
+    pois
+  });
+
   const exportJSON = () => {
-    const data = {
-      museumCenter: center,
-      layers,
-      lines,
-      areas,
-      pois
-    };
-    console.log("--------------- MAP DATA JSON ---------------");
-    console.log(JSON.stringify(data, null, 2));
-    console.log("---------------------------------------------");
-    alert("Map Data exported successfully to the Browser Console!");
+    const data = generateJSON();
+    
+    // Check if we were called from the marketplace museum creation flow
+    const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+    
+    if (returnUrl) {
+      // Save data for the caller and redirect back
+      sessionStorage.setItem('editorMapData', JSON.stringify(data));
+      window.location.href = returnUrl;
+    } else {
+      // Standard export to console/prompt for manual copy
+      console.log(JSON.stringify(data, null, 2));
+      alert("Map Data exported successfully to the Browser Console!");
+    }
   };
 
   const importJSON = () => {

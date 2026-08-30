@@ -16,6 +16,7 @@ const apiMarketplaceRouter = require("./routes/apiMarketplace.routes");
 const navMuseumsRoute = require('./routes/navigator/MuseumsAPI');
 const navVisitsRoute = require('./routes/navigator/VisitsAPI');
 const navAiRoute = require('./routes/navigator/AIAPI');
+const navAccountRoute = require("./routes/navigator/AccountAPI");
 
 //DB connection
 const dbConnection = async () => {
@@ -62,7 +63,7 @@ app.use(express.static(frontendRoot));
 // Serve navigator React build static files
 const navigatorRoot = path.resolve(__dirname, "../../client_navigator/dist");
 app.use('/navigator', express.static(navigatorRoot));
-app.get('/navigator/*', (req, res) => {
+app.get(/^\/navigator(\/.*)?$/, (req, res) => {
     res.sendFile(path.join(navigatorRoot, 'index.html'));
 });
 
@@ -88,6 +89,7 @@ app.use("/api/v1/marketplace", apiMarketplaceRouter) //richieste fetch da create
 // ======= Navigator APIs =======
 app.use("/api/v1/navigator/museums", navMuseumsRoute);
 app.use("/api/v1/navigator/visits", navVisitsRoute);
+app.use("/api/v1/navigator/account", navAccountRoute);
 app.use("/api/v1/navigator/ai", navAiRoute);
 
 

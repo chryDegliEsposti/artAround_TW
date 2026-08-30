@@ -15,13 +15,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Mock nearest museums
-const mockMuseums = [
-  { id: 1, name: "City Art Museum", lat: 45.4642, lng: 9.1900, rating: 4.8, img: "https://images.unsplash.com/photo-1597910037310-7dd8dd393e48?auto=format&fit=crop&q=80&w=400" },
-  { id: 2, name: "Science Center", lat: 45.4655, lng: 9.1850, rating: 4.6, img: "https://images.unsplash.com/photo-1518998053901-5348d3961a04?auto=format&fit=crop&q=80&w=400" },
-  { id: 3, name: "Natural History Museum", lat: 45.4741, lng: 9.2018, rating: 4.9, img: "https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=400" }
-];
-
 const createLocationIcon = (heading) => {
   return L.divIcon({
     className: 'custom-location-marker',
@@ -61,20 +54,32 @@ export default function MapView() {
   const [showScroller, setShowScroller] = useState(true);
   const dragStartY = useRef(null);
 
-  const [liveMuseums, setLiveMuseums] = useState(mockMuseums);
+  const [liveMuseums, setLiveMuseums] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [apiError, setApiError] = useState(null);
 
   useEffect(() => {
     const fetchMuseums = async () => {
       try {
+        setIsLoading(true);
+        setApiError(null);
+        console.debug("[MapView] Fetching museums from API...");
         const response = await fetch('/api/v1/navigator/museums/get');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
+        console.debug("[MapView] Museums fetched:", data);
         if (data && data.length > 0) {
           setLiveMuseums(data);
         } else {
-          setLiveMuseums(mockMuseums);
+          setApiError("Nessun museo trovato nel database.");
         }
       } catch (error) {
-        setLiveMuseums(mockMuseums);
+        console.error("[MapView] Error fetching museums:", error);
+        setApiError("Errore di connessione al server. Impossibile caricare i musei.");
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchMuseums();
@@ -93,7 +98,7 @@ export default function MapView() {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude
           });
-          if (pos.coords.heading !== null && pos.coords.heading !== NaN) {
+          if (pos.coords.heading !== null && !Number.isNaN(pos.coords.heading)) {
             setHeading(pos.coords.heading);
           }
         },
@@ -162,7 +167,7 @@ export default function MapView() {
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           <ZoomControl position="bottomright" />
           <LocationMarker position={position} heading={heading} />

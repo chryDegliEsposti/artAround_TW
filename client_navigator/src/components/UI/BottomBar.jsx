@@ -71,9 +71,6 @@ export default function BottomBar({
   const dummyText = "Un capolavoro della pittura conservato presso la Pinacoteca Nazionale di Bologna. L'opera si distingue per l'alta maestria compositiva, l'uso calibrato della luce e la ricchezza cromatica.";
 
   const [liveData, setLiveData] = useState({ description: dummyText, style: 'Rinascimento', artist: 'Artista Pinacoteca' });
-  const [selectedLang, setSelectedLang] = useState('it');
-  const [selectedTone, setSelectedTone] = useState('medio');
-  const [isAiProcessing, setIsAiProcessing] = useState(false);
   const originalDescRef = useRef(dummyText);
 
   useEffect(() => {
@@ -106,60 +103,7 @@ export default function BottomBar({
     fetchDesc();
   }, [currentItem]);
 
-  const handleLanguageChange = async (lang) => {
-    if (lang === selectedLang || isAiProcessing) return;
-    setIsAiProcessing(true);
-    setSelectedLang(lang);
-    try {
-      if (lang === 'it') {
-        setLiveData(prev => ({ ...prev, description: originalDescRef.current }));
-      } else {
-        const res = await fetch('/api/v1/navigator/ai/translate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            text: originalDescRef.current,
-            targetLang: lang,
-            sourceLang: 'it'
-          })
-        });
-        const data = await res.json();
-        if (data && data.translatedText) {
-          setLiveData(prev => ({ ...prev, description: data.translatedText }));
-        }
-      }
-    } catch (e) {
-      console.error("Translation error:", e);
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
 
-  const handleToneChange = async (tone) => {
-    if (tone === selectedTone || isAiProcessing) return;
-    setIsAiProcessing(true);
-    setSelectedTone(tone);
-    try {
-      const res = await fetch('/api/v1/navigator/ai/adapt-tone', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: originalDescRef.current,
-          targetLevel: tone,
-          title: currentItem?.name || 'Opera',
-          artist: currentItem?.artist || liveData.artist
-        })
-      });
-      const data = await res.json();
-      if (data && data.description) {
-        setLiveData(prev => ({ ...prev, description: data.description }));
-      }
-    } catch (e) {
-      console.error("Tone adaptation error:", e);
-    } finally {
-      setIsAiProcessing(false);
-    }
-  };
 
   return (
     <div
@@ -213,9 +157,6 @@ export default function BottomBar({
           </button>
           <h1 className="expanded-logo">ArtAround Curator</h1>
           <div className="flex items-center gap-2">
-            <button className="action-circle-btn" onClick={onMic} title="Comando Vocale">
-              <span className="material-symbols-outlined">mic</span>
-            </button>
             <button className="action-circle-btn" onClick={onEasier} title="Impostazioni Accessibilità">
               <span className="material-symbols-outlined">accessibility</span>
             </button>
@@ -234,7 +175,7 @@ export default function BottomBar({
               <h2 className="artwork-title" style={{ fontSize: `${fontSizeMultiplier * 1.5}rem` }}>{currentItem?.name || 'Capolavoro'}</h2>
               <div className="artist-row">
                 <div className="artist-line"></div>
-                <span className="artist-name">{currentItem?.artist || liveData.artist}</span>
+                <span className="artist-name">{currentItem?.artist || 'Autore Sconosciuto'}</span>
               </div>
             </div>
 
@@ -245,59 +186,8 @@ export default function BottomBar({
                 </span>
                 {isPlaying ? 'PAUSA GUIDA AUDIO' : 'ASCOLTA GUIDA AUDIO'}
               </span>
-              <span className="btn-right">{selectedLang.toUpperCase()} HD</span>
+              <span className="btn-right">IT HD</span>
             </button>
-
-            {/* AI Real-time Controls Bar */}
-            <div className="ai-realtime-bar my-4 p-3 bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col gap-2.5">
-              {/* Language Switcher */}
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">translate</span> Lingua:
-                </span>
-                <div className="flex gap-1.5">
-                  {[
-                    { code: 'it', label: '🇮🇹 IT' },
-                    { code: 'en', label: '🇬🇧 EN' },
-                    { code: 'es', label: '🇪🇸 ES' },
-                    { code: 'fr', label: '🇫🇷 FR' },
-                    { code: 'de', label: '🇩🇪 DE' }
-                  ].map(l => (
-                    <button
-                      key={l.code}
-                      onClick={() => handleLanguageChange(l.code)}
-                      disabled={isAiProcessing}
-                      className={`px-2 py-1 text-xs font-bold rounded-lg transition ${selectedLang === l.code ? 'bg-indigo-600 text-white' : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'}`}
-                    >
-                      {l.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tone Level Switcher */}
-              <div className="flex items-center justify-between border-t border-zinc-800 pt-2">
-                <span className="text-xs font-bold text-zinc-400 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">psychology</span> Tono:
-                </span>
-                <div className="flex gap-1.5">
-                  {[
-                    { code: 'infantile', label: '👶 Ragazzi' },
-                    { code: 'medio', label: '👤 Standard' },
-                    { code: 'specialistico', label: '🎓 Esperto' }
-                  ].map(t => (
-                    <button
-                      key={t.code}
-                      onClick={() => handleToneChange(t.code)}
-                      disabled={isAiProcessing}
-                      className={`px-2.5 py-1 text-xs font-medium rounded-lg transition ${selectedTone === t.code ? 'bg-purple-600 text-white font-bold' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
 
             <div className="bento-grid">
               <div className="bento-card">
@@ -313,14 +203,10 @@ export default function BottomBar({
             <article className="description-article" style={{ fontSize: `${fontSizeMultiplier * 1}rem`, lineHeight: 1.6 }}>
               <div className="flex justify-between items-center mb-1">
                 <h3 className="desc-heading">Descrizione dell'Opera</h3>
-                {selectedLang !== 'it' && (
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-400 bg-indigo-950 px-2 py-0.5 rounded border border-indigo-800">
-                    Traduzione AI ({selectedLang.toUpperCase()})
-                  </span>
-                )}
+                 
               </div>
               <p className="desc-body">
-                {isAiProcessing ? 'Generazione traduzione AI in corso...' : liveData.description}
+                {liveData.description || currentItem?.desc || 'Descrizione non disponibile.'}
               </p>
             </article>
 

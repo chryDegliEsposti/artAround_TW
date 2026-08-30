@@ -6,8 +6,8 @@ const jwt = require('jsonwebtoken');
 const signup = async (req, res, next) => {
     // Logica di registrazione
     console.log(`INCOMING SIGNUP REQUEST}`);
-    const session = await mongoose.startSession();
-    session.startTransaction(); //per assicurare operazioni atomiche su state db 
+    //const session = await mongoose.startSession();
+    //session.startTransaction(); //per assicurare operazioni atomiche su state db 
     try {
         const {email, username, password, role, museumId} = req.body;
         
@@ -40,7 +40,7 @@ const signup = async (req, res, next) => {
             
         const newUsers = await User.create([ //note: .create returns arr of created models
             newUserData
-        ], { session }); //bind session to new user creation
+        ]); //bind session to new user creation
 
         const userToken = jwt.sign({ 
                 userId: newUsers[0]._id,
@@ -51,8 +51,8 @@ const signup = async (req, res, next) => {
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
 
-        await session.commitTransaction(); //se tutto ok, conferma le operazioni
-        session.endSession();
+        //await session.commitTransaction(); //se tutto ok, conferma le operazioni
+        //session.endSession();
 
         //"hybrid approach" for jwt management
         res.cookie('jwt', userToken, {
@@ -81,8 +81,8 @@ const signup = async (req, res, next) => {
         });
 
     }catch (error) {
-        await session.abortTransaction(); //in caso di errore, annulla le operazioni
-        session.endSession();
+        //await session.abortTransaction(); //in caso di errore, annulla le operazioni
+        //session.endSession();
         next(error); //passa l'errore al middleware di gestione errori
     }    
 }

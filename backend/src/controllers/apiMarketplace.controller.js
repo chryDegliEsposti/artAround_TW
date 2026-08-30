@@ -169,7 +169,7 @@ const createMuseum = async (req, res) => {
     try {
         console.log("Creazione museo - request body:", req.body);
 
-        const { museum, items } = req.body;
+        const { museum, items, mapData } = req.body;
         const userId = req.userId; 
         
         //--- Sequential operations BLOCK for museum creation 
@@ -188,13 +188,20 @@ const createMuseum = async (req, res) => {
             address: museum.address,
             longitude: museum.longitude,
             latitude: museum.latitude,
+            image: museum.image || '',
+            layers: mapData?.layers || [],
+            lines: mapData?.lines || [],
+            areas: mapData?.areas || [],
+            pois: mapData?.pois || []
         });
         // 3. Create museum's items (if any)  
         if (items && items.length > 0) {
             const itemsWithMuseumId = items.map(item => ({
                 ...item,
-                museumId: newMuseum.museumId, 
-                creator: userId
+                museumId: newMuseum.museumId,
+                museum: newMuseum._id,
+                creator: userId,
+                recognitionImage: item.image || ''
             }));
             await Item.insertMany(itemsWithMuseumId);
         }

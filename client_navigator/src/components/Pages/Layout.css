@@ -110,3 +110,44 @@ html[data-theme='dark'] .popup-menu li a {
   position: relative;
   overflow: auto;
 }
+
+.account-initials-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: #4f46e5;
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 14px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.2s ease, background-color 0.2s;
+}
+
+.account-initials-circle:hover {
+    transform: scale(1.05);
+    background-color: #4338ca;
+}
+
+.login-btn-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: transparent;
+    color: #4f46e5;
+    border: 1px solid #4f46e5;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.login-btn-header:hover {
+    background-color: #4f46e5;
+    color: white;
+}
