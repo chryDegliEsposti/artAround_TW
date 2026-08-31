@@ -73,7 +73,7 @@
                 <p class="text-purple-100 text-sm sm:text-base max-w-2xl">Acquista tour completi con percorsi ottimizzati o singoli approfondimenti tematici da ascoltare nel museo.</p>
             </div>
 
-            <!-- TABS SCELTA: Visite / Items -->
+            <!-- TABS SCELTA: Visite / Items / Le Mie Opere -->
             <div class="mb-6 border-b border-gray-200 flex justify-between items-center">
                 <div class="flex space-x-6">
                     <button 
@@ -91,6 +91,14 @@
                         <i class="fas fa-palette"></i>
                         <span>Singole Opere / Items</span>
                         <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold" x-text="items.length"></span>
+                    </button>
+                    <button 
+                        @click="activeTab = 'my_items'" 
+                        :class="activeTab === 'my_items' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2">
+                        <i class="fas fa-folder-open"></i>
+                        <span>Le Mie Opere</span>
+                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold" x-text="myPurchasedAndOwnedItems.length"></span>
                     </button>
                 </div>
             </div>
@@ -119,7 +127,7 @@
                         </select>
                     </div>
                     
-                    <div x-show="activeTab === 'items'">
+                    <div x-show="activeTab === 'items' || activeTab === 'my_items'">
                         <select x-model="durationFilter" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500">
                             <option value="all">Tutte le durate</option>
                             <option value="short">Brevi (≤15s)</option>
@@ -139,154 +147,330 @@
                 </div>
             </div>
 
-            <!-- ================= GRIGLIA VISITE ================= -->
-            <div x-show="activeTab === 'visits'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <template x-for="visit in filteredVisits" :key="visit._id">
-                    <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
-                        <div>
-                            <!-- Cover Image -->
-                            <div class="h-44 relative bg-gray-200 overflow-hidden">
-                                <img :src="visit.image || 'https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=600'" 
-                                     alt="Copertina Visita" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                                
-                                <!-- Favorite Heart -->
-                                <button 
-                                    @click.stop="toggleSave(visit._id, 'visit')" 
-                                    class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm"
-                                    :class="isSaved(visit._id) ? 'bg-white text-red-500 shadow' : 'bg-black/30 text-white hover:bg-white hover:text-red-500'">
-                                    <i :class="isSaved(visit._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
-                                </button>
-
-                                <div class="absolute bottom-3 left-3">
-                                    <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
-                                        <i class="far fa-clock mr-1"></i><span x-text="visit.duration || 60"></span> min
-                                    </span>
-                                </div>
-                            </div>
-                            
-                            <div class="p-5">
-                                <div class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mb-1" x-text="visit.museum?.name || visit.museumId || 'Museo'"></div>
-                                <h3 class="font-bold text-gray-800 text-lg mb-1.5 line-clamp-1" x-text="visit.title"></h3>
-                                <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="visit.description || 'Percorso guidato completo con tappe e spiegazioni audio.'"></p>
-                                
-                                <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                                    <span><i class="fas fa-map-pin mr-1 text-purple-500"></i><span x-text="visit.items?.length || (visit.steps?.length || 0)"></span> tappe</span>
-                                    <span class="capitalize"><i class="fas fa-layer-group mr-1 text-indigo-500"></i><span x-text="visit.knowledgeLevel || 'medio'"></span></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="p-5 pt-0">
-                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                                <div>
-                                    <template x-if="visit.price > 0">
-                                        <span class="text-lg font-black text-gray-900">€<span x-text="visit.price.toFixed(2)"></span></span>
-                                    </template>
-                                    <template x-if="!visit.price || visit.price === 0">
-                                        <span class="text-sm font-bold text-green-600 flex items-center">
-                                            <i class="fas fa-gift mr-1"></i> Gratuita
-                                        </span>
-                                    </template>
-                                </div>
-
-                                <!-- Action: Inizia Tour se posseduta, altrimenti Acquista -->
-                                <template x-if="ownedVisits.includes(visit._id) || (!visit.price || visit.price === 0)">
-                                    <a :href="'/navigator/tour?visitId=' + visit._id" 
-                                       class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
-                                        <i class="fas fa-play"></i> Inizia Tour
-                                    </a>
-                                </template>
-
-                                <template x-if="!ownedVisits.includes(visit._id) && visit.price > 0">
+            <!-- ================= SEZIONE VISITE ================= -->
+            <div x-show="activeTab === 'visits'">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="visit in filteredVisits" :key="visit._id">
+                        <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <div class="h-48 relative bg-gray-200 overflow-hidden">
+                                    <img :src="visit.image || 'https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=400'" 
+                                         alt="Immagine Visita" class="w-full h-full object-cover">
+                                    
                                     <button 
-                                        @click="purchaseVisit(visit)"
-                                        :disabled="purchasing[visit._id]"
-                                        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5 disabled:opacity-50">
-                                        <i class="fas fa-shopping-cart" :class="purchasing[visit._id] ? 'fa-spin' : ''"></i>
-                                        <span x-text="purchasing[visit._id] ? 'Elaborazione...' : 'Acquista'"></span>
+                                        @click.stop="toggleSave(visit._id, 'visit')" 
+                                        class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+                                        :class="isSaved(visit._id) ? 'bg-white text-red-500 shadow' : 'bg-black/30 text-white hover:bg-white hover:text-red-500'">
+                                        <i :class="isSaved(visit._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
                                     </button>
-                                </template>
+
+                                    <div class="absolute bottom-3 left-3 flex gap-2">
+                                        <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
+                                            <i class="fas fa-clock mr-1"></i><span x-text="(visit.duration || 45) + ' min'"></span>
+                                        </span>
+                                        <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
+                                            <i class="fas fa-cube mr-1"></i><span x-text="(visit.items?.length || 0) + ' opere'"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-5">
+                                    <div class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mb-1" x-text="visit.knowledgeLevel || 'Generale'"></div>
+                                    <h3 class="font-bold text-gray-800 text-lg mb-1.5 line-clamp-1" x-text="visit.title"></h3>
+                                    <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="visit.description"></p>
+                                    
+                                    <div class="flex items-center text-xs text-gray-400 gap-1.5 pt-3 border-t border-gray-100">
+                                        <i class="fas fa-university"></i>
+                                        <span class="truncate" x-text="visit.museum?.name || 'Pinacoteca Nazionale di Bologna'"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-5 pt-0">
+                                <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                    <div>
+                                        <template x-if="visit.price > 0">
+                                            <span class="text-lg font-black text-gray-900">€<span x-text="visit.price.toFixed(2)"></span></span>
+                                        </template>
+                                        <template x-if="!visit.price || visit.price === 0">
+                                            <span class="text-xs font-bold text-green-600">Gratuito</span>
+                                        </template>
+                                    </div>
+
+                                    <template x-if="ownedVisits.includes(visit._id) || (!visit.price || visit.price === 0)">
+                                        <a :href="'/navigator/tour?visitId=' + visit._id" 
+                                           class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                            <i class="fas fa-play"></i> Inizia Tour
+                                        </a>
+                                    </template>
+
+                                    <template x-if="!ownedVisits.includes(visit._id) && visit.price > 0">
+                                        <a :href="'/marketplace/checkout?visitId=' + visit._id" 
+                                           class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                            <i class="fas fa-shopping-cart"></i> Acquista
+                                        </a>
+                                    </template>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </template>
+                    </template>
 
-                <div x-show="filteredVisits.length === 0" class="col-span-full text-center py-16 text-gray-400">
-                    <i class="fas fa-route text-4xl mb-3 block"></i>
-                    <p class="text-base font-semibold">Nessun percorso visita trovato.</p>
+                    <div x-show="filteredVisits.length === 0" class="col-span-full text-center py-16 text-gray-400">
+                        <i class="fas fa-compass text-4xl mb-3 block"></i>
+                        <p class="text-base font-semibold">Nessun percorso trovato con questi filtri.</p>
+                    </div>
                 </div>
             </div>
-            
-            <!-- ================= GRIGLIA ITEMS ================= -->
-            <div x-show="activeTab === 'items'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                <template x-for="item in filteredItems" :key="item._id">
-                    <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
-                        <div>
-                            <div class="h-40 relative bg-gray-200 overflow-hidden">
-                                <img :src="item.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=400'" 
-                                     alt="Immagine Item" class="w-full h-full object-cover">
 
-                                <button 
-                                    @click.stop="toggleSave(item._id, 'item')" 
-                                    class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm"
-                                    :class="isSaved(item._id) ? 'bg-white text-red-500 shadow' : 'bg-black/30 text-white hover:bg-white hover:text-red-500'">
-                                    <i :class="isSaved(item._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
-                                </button>
+            <!-- ================= SEZIONE SINGOLE OPERE / ITEMS ================= -->
+            <div x-show="activeTab === 'items'">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="item in filteredItems" :key="item._id">
+                        <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <div class="h-44 relative bg-gray-200 overflow-hidden">
+                                    <img :src="item.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=400'" 
+                                         alt="Immagine Item" class="w-full h-full object-cover">
 
-                                <div class="absolute bottom-3 left-3">
-                                    <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
-                                        <i class="fas fa-headphones mr-1"></i><span x-text="item.length || '15s'"></span>
-                                    </span>
+                                    <button 
+                                        @click.stop="toggleSave(item._id, 'item')" 
+                                        class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+                                        :class="isSaved(item._id) ? 'bg-white text-red-500 shadow' : 'bg-black/30 text-white hover:bg-white hover:text-red-500'">
+                                        <i :class="isSaved(item._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
+                                    </button>
+
+                                    <div class="absolute bottom-3 left-3">
+                                        <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm flex items-center gap-1">
+                                            <i class="fas fa-headphones"></i> <span x-text="item.length || '15s'"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-5">
+                                    <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1" x-text="item.itemType || 'Opera'"></div>
+                                    <h3 class="font-bold text-gray-800 text-base mb-1.5 line-clamp-1" x-text="item.title"></h3>
+                                    <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="item.description || 'Approfondimento audio sull\'opera.'"></p>
+                                    
+                                    <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                                        <span class="capitalize" x-text="'Livello: ' + (item.languageLevel || 'medio')"></span>
+                                        <span class="text-gray-400 font-mono text-[10px]" x-text="item.artworkId || ''"></span>
+                                    </div>
                                 </div>
                             </div>
-                            
-                            <div class="p-5">
-                                <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1" x-text="item.itemType || 'Opera'"></div>
-                                <h3 class="font-bold text-gray-800 text-base mb-1.5 line-clamp-1" x-text="item.title"></h3>
-                                <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="item.description || 'Approfondimento audio sull\'opera.'"></p>
-                                
-                                <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                                    <span class="capitalize" x-text="'Livello: ' + (item.languageLevel || 'medio')"></span>
-                                    <span class="font-mono text-[10px] text-gray-400" x-text="item.artworkId || ''"></span>
+
+                            <div class="p-5 pt-0">
+                                <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                    <div>
+                                        <template x-if="item.price > 0">
+                                            <span class="text-base font-black text-gray-900">€<span x-text="item.price.toFixed(2)"></span></span>
+                                        </template>
+                                        <template x-if="!item.price || item.price === 0">
+                                            <span class="text-xs font-bold text-green-600">Gratuito</span>
+                                        </template>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <!-- Se è la propria opera (per i creatori) -->
+                                        <template x-if="isOwnItem(item)">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1.5 rounded-xl border border-indigo-200 flex items-center gap-1">
+                                                    <i class="fas fa-palette"></i> Tua Opera
+                                                </span>
+                                                <a :href="'/marketplace/createItems?editId=' + item._id" 
+                                                   class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1">
+                                                    <i class="fas fa-edit"></i> Modifica
+                                                </a>
+                                            </div>
+                                        </template>
+
+                                        <!-- Se è già presente nella collezione -->
+                                        <template x-if="!isOwnItem(item) && isItemOwned(item)">
+                                            <span class="text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-xl border border-green-200 flex items-center gap-1">
+                                                <i class="fas fa-check"></i> Nella Collezione
+                                            </span>
+                                        </template>
+
+                                        <!-- Opera gratuita da acquisire -->
+                                        <template x-if="canAcquireFreeItem(item)">
+                                            <button 
+                                                type="button"
+                                                @click.stop="acquireFreeItem(item)"
+                                                :disabled="isItemLoading(item._id)"
+                                                class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                                                <i class="fas" :class="isItemLoading(item._id) ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+                                                <span x-text="isItemLoading(item._id) ? 'Aggiunta...' : 'Ottieni Gratis'"></span>
+                                            </button>
+                                        </template>
+
+                                        <!-- Opera a pagamento da acquistare con checkout -->
+                                        <template x-if="canPurchaseItem(item)">
+                                            <a :href="'/marketplace/checkout?itemId=' + item._id" 
+                                               class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                                <i class="fas fa-shopping-cart"></i> Acquista
+                                            </a>
+                                        </template>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+                    </template>
 
-                        <div class="p-5 pt-0">
-                            <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
-                                <div>
-                                    <template x-if="item.price > 0">
-                                        <span class="text-base font-black text-gray-900">€<span x-text="item.price.toFixed(2)"></span></span>
-                                    </template>
-                                    <template x-if="!item.price || item.price === 0">
-                                        <span class="text-xs font-bold text-green-600">Gratuito</span>
-                                    </template>
-                                </div>
+                    <div x-show="filteredItems.length === 0" class="col-span-full text-center py-16 text-gray-400">
+                        <i class="fas fa-palette text-4xl mb-3 block"></i>
+                        <p class="text-base font-semibold">Nessun item trovato.</p>
+                    </div>
+                </div>
+            </div>
 
-                                <template x-if="ownedItems.includes(item._id) || (!item.price || item.price === 0)">
-                                    <span class="text-xs font-bold text-green-700 bg-green-50 px-3 py-1.5 rounded-xl border border-green-200 flex items-center gap-1">
-                                        <i class="fas fa-check"></i> Disponibile
-                                    </span>
-                                </template>
+            <!-- ================= SEZIONE LE MIE OPERE ================= -->
+            <div x-show="activeTab === 'my_items'">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-for="item in filteredMyItems" :key="item._id">
+                        <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
+                            <div>
+                                <div class="h-44 relative bg-gray-200 overflow-hidden">
+                                    <img :src="item.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=400'" 
+                                         alt="Immagine Opera" class="w-full h-full object-cover">
 
-                                <template x-if="!ownedItems.includes(item._id) && item.price > 0">
                                     <button 
-                                        @click="purchaseItem(item)"
-                                        :disabled="purchasing[item._id]"
-                                        class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5 disabled:opacity-50">
-                                        <i class="fas fa-shopping-cart"></i>
-                                        <span x-text="purchasing[item._id] ? 'Elaborazione...' : 'Acquista'"></span>
+                                        @click.stop="toggleSave(item._id, 'item')" 
+                                        class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm"
+                                        :class="isSaved(item._id) ? 'bg-white text-red-500 shadow' : 'bg-black/30 text-white hover:bg-white hover:text-red-500'">
+                                        <i :class="isSaved(item._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
                                     </button>
-                                </template>
+
+                                    <div class="absolute bottom-3 left-3 flex gap-2">
+                                        <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm flex items-center gap-1">
+                                            <i class="fas fa-headphones"></i> <span x-text="item.length || '15s'"></span>
+                                        </span>
+                                        <template x-if="isOwnItem(item)">
+                                            <span class="bg-purple-600/90 text-white text-[11px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">
+                                                Tua Creazione
+                                            </span>
+                                        </template>
+                                        <template x-if="!isOwnItem(item) && ownedItems.includes(item._id)">
+                                            <span class="bg-emerald-600/90 text-white text-[11px] px-2 py-0.5 rounded-full font-bold backdrop-blur-sm">
+                                                Acquistata
+                                            </span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <div class="p-5">
+                                    <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1" x-text="item.itemType || 'Opera'"></div>
+                                    <h3 class="font-bold text-gray-800 text-base mb-1.5 line-clamp-1" x-text="item.title"></h3>
+                                    <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="item.description || 'Approfondimento audio sull\'opera.'"></p>
+                                    
+                                    <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                                        <span class="capitalize" x-text="'Livello: ' + (item.languageLevel || 'medio')"></span>
+                                        <span class="text-gray-600 font-semibold truncate max-w-[140px]" x-text="item.museum?.name || item.museumId || 'Pinacoteca'"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-5 pt-0">
+                                <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                    <div class="text-xs font-semibold text-emerald-600 flex items-center gap-1">
+                                        <i class="fas fa-check-circle"></i> Disponibile nella Libreria
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <template x-if="isOwnItem(item)">
+                                            <a :href="'/marketplace/createItems?editId=' + item._id" 
+                                               class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1">
+                                                <i class="fas fa-edit"></i> Modifica
+                                            </a>
+                                        </template>
+
+                                        <button 
+                                            @click="openItemModal(item)"
+                                            class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                            <i class="fas fa-eye"></i> Dettagli / Ascolta
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+
+                    <div x-show="filteredMyItems.length === 0" class="col-span-full text-center py-16 bg-white rounded-3xl border border-gray-100">
+                        <div class="w-16 h-16 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
+                            <i class="fas fa-folder-open"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-800 mb-1">Nessuna opera nella tua collezione</h3>
+                        <p class="text-sm text-gray-500 max-w-md mx-auto mb-5">
+                            Esplora il catalogo per acquistare approfondimenti a pagamento o aggiungere gratuitamente opere d'arte alla tua raccolta personale.
+                        </p>
+                        <button 
+                            @click="activeTab = 'items'" 
+                            class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition shadow">
+                            Sfoglia Catalogo Opere
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= MODALE DETTAGLI / ASCOLTO OPERA ================= -->
+        <div x-show="selectedModalItem" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" @click.self="closeItemModal()">
+            <div class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 sm:p-8 relative border border-gray-100 animate-fade-in" @click.stop>
+                <button @click="closeItemModal()" class="absolute top-5 right-5 text-gray-400 hover:text-gray-700 text-lg w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center transition">
+                    <i class="fas fa-times"></i>
+                </button>
+
+                <template x-if="selectedModalItem">
+                    <div class="space-y-6">
+                        <div class="flex gap-4 items-start">
+                            <img :src="selectedModalItem.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=300'" 
+                                 alt="Opera" class="w-28 h-28 object-cover rounded-2xl shadow-sm flex-shrink-0">
+                            <div>
+                                <span class="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-0.5 rounded-full uppercase tracking-wider" x-text="selectedModalItem.itemType || 'Opera'"></span>
+                                <h2 class="text-2xl font-black text-gray-900 mt-1 mb-1" x-text="selectedModalItem.title"></h2>
+                                <p class="text-xs text-gray-500" x-text="(selectedModalItem.author || 'Autore sconosciuto') + ' • ' + (selectedModalItem.museum?.name || selectedModalItem.museumId || 'Museo')"></p>
+                            </div>
+                        </div>
+
+                        <!-- Audio Playback Banner -->
+                        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-100 rounded-2xl p-4 flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <button @click="toggleSpeech()" class="w-12 h-12 bg-purple-600 hover:bg-purple-700 text-white rounded-full flex items-center justify-center text-lg shadow-md transition">
+                                    <i class="fas" :class="isSpeaking ? 'fa-stop' : 'fa-play'"></i>
+                                </button>
+                                <div>
+                                    <p class="font-bold text-sm text-gray-800" x-text="isSpeaking ? 'In riproduzione audio...' : 'Ascolta Spiegazione Vocale'"></p>
+                                    <p class="text-xs text-gray-500">Durata stimata: <span class="font-bold" x-text="selectedModalItem.length || '15s'"></span></p>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-purple-700 bg-purple-200/60 px-3 py-1 rounded-full uppercase" x-text="'Livello ' + (selectedModalItem.languageLevel || 'medio')"></span>
+                        </div>
+
+                        <!-- Full Description -->
+                        <div>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Descrizione Completa</h4>
+                            <div class="text-sm text-gray-700 leading-relaxed bg-gray-50 p-5 rounded-2xl border border-gray-100 whitespace-pre-line" x-text="selectedModalItem.description"></div>
+                        </div>
+
+                        <!-- Metadata Grid -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="text-gray-400 block text-[10px] uppercase font-bold">Stile</span>
+                                <span class="font-bold text-gray-800" x-text="selectedModalItem.style || 'Classico'"></span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="text-gray-400 block text-[10px] uppercase font-bold">Licenza</span>
+                                <span class="font-bold text-gray-800" x-text="selectedModalItem.license || 'CC-BY-SA'"></span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="text-gray-400 block text-[10px] uppercase font-bold">Creatore Scheda</span>
+                                <span class="font-bold text-gray-800" x-text="selectedModalItem.creator || 'autore1'"></span>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                <span class="text-gray-400 block text-[10px] uppercase font-bold">Prezzo</span>
+                                <span class="font-bold text-emerald-600" x-text="selectedModalItem.price > 0 ? '€' + selectedModalItem.price.toFixed(2) : 'Gratuito'"></span>
                             </div>
                         </div>
                     </div>
                 </template>
-
-                <div x-show="filteredItems.length === 0" class="col-span-full text-center py-16 text-gray-400">
-                    <i class="fas fa-palette text-4xl mb-3 block"></i>
-                    <p class="text-base font-semibold">Nessun item trovato.</p>
-                </div>
             </div>
         </div>
     </main>
@@ -311,16 +495,110 @@
                 ownedItems: [],
                 favoriteVisits: [],
                 favoriteItems: [],
+                managedMuseums: [],
+                managedMuseumIds: [],
+                managedMuseumCodes: [],
                 
                 searchTerm: '',
                 priceFilter: 'all',
                 durationFilter: 'all',
                 sortBy: 'recent',
                 purchasing: {},
+                loadingItemIds: [],
+                selectedModalItem: null,
+                isSpeaking: false,
 
                 async init() {
                     this.currentUser = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+                    if (this.currentUser && this.currentUser.role === 'creator') {
+                        await this.loadManagedMuseums();
+                    }
                     await this.loadData();
+                },
+
+                async loadManagedMuseums() {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/museums/getManaged', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.managedMuseums = json.data || [];
+                            this.managedMuseumIds = this.managedMuseums.map(m => m._id ? m._id.toString() : '');
+                            this.managedMuseumCodes = this.managedMuseums.map(m => (m.museumId || '').toUpperCase());
+                        }
+                    } catch (e) {
+                        console.error("Errore recupero musei gestiti:", e);
+                    }
+                },
+
+                isItemLoading(id) {
+                    if (!id) return false;
+                    return this.loadingItemIds.includes(id.toString());
+                },
+
+                isItemOwned(item) {
+                    if (!item || !item._id) return false;
+                    const targetId = item._id.toString();
+                    return (this.ownedItems || []).some(id => (id._id || id).toString() === targetId);
+                },
+
+                isOwnItem(item) {
+                    if (!this.currentUser || this.currentUser.role !== 'creator') return false;
+                    const username = (this.currentUser.username || '').toLowerCase();
+                    const isOwner = item.creator && item.creator.toLowerCase() === username;
+                    const itemMusId = (item.museum?._id || item.museum || '').toString();
+                    const itemMusCode = (item.museumId || item.museum?.museumId || '').toUpperCase();
+                    const isMuseumManaged = this.managedMuseumIds.includes(itemMusId) || this.managedMuseumCodes.includes(itemMusCode);
+                    return Boolean(isOwner || isMuseumManaged);
+                },
+
+                canPurchaseItem(item) {
+                    if (this.isItemOwned(item)) return false;
+                    if (!item.price || item.price === 0) return false;
+                    if (this.currentUser?.role === 'creator') {
+                        return !this.isOwnItem(item);
+                    }
+                    return true;
+                },
+
+                canAcquireFreeItem(item) {
+                    if (this.isItemOwned(item)) return false;
+                    if (item.price && item.price > 0) return false;
+                    if (this.currentUser?.role === 'creator') {
+                        return !this.isOwnItem(item);
+                    }
+                    return true;
+                },
+
+                get myPurchasedAndOwnedItems() {
+                    return this.items.filter(item => {
+                        const isPurchased = this.isItemOwned(item);
+                        const isCreatedByMe = this.isOwnItem(item);
+                        return isPurchased || isCreatedByMe;
+                    });
+                },
+
+                get filteredMyItems() {
+                    let list = this.myPurchasedAndOwnedItems;
+                    if (this.searchTerm) {
+                        const term = this.searchTerm.toLowerCase();
+                        list = list.filter(i => 
+                            i.title?.toLowerCase().includes(term) ||
+                            i.description?.toLowerCase().includes(term) ||
+                            i.author?.toLowerCase().includes(term) ||
+                            i.museum?.name?.toLowerCase().includes(term)
+                        );
+                    }
+                    if (this.durationFilter === 'short') {
+                        list = list.filter(i => i.length === '15s' || i.length === '3s');
+                    } else if (this.durationFilter === 'medium') {
+                        list = list.filter(i => i.length === '1m' || i.length === '1min');
+                    } else if (this.durationFilter === 'long') {
+                        list = list.filter(i => i.length === '3m' || i.length === '4min');
+                    }
+                    return list;
                 },
 
                 async loadData() {
@@ -330,22 +608,22 @@
                         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
                         const [visitsRes, itemsRes] = await Promise.all([
-                            fetch('/api/v1/marketplace/browse/visits', { headers }),
-                            fetch('/api/v1/marketplace/browse/items', { headers })
+                            fetch('/api/v1/marketplace/browse/visits', { headers, credentials: 'include' }),
+                            fetch('/api/v1/marketplace/browse/items', { headers, credentials: 'include' })
                         ]);
 
                         if (visitsRes.ok) {
                             const vData = await visitsRes.json();
                             this.visits = vData.data.visits || [];
-                            this.ownedVisits = vData.data.purchasedVisits || [];
-                            this.favoriteVisits = vData.data.favoriteVisits || [];
+                            this.ownedVisits = (vData.data.purchasedVisits || []).map(v => (v._id || v).toString());
+                            this.favoriteVisits = (vData.data.favoriteVisits || []).map(v => (v._id || v).toString());
                         }
 
                         if (itemsRes.ok) {
                             const iData = await itemsRes.json();
                             this.items = iData.data.items || [];
-                            this.ownedItems = iData.data.purchasedItems || [];
-                            this.favoriteItems = iData.data.favoriteItems || [];
+                            this.ownedItems = (iData.data.purchasedItems || []).map(i => (i._id || i).toString());
+                            this.favoriteItems = (iData.data.favoriteItems || []).map(i => (i._id || i).toString());
                         }
 
                     } catch (e) {
@@ -416,83 +694,93 @@
                     return filtered;
                 },
 
-                async purchaseVisit(visit) {
-                    if (this.ownedVisits.includes(visit._id)) return;
+                async acquireFreeItem(item) {
+                    if (!item || !item._id) return;
+                    const itemIdStr = item._id.toString();
+                    if (this.isItemOwned(item) || this.isItemLoading(itemIdStr)) return;
 
                     const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
-                    if (!token) {
-                        alert('Devi effettuare il login per procedere all\'acquisto');
-                        window.location.href = '/marketplace/login?redirect=/marketplace/browseMarket';
-                        return;
-                    }
-                    
-                    this.purchasing[visit._id] = true;
-                    try {
-                        const response = await fetch('/api/v1/marketplace/purchase/visit', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                visitId: visit._id
-                            })
-                        });
-                        
-                        const data = await response.json();
-                        
-                        if (response.ok) {
-                            alert(`Acquisto completato! "${visit.title}" è ora disponibile nella tua libreria.`);
-                            this.ownedVisits.push(visit._id);
-                        } else {
-                            alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
-                        }
-                        
-                    } catch (error) {
-                        console.error('Errore acquisto:', error);
-                        alert('Errore di connessione durante l\'acquisto');
-                    } finally {
-                        this.purchasing[visit._id] = false;
-                    }
-                },
+                    const headers = { 'Content-Type': 'application/json' };
+                    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-                async purchaseItem(item) {
-                    if (this.ownedItems.includes(item._id)) return;
-
-                    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
-                    if (!token) {
-                        alert('Devi effettuare il login per procedere all\'acquisto');
-                        window.location.href = '/marketplace/login?redirect=/marketplace/browseMarket';
-                        return;
-                    }
-                    
-                    this.purchasing[item._id] = true;
+                    this.loadingItemIds.push(itemIdStr);
                     try {
                         const response = await fetch('/api/v1/marketplace/purchase/item', {
                             method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: JSON.stringify({
-                                itemId: item._id
-                            })
+                            headers,
+                            credentials: 'include',
+                            body: JSON.stringify({ itemId: item._id })
                         });
                         
                         const data = await response.json();
                         
-                        if (response.ok) {
-                            alert(`Acquisto completato! "${item.title}" è ora disponibile.`);
-                            this.ownedItems.push(item._id);
+                        if (response.ok && (data.status === 'success' || data.success)) {
+                            if (!this.ownedItems.includes(itemIdStr)) {
+                                this.ownedItems.push(itemIdStr);
+                            }
+                            alert(`🎉 "${item.title}" è stata aggiunta alla tua collezione in "Le Mie Opere"!`);
+
+                            // Update user in localStorage if exists
+                            try {
+                                const userStr = localStorage.getItem('user') || localStorage.getItem('userData');
+                                if (userStr) {
+                                    const u = JSON.parse(userStr);
+                                    if (!u.purchasedItems) u.purchasedItems = [];
+                                    if (!u.purchasedItems.includes(itemIdStr)) u.purchasedItems.push(itemIdStr);
+                                    localStorage.setItem('user', JSON.stringify(u));
+                                }
+                            } catch (e) {}
+
+                            await this.loadData();
                         } else {
-                            alert('Errore: ' + (data.message || 'Impossibile completare l\'acquisto'));
+                            alert(data.message || "Impossibile acquisire l'opera");
                         }
                     } catch (error) {
-                        console.error('Errore acquisto:', error);
-                        alert('Errore di connessione durante l\'acquisto');
+                        console.error('Errore acquisizione:', error);
+                        alert("Errore di connessione durante l'acquisizione.");
                     } finally {
-                        this.purchasing[item._id] = false;
+                        this.loadingItemIds = this.loadingItemIds.filter(id => id !== itemIdStr);
                     }
+                },
+
+                openItemModal(item) {
+                    this.selectedModalItem = item;
+                    this.isSpeaking = false;
+                    if (window.speechSynthesis) window.speechSynthesis.cancel();
+                },
+
+                closeItemModal() {
+                    this.selectedModalItem = null;
+                    this.isSpeaking = false;
+                    if (window.speechSynthesis) window.speechSynthesis.cancel();
+                },
+
+                toggleSpeech() {
+                    if (!this.selectedModalItem) return;
+                    if (!('speechSynthesis' in window)) {
+                        alert("La sintesi vocale non è supportata da questo browser.");
+                        return;
+                    }
+
+                    if (this.isSpeaking) {
+                        window.speechSynthesis.cancel();
+                        this.isSpeaking = false;
+                        return;
+                    }
+
+                    const textToSpeak = `${this.selectedModalItem.title}. ${this.selectedModalItem.description || ''}`;
+                    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+                    utterance.lang = 'it-IT';
+                    utterance.rate = 1.0;
+                    utterance.onend = () => {
+                        this.isSpeaking = false;
+                    };
+                    utterance.onerror = () => {
+                        this.isSpeaking = false;
+                    };
+
+                    window.speechSynthesis.speak(utterance);
+                    this.isSpeaking = true;
                 },
 
                 isSaved(targetId) {

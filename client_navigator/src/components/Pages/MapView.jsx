@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
-import { Navigation, Star, MapPin, Landmark } from 'lucide-react';
+import { Navigation, Star, MapPin, Landmark, Crosshair, LocateFixed } from 'lucide-react';
 import L from 'leaflet';
 import './MapView.css';
 import SearchBar from '../UI/searchBar';
@@ -54,19 +54,36 @@ const createLocationIcon = (heading) => {
 };
 
 function LocationMarker({ position, heading }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (position) {
-      map.flyTo(position, map.getZoom(), { duration: 0.5 });
-    }
-  }, [position, map]);
-
   return position === null ? null : (
     <Marker position={position} icon={createLocationIcon(heading)}>
       <Popup>La tua posizione attuale</Popup>
     </Marker>
   );
+}
+
+function MapController({ centerTarget, onUserDrag }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const handleDragStart = () => {
+      if (onUserDrag) onUserDrag();
+    };
+    map.on('dragstart', handleDragStart);
+    return () => {
+      map.off('dragstart', handleDragStart);
+    };
+  }, [map, onUserDrag]);
+
+  useEffect(() => {
+    if (centerTarget && centerTarget.lat != null && centerTarget.lng != null) {
+      map.flyTo([centerTarget.lat, centerTarget.lng], centerTarget.zoom || 15, {
+        duration: 0.8,
+        easeLinearity: 0.25
+      });
+    }
+  }, [centerTarget, map]);
+
+  return null;
 }
 
 export default function MapView() {
@@ -76,6 +93,8 @@ export default function MapView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [heading, setHeading] = useState(null);
   const [showScroller, setShowScroller] = useState(true);
+  const [centerTarget, setCenterTarget] = useState(null);
+  const [isCentered, setIsCentered] = useState(true);
   const dragStartY = useRef(null);
 
   const [liveMuseums, setLiveMuseums] = useState([]);
@@ -109,27 +128,40 @@ export default function MapView() {
 
   useEffect(() => {
     let watchId;
+    let initialSet = false;
+
     if ("geolocation" in navigator) {
       watchId = navigator.geolocation.watchPosition(
         (pos) => {
-          setPosition({
+          const newPos = {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude
-          });
+          };
+          setPosition(newPos);
+          if (!initialSet) {
+            setCenterTarget({ lat: newPos.lat, lng: newPos.lng, zoom: 15 });
+            initialSet = true;
+          }
           if (pos.coords.heading !== null && !Number.isNaN(pos.coords.heading)) {
             setHeading(pos.coords.heading);
           }
         },
         (err) => {
           console.warn(err.message);
-          // Default to Bologna center if GPS unavailable
-          setPosition(prev => prev || { lat: 44.4975, lng: 11.3533 });
+          const defaultPos = { lat: 44.4975, lng: 11.3533 };
+          setPosition(prev => prev || defaultPos);
+          if (!initialSet) {
+            setCenterTarget({ lat: defaultPos.lat, lng: defaultPos.lng, zoom: 15 });
+            initialSet = true;
+          }
           setError("Impossibile ottenere la posizione GPS esatta. Utilizzo coordinate di default.");
         },
         { enableHighAccuracy: true, maximumAge: 0 }
       );
     } else {
-      setPosition({ lat: 44.4975, lng: 11.3533 });
+      const defaultPos = { lat: 44.4975, lng: 11.3533 };
+      setPosition(defaultPos);
+      setCenterTarget({ lat: defaultPos.lat, lng: defaultPos.lng, zoom: 15 });
       setError("Geolocalizzazione non supportata dal browser");
     }
 
@@ -137,6 +169,18 @@ export default function MapView() {
       if (watchId) navigator.geolocation.clearWatch(watchId);
     };
   }, []);
+
+  const handleRecenter = () => {
+    if (position) {
+      setCenterTarget({
+        lat: position.lat,
+        lng: position.lng,
+        zoom: 15,
+        timestamp: Date.now()
+      });
+      setIsCentered(true);
+    }
+  };
 
   // Compute exact real distances and sort by closest
   const museumsWithDistances = useMemo(() => {
@@ -195,6 +239,16 @@ export default function MapView() {
         <SearchBar onSearch={setSearchTerm} />
       </div>
 
+      {/* Floating Recenter Button */}
+      <button 
+        className="map-recenter-btn" 
+        onClick={handleRecenter}
+        title="Ricentra la visuale sulla tua posizione"
+      >
+        <LocateFixed size={18} color="#6366f1" />
+        <span>Ricentra Visuale</span>
+      </button>
+
       {error && <div className="map-error-banner">{error}</div>}
 
       <div className="main-map-container">
@@ -211,6 +265,10 @@ export default function MapView() {
           />
           <ZoomControl position="bottomright" />
           <LocationMarker position={position} heading={heading} />
+          <MapController 
+            centerTarget={centerTarget} 
+            onUserDrag={() => setIsCentered(false)} 
+          />
 
           {filteredMuseums.map((museum) => (
             <Marker key={museum.id || museum._id} position={[museum.lat, museum.lng]}>

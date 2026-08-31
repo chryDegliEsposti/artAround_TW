@@ -308,6 +308,9 @@
                                     <a :href="'/navigator/editor?id=' + m._id + '&museumId=' + m.museumId + '&lat=' + (m.latitude || 44.4975) + '&lng=' + (m.longitude || 11.3533)" class="text-xs bg-indigo-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700">
                                         Modifica Piantina
                                     </a>
+                                    <button @click="downloadMuseumJSON(m)" class="text-xs bg-emerald-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-emerald-700 flex items-center gap-1" title="Scarica JSON">
+                                        <i class="fas fa-download"></i> JSON
+                                    </button>
                                 </div>
                             </div>
                         </template>
@@ -427,6 +430,31 @@
                         }
                     } catch (err) {
                         console.error('Errore caricamento musei:', err);
+                    }
+                },
+
+                async downloadMuseumJSON(museum) {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch(`/api/v1/marketplace/museums/export/${museum._id}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!res.ok) {
+                            const err = await res.json();
+                            alert("Errore esportazione: " + (err.message || 'Accesso negato'));
+                            return;
+                        }
+                        const data = await res.json();
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        downloadAnchor.setAttribute("download", `${museum.museumId || 'museum'}_export.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                    } catch (err) {
+                        console.error("Export error:", err);
+                        alert("Errore durante il download del JSON.");
                     }
                 },
 

@@ -655,6 +655,28 @@ const purchaseItem = async (req, res) => {
             return res.status(404).json({ status: 'error', message: 'Utente non trovato' });
         }
 
+        // Regola: gli utenti non creatori possono acquistare tutte le opere.
+        // I creatori possono acquistare SOLO le opere di altri creatori (non le proprie né quelle dei propri musei).
+        if (user.role === 'creator') {
+            const isItemCreator = item.creator && item.creator.toLowerCase() === (user.username || '').toLowerCase();
+            
+            let museumDoc = null;
+            if (item.museum) museumDoc = await Museum.findById(item.museum);
+            if (!museumDoc && item.museumId) museumDoc = await Museum.findOne({ museumId: item.museumId.toUpperCase() });
+
+            const isMuseumOwner = museumDoc && museumDoc.creator?.toString() === user._id.toString();
+            const isMuseumCollaborator = museumDoc && (museumDoc.collaborators || []).some(c => c.toString() === user._id.toString());
+            const isUserManaged = (user.managedMuseums || []).some(m => museumDoc && m.toString() === museumDoc._id.toString());
+
+            if (isItemCreator || isMuseumOwner || isMuseumCollaborator || isUserManaged) {
+                return res.status(403).json({
+                    status: 'error',
+                    success: false,
+                    message: 'In qualità di creatore, puoi acquistare solo le opere create da altri autori o appartenenti ad altri musei.'
+                });
+            }
+        }
+
         const alreadyPurchased = (user.purchasedItems || []).some(i => i.toString() === itemId.toString());
         if (alreadyPurchased) {
             return res.status(400).json({ 
@@ -723,12 +745,179 @@ const toggleFavorite = async (req, res) => {
     }
 };
 
+// ----------------------------------- ITEM DETAILS & UPDATE ----------------------------------
+const getItemById = async (req, res) => {
+    try {
+        const item = await Item.findById(req.params.id).populate('museum');
+        if (!item) {
+            return res.status(404).json({ status: 'error', message: 'Item non trovato' });
+        }
+        res.json({ status: 'success', data: item });
+    } catch (err) {
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+const updateItem = async (req, res) => {
+    try {
+        const itemId = req.params.id;
+        const userId = req.userId;
+        const user = req.user || await User.findById(userId);
+
+        const item = await Item.findById(itemId);
+        if (!item) {
+            return res.status(404).json({ status: 'error', message: 'Item non trovato.' });
+        }
+
+        // Verifica che l'utente gestisca il museo dell'item o sia il creatore dell'item
+        let museumDoc = null;
+        if (item.museum) {
+            museumDoc = await Museum.findById(item.museum);
+        }
+        if (!museumDoc && item.museumId) {
+            museumDoc = await Museum.findOne({ museumId: item.museumId.toUpperCase() });
+        }
+
+        const isMuseumCreator = museumDoc && museumDoc.creator?.toString() === userId.toString();
+        const isMuseumCollaborator = museumDoc && (museumDoc.collaborators || []).some(c => c.toString() === userId.toString());
+        const isUserManaged = (user?.managedMuseums || []).some(m => museumDoc && m.toString() === museumDoc._id.toString());
+        const isItemCreator = item.creator === user.username;
+
+        if (!isMuseumCreator && !isMuseumCollaborator && !isUserManaged && !isItemCreator) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Accesso negato: puoi modificare solo gli item appartenenti a un museo che gestisci.'
+            });
+        }
+
+        const { 
+            title, 
+            description, 
+            author, 
+            style, 
+            length, 
+            languageLevel, 
+            license, 
+            price, 
+            recognitionImage,
+            image,
+            itemType
+        } = req.body;
+
+        if (title !== undefined) item.title = title;
+        if (description !== undefined) item.description = description;
+        if (author !== undefined) item.author = author;
+        if (style !== undefined) item.style = style;
+        if (length !== undefined) item.length = length;
+        if (languageLevel !== undefined) item.languageLevel = languageLevel;
+        if (license !== undefined) item.license = license;
+        if (price !== undefined) item.price = Number(price);
+        if (recognitionImage !== undefined || image !== undefined) item.recognitionImage = recognitionImage || image;
+        if (itemType !== undefined) item.itemType = itemType;
+
+        await item.save();
+
+        res.json({
+            status: 'success',
+            message: 'Item modificato con successo.',
+            data: { item }
+        });
+    } catch (err) {
+        console.error("Update item error:", err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+// ----------------------------------- MUSEUM JSON EXPORT ----------------------------------
+const exportMuseumJSON = async (req, res) => {
+    try {
+        const museumIdOrCode = req.params.id;
+        const userId = req.userId;
+
+        let museum = null;
+        if (museumIdOrCode.match(/^[0-9a-fA-F]{24}$/)) {
+            museum = await Museum.findById(museumIdOrCode);
+        }
+        if (!museum) {
+            museum = await Museum.findOne({ museumId: museumIdOrCode.toUpperCase() });
+        }
+
+        if (!museum) {
+            return res.status(404).json({ status: 'error', message: 'Museo non trovato.' });
+        }
+
+        // Verifica permessi
+        const isCreator = museum.creator?.toString() === userId.toString();
+        const isCollaborator = (museum.collaborators || []).some(c => c.toString() === userId.toString());
+        const user = await User.findById(userId);
+        const isManaged = (user?.managedMuseums || []).some(m => m.toString() === museum._id.toString());
+
+        if (!isCreator && !isCollaborator && !isManaged) {
+            return res.status(403).json({ status: 'error', message: 'Non hai i permessi per esportare questo museo.' });
+        }
+
+        // Recupera tutti gli item associati al museo
+        const items = await Item.find({ 
+            $or: [
+                { museum: museum._id },
+                { museumId: museum.museumId }
+            ] 
+        }).lean();
+
+        const exportData = {
+            museum: {
+                id: museum._id,
+                name: museum.name,
+                museumId: museum.museumId,
+                description: museum.description,
+                city: museum.city,
+                address: museum.address,
+                latitude: museum.latitude,
+                longitude: museum.longitude,
+                museumCenter: museum.museumCenter,
+                image: museum.image,
+                layers: museum.layers,
+                lines: museum.lines,
+                areas: museum.areas,
+                pois: museum.pois
+            },
+            items: items.map(it => ({
+                id: it._id,
+                itemType: it.itemType,
+                artworkId: it.artworkId,
+                title: it.title,
+                description: it.description,
+                author: it.author,
+                style: it.style,
+                length: it.length,
+                languageLevel: it.languageLevel,
+                license: it.license,
+                price: it.price,
+                recognitionImage: it.recognitionImage,
+                poiId: it.poiId,
+                isAIGenerated: it.isAIGenerated
+            })),
+            exportedAt: new Date().toISOString()
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="${museum.museumId}_export.json"`);
+        return res.json(exportData);
+    } catch (err) {
+        console.error("Export museum error:", err);
+        res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
 module.exports = {
     createItems,
     searchItemsForVisit,
     createVisit,
     getVisitsForBrowsing,
     getItemsForBrowsing,
+    getItemById,
+    updateItem,
+    exportMuseumJSON,
     purchaseVisit,
     purchaseItem,
     checkMuseumCode,

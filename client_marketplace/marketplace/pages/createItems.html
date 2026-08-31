@@ -40,7 +40,7 @@
                 <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
                     <i class="fas fa-cube"></i> Contenuto Singolo
                 </div>
-                <h2 class="text-3xl font-extrabold text-gray-800 mb-1">Registra Nuovo Item / Opera</h2>
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-1" x-text="isEditing ? 'Modifica Item / Opera' : 'Registra Nuovo Item / Opera'"></h2>
                 <p class="text-gray-500 text-sm">Crea descrizioni audio, testi personalizzati e associa l'opera al tuo museo.</p>
             </div>
 
@@ -157,8 +157,8 @@
 
                 <!-- Submit Button -->
                 <button type="submit" :disabled="isSubmitting" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold py-4 rounded-2xl hover:shadow-xl transition flex items-center justify-center gap-2 text-sm disabled:opacity-50">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <span x-text="isSubmitting ? 'Salvataggio...' : 'Pubblica Item nel Marketplace'"></span>
+                    <i :class="isEditing ? 'fas fa-save' : 'fas fa-cloud-upload-alt'"></i>
+                    <span x-text="isSubmitting ? 'Salvataggio...' : (isEditing ? 'Salva Modifiche Item' : 'Pubblica Item nel Marketplace')"></span>
                 </button>
             </form>
         </div>
@@ -180,6 +180,9 @@
                 isSubmitting: false,
                 managedMuseums: [],
 
+                isEditing: false,
+                editItemId: null,
+
                 formData: {
                     itemType: 'artwork', 
                     subjectId: '',
@@ -200,12 +203,50 @@
                         return;
                     }
                     if (userData.role !== 'creator') {
-                        alert("Accesso limitato: solo i Creatori possono registrare nuovi items.");
+                        alert("Accesso limitato: solo i Creatori possono registrare o modificare items.");
                         window.location.href = '/marketplace/homepage';
                         return;
                     }
 
                     await this.loadManagedMuseums();
+
+                    // Check if edit mode (?editId=... or ?id=...)
+                    const params = new URLSearchParams(window.location.search);
+                    const editId = params.get('editId') || params.get('id');
+                    if (editId) {
+                        this.isEditing = true;
+                        this.editItemId = editId;
+                        await this.loadItemForEdit(editId);
+                    }
+                },
+
+                async loadItemForEdit(id) {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch(`/api/v1/marketplace/items/${id}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            const item = json.data;
+                            if (item) {
+                                this.formData.itemType = item.itemType || 'artwork';
+                                this.formData.subjectId = item.artworkId || '';
+                                this.formData.title = item.title || '';
+                                this.formData.description = item.description || '';
+                                this.formData.length = item.length || '15s';
+                                this.formData.languageLevel = item.languageLevel || 'medio';
+                                this.formData.museum = item.museum?._id || item.museum || this.formData.museum;
+                                this.formData.license = item.license || 'CC-BY-SA';
+                                this.formData.price = item.price || 0;
+                                this.searchQuery = item.title || '';
+                            }
+                        } else {
+                            alert("Impossibile caricare l'item specificato per la modifica.");
+                        }
+                    } catch (err) {
+                        console.error("Errore caricamento item:", err);
+                    }
                 },
 
                 async loadManagedMuseums() {
@@ -217,7 +258,7 @@
                         if (res.ok) {
                             const json = await res.json();
                             this.managedMuseums = json.data || [];
-                            if (this.managedMuseums.length > 0) {
+                            if (this.managedMuseums.length > 0 && !this.formData.museum) {
                                 this.formData.museum = this.managedMuseums[0]._id;
                             }
                         }
@@ -297,8 +338,13 @@
                     this.isSubmitting = true;
                     try {
                         const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
-                        const response = await fetch('/api/v1/marketplace/create/items', {
-                            method: 'POST',
+                        const url = this.isEditing 
+                            ? `/api/v1/marketplace/items/${this.editItemId}` 
+                            : '/api/v1/marketplace/create/items';
+                        const method = this.isEditing ? 'PUT' : 'POST';
+
+                        const response = await fetch(url, {
+                            method,
                             headers: {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`
@@ -309,8 +355,8 @@
                         const data = await response.json();
 
                         if (response.ok) {
-                            alert('Item salvato con successo nel catalogo!');
-                            window.location.href = '/marketplace/homepage';
+                            alert(this.isEditing ? 'Item modificato con successo!' : 'Item salvato con successo nel catalogo!');
+                            window.location.href = '/marketplace/browseMarket';
                         } else {
                             alert('Errore: ' + (data.message || 'Impossibile salvare l\'item'));
                         }

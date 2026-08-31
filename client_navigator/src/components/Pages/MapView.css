@@ -20,6 +20,38 @@
   pointer-events: auto;
 }
 
+.map-recenter-btn {
+  position: absolute;
+  top: 5rem;
+  right: 1rem;
+  z-index: 1001;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1e293b;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  padding: 0.55rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(8px);
+}
+
+.map-recenter-btn:hover {
+  background: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.25);
+  color: #6366f1;
+}
+
+.map-recenter-btn:active {
+  transform: translateY(0);
+}
+
 .main-map-container {
   flex: 1;
   width: 100%;

@@ -32,6 +32,10 @@ marketplaceRouter.get("/homepage/myMuseums", authorization, requireRole(['creato
 marketplaceRouter.get("/joinMuseum", authorization, requireRole(['creator']), marketplaceController.getJoinMuseum);
 marketplaceRouter.get("/homepage/joinMuseum", authorization, requireRole(['creator']), marketplaceController.getJoinMuseum);
 
+// Checkout route (simulated payment)
+marketplaceRouter.get("/checkout", authorization, marketplaceController.getCheckout);
+marketplaceRouter.get("/homepage/checkout", authorization, marketplaceController.getCheckout);
+
 // Map editor route
 marketplaceRouter.get("/editor", authorization, requireRole(['creator']), marketplaceController.getEditor);
 marketplaceRouter.get("/homepage/editor", authorization, requireRole(['creator']), marketplaceController.getEditor);

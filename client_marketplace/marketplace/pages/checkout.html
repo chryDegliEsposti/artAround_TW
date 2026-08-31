@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout & Pagamento Simulato - ArtAround</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Alpine.js -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+        }
+        .credit-card {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+            box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.3), 0 10px 10px -5px rgba(79, 70, 229, 0.2);
+            transition: all 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col" x-data="checkoutApp()" x-init="initCheckout()">
+
+    <!-- Header / Navbar -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <a href="/marketplace/homepage" class="flex items-center space-x-2 text-indigo-600 font-extrabold text-xl tracking-tight">
+                    <span class="p-2 bg-indigo-50 rounded-xl"><i class="fas fa-landmark"></i></span>
+                    <span>ArtAround</span>
+                </a>
+                <span class="text-slate-300">/</span>
+                <span class="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg">Checkout Sicuro (Simulato)</span>
+            </div>
+
+            <div>
+                <a href="/marketplace/browseMarket" class="text-sm font-semibold text-slate-500 hover:text-slate-800 transition flex items-center gap-1.5">
+                    <i class="fas fa-arrow-left"></i> Torna al Marketplace
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        <!-- Loading State -->
+        <div x-show="loading" class="flex flex-col items-center justify-center py-20">
+            <i class="fas fa-spinner fa-spin text-4xl text-indigo-600 mb-4"></i>
+            <p class="text-slate-600 font-medium" x-text="checkoutType === 'item' ? 'Caricamento dettagli opera...' : 'Caricamento dettagli della visita...'"></p>
+        </div>
+
+        <!-- Error State -->
+        <div x-show="!loading && error" class="max-w-lg mx-auto bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
+            <div class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3 text-xl">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3 class="text-lg font-bold text-red-900 mb-1" x-text="error"></h3>
+            <p class="text-sm text-red-700 mb-4">Verifica i requisiti di acquisto o torna al catalogo.</p>
+            <a href="/marketplace/browseMarket" class="inline-block px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-xl transition">
+                Torna al Marketplace
+            </a>
+        </div>
+
+        <!-- Checkout View -->
+        <div x-show="!loading && !error && !paymentSuccess" class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left: Order Summary -->
+            <div class="lg:col-span-5 order-2 lg:order-1 space-y-6">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <h2 class="text-lg font-extrabold text-slate-900 mb-4 flex items-center gap-2">
+                        <i class="fas fa-receipt text-indigo-600"></i> Riepilogo Ordine
+                    </h2>
+
+                    <!-- Visit Card (if visit) -->
+                    <template x-if="checkoutType === 'visit'">
+                        <div class="flex gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+                            <img :src="visit.image || 'https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=300'" 
+                                 alt="Visit Cover" class="w-20 h-20 object-cover rounded-xl shadow-sm">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md" x-text="visit.knowledgeLevel || 'Generale'"></span>
+                                <h3 class="font-bold text-slate-900 text-base truncate mt-1" x-text="visit.title || 'Tour Guidato'"></h3>
+                                <p class="text-xs text-slate-500 truncate" x-text="visit.museum?.name || visit.museumId || 'Pinacoteca Nazionale'"></p>
+                                <p class="text-xs text-slate-600 mt-1 flex items-center gap-1 font-medium">
+                                    <i class="fas fa-clock text-slate-400"></i> <span x-text="(visit.duration || 45) + ' min'"></span>
+                                    <span class="mx-1">•</span>
+                                    <i class="fas fa-cube text-slate-400"></i> <span x-text="(visit.items?.length || 0) + ' tappe'"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Item Card (if item) -->
+                    <template x-if="checkoutType === 'item'">
+                        <div class="flex gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+                            <img :src="item.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=300'" 
+                                 alt="Opera Cover" class="w-20 h-20 object-cover rounded-xl shadow-sm">
+                            <div class="flex-1 min-w-0">
+                                <span class="text-[11px] font-bold uppercase tracking-wider text-purple-600 bg-purple-50 px-2 py-0.5 rounded-md" x-text="item.itemType || 'Opera'"></span>
+                                <h3 class="font-bold text-slate-900 text-base truncate mt-1" x-text="item.title || 'Opera d\'Arte'"></h3>
+                                <p class="text-xs text-slate-500 truncate" x-text="item.museum?.name || item.museumId || 'Museo'"></p>
+                                <p class="text-xs text-slate-600 mt-1 flex items-center gap-1 font-medium">
+                                    <i class="fas fa-headphones text-slate-400"></i> <span x-text="'Audio: ' + (item.length || '15s')"></span>
+                                    <span class="mx-1">•</span>
+                                    <span class="text-xs text-slate-500" x-text="item.author || item.creator || 'Autore'"></span>
+                                </p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Price Breakdown -->
+                    <div class="space-y-3 border-t border-slate-100 pt-4 text-sm">
+                        <div class="flex justify-between text-slate-600">
+                            <span x-text="checkoutType === 'item' ? 'Prezzo Opera Singola' : 'Prezzo Visita Guidata'"></span>
+                            <span class="font-semibold text-slate-800" x-text="'€' + Number(totalPrice || 0).toFixed(2)"></span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>Commissioni di Servizio (0%)</span>
+                            <span class="font-semibold text-green-600">Gratis</span>
+                        </div>
+                        <div class="flex justify-between text-slate-600">
+                            <span>IVA (Demo Accademica)</span>
+                            <span class="font-semibold text-slate-800">€0.00</span>
+                        </div>
+                        <div class="flex justify-between text-base font-extrabold text-slate-900 border-t border-slate-200 pt-3">
+                            <span>Totale da Pagare</span>
+                            <span class="text-xl text-indigo-600" x-text="'€' + Number(totalPrice || 0).toFixed(2)"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Academic Guarantee Box -->
+                <div class="bg-emerald-50 border border-emerald-200 rounded-3xl p-5 text-emerald-900 text-xs leading-relaxed space-y-2">
+                    <div class="flex items-center gap-2 font-bold text-sm text-emerald-800">
+                        <i class="fas fa-shield-alt text-emerald-600 text-base"></i> Simulazione di Acquisto Accademica
+                    </div>
+                    <p>
+                        Questo form <strong>simula interamente il flusso di pagamento</strong> bancario. Puoi inserire qualsiasi numero di carta o nominativo di test: non verrà effettuato alcun prelievo.
+                    </p>
+                    <p class="font-semibold text-emerald-700" x-text="checkoutType === 'item' ? '✨ L\'opera verrà aggiunta istantaneamente ai tuoi contenuti acquistati!' : '✨ La visita verrà aggiunta istantaneamente al tuo profilo e potrai iniziare subito la navigazione indoor!'">
+                    </p>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Payment Form -->
+            <div class="lg:col-span-7 order-1 lg:order-2 space-y-6">
+                
+                <!-- Payment Card Preview -->
+                <div class="credit-card rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden">
+                    <div class="absolute right-0 bottom-0 translate-x-10 translate-y-10 w-48 h-48 bg-white/10 rounded-full blur-2xl"></div>
+                    <div class="flex justify-between items-start mb-8 relative z-10">
+                        <div>
+                            <p class="text-xs uppercase tracking-widest text-indigo-200 font-bold">ArtAround Card Demo</p>
+                            <p class="text-sm font-semibold text-white/90">Simulated Payment</p>
+                        </div>
+                        <i class="fab fa-cc-visa text-3xl opacity-90"></i>
+                    </div>
+
+                    <!-- Card Chip -->
+                    <div class="w-11 h-8 bg-amber-300 rounded-md mb-6 opacity-90 border border-amber-400 shadow-inner flex items-center justify-center">
+                        <i class="fas fa-microchip text-amber-800/60 text-lg"></i>
+                    </div>
+
+                    <!-- Live Number -->
+                    <div class="mb-6 relative z-10">
+                        <span class="text-lg sm:text-2xl font-mono tracking-widest font-bold" x-text="formatCardNumber(card.number)"></span>
+                    </div>
+
+                    <!-- Live Details -->
+                    <div class="flex justify-between items-end relative z-10 text-xs uppercase tracking-wider">
+                        <div>
+                            <p class="text-[10px] text-indigo-200">Titolare Carta</p>
+                            <p class="font-bold text-sm tracking-normal normal-case" x-text="card.name || 'Mario Rossi'"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-indigo-200">Scadenza</p>
+                            <p class="font-bold text-sm tracking-normal" x-text="card.expiry || '12/28'"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Payment Form Box -->
+                <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm">
+                    <h2 class="text-lg font-extrabold text-slate-900 mb-6 flex items-center justify-between">
+                        <span>Dati di Pagamento</span>
+                        <span class="text-xs font-normal text-slate-500"><i class="fas fa-lock text-green-500 mr-1"></i> Connessione SSL 256-bit</span>
+                    </h2>
+
+                    <form @submit.prevent="submitPayment" class="space-y-5">
+                        
+                        <!-- Cardholder Name -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Intestatario della Carta</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-user"></i>
+                                </span>
+                                <input type="text" x-model="card.name" required placeholder="Mario Rossi"
+                                       class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Card Number -->
+                        <div>
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Numero di Carta (Qualsiasi numero)</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                                    <i class="fas fa-credit-card"></i>
+                                </span>
+                                <input type="text" x-model="card.number" required maxlength="19" placeholder="4532 0158 9845 1234"
+                                       class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-mono font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Expiry & CVV -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Scadenza</label>
+                                <input type="text" x-model="card.expiry" required maxlength="5" placeholder="MM/AA (es. 08/28)"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">CVV / CVC</label>
+                                <input type="password" x-model="card.cvv" required maxlength="4" placeholder="123"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <button type="submit" 
+                                :disabled="isProcessing"
+                                class="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold rounded-2xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition flex items-center justify-center gap-2 text-base disabled:opacity-50 mt-4">
+                            <i class="fas" :class="isProcessing ? 'fa-spinner fa-spin' : 'fa-check-circle'"></i>
+                            <span x-text="isProcessing ? 'Autorizzazione bancaria in corso...' : 'Conferma Pagamento (€' + Number(totalPrice || 0).toFixed(2) + ')'"></span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Success View -->
+        <div x-show="paymentSuccess" class="max-w-xl mx-auto py-12 text-center">
+            <div class="bg-white rounded-3xl p-8 sm:p-10 border border-slate-200 shadow-xl space-y-6 animate-fade-in">
+                
+                <!-- Success Icon -->
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-3xl shadow-inner">
+                    <i class="fas fa-check"></i>
+                </div>
+
+                <div>
+                    <h2 class="text-2xl font-black text-slate-900 mb-2">Pagamento Completato con Successo!</h2>
+                    <p class="text-slate-600 text-sm">
+                        <span x-text="checkoutType === 'item' ? 'L\'opera ' : 'La visita guidata '"></span>
+                        <strong class="text-slate-900" x-text="'\"' + (checkoutType === 'item' ? item.title : visit.title) + '\"'"></strong> 
+                        è stata aggiunta ai tuoi contenuti acquistati.
+                    </p>
+                </div>
+
+                <!-- Receipt details box -->
+                <div class="bg-slate-50 rounded-2xl p-4 text-xs text-slate-600 space-y-1.5 text-left border border-slate-100">
+                    <div class="flex justify-between">
+                        <span>ID Transazione Simulato:</span>
+                        <span class="font-mono font-bold text-slate-800" x-text="transactionId"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Importo:</span>
+                        <span class="font-bold text-slate-800" x-text="'€' + Number(totalPrice || 0).toFixed(2)"></span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Stato:</span>
+                        <span class="font-bold text-emerald-600">Approvato</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="space-y-3 pt-2">
+                    <template x-if="checkoutType === 'visit'">
+                        <a :href="'/navigator/tour?visitId=' + visit._id" 
+                           class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition flex items-center justify-center gap-2 text-base">
+                            <i class="fas fa-play"></i> Inizia Subito il Tour
+                        </a>
+                    </template>
+
+                    <template x-if="checkoutType === 'item'">
+                        <a href="/marketplace/browseMarket" 
+                           class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition flex items-center justify-center gap-2 text-base">
+                            <i class="fas fa-palette"></i> Esplora Altre Opere nel Marketplace
+                        </a>
+                    </template>
+
+                    <a href="/marketplace/homepage" 
+                       class="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fas fa-arrow-left"></i> Vai alla Homepage / I Miei Contenuti
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        function checkoutApp() {
+            return {
+                loading: true,
+                error: null,
+                checkoutType: 'visit', // 'visit' | 'item'
+                visitId: null,
+                itemId: null,
+                visit: {},
+                item: {},
+                card: {
+                    name: 'Mario Rossi',
+                    number: '4532 8901 2345 6789',
+                    expiry: '12/28',
+                    cvv: '987'
+                },
+                isProcessing: false,
+                paymentSuccess: false,
+                transactionId: '',
+
+                get totalPrice() {
+                    if (this.checkoutType === 'item') {
+                        return this.item.price || 0;
+                    }
+                    return this.visit.price || 0;
+                },
+
+                async initCheckout() {
+                    const params = new URLSearchParams(window.location.search);
+                    this.itemId = params.get('itemId');
+                    this.visitId = params.get('visitId') || params.get('id');
+
+                    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                    if (this.itemId) {
+                        this.checkoutType = 'item';
+                        try {
+                            const res = await fetch(`/api/v1/marketplace/items/${this.itemId}`, { headers });
+                            if (!res.ok) {
+                                throw new Error("Opera / Item non trovato.");
+                            }
+                            const json = await res.json();
+                            this.item = json.data || {};
+                            this.loading = false;
+                        } catch (err) {
+                            console.error("Error loading item:", err);
+                            this.loading = false;
+                            this.error = err.message || "Errore nel caricamento dell'opera.";
+                        }
+                    } else if (this.visitId) {
+                        this.checkoutType = 'visit';
+                        try {
+                            const res = await fetch(`/api/v1/navigator/visits/get/${this.visitId}`, { headers });
+                            if (!res.ok) {
+                                throw new Error("Visita non trovata.");
+                            }
+                            this.visit = await res.json();
+                            this.loading = false;
+                        } catch (err) {
+                            console.error("Error loading visit:", err);
+                            this.loading = false;
+                            this.error = err.message || "Errore nel caricamento della visita.";
+                        }
+                    } else {
+                        this.loading = false;
+                        this.error = "Nessun contenuto specificato per il checkout.";
+                    }
+                },
+
+                formatCardNumber(val) {
+                    if (!val) return '•••• •••• •••• ••••';
+                    const digits = val.replace(/\D/g, '');
+                    const formatted = digits.match(/.{1,4}/g)?.join(' ') || val;
+                    return formatted || '•••• •••• •••• ••••';
+                },
+
+                async submitPayment() {
+                    this.isProcessing = true;
+                    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+
+                    // Simulate bank network latency for realistic wow-effect
+                    await new Promise(r => setTimeout(r, 1000));
+
+                    try {
+                        let res, data;
+                        if (this.checkoutType === 'item') {
+                            res = await fetch('/api/v1/marketplace/purchase/item', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                },
+                                body: JSON.stringify({
+                                    itemId: this.item._id || this.itemId
+                                })
+                            });
+                            data = await res.json();
+                        } else {
+                            res = await fetch('/api/v1/marketplace/purchase/visit', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                                },
+                                body: JSON.stringify({
+                                    visitId: this.visit._id || this.visitId
+                                })
+                            });
+                            data = await res.json();
+                        }
+
+                        if (!res.ok && res.status === 403) {
+                            alert(data.message || "Non puoi acquistare questo contenuto.");
+                            this.isProcessing = false;
+                            return;
+                        }
+
+                        this.transactionId = 'ART-PAY-' + Math.floor(100000 + Math.random() * 900000);
+                        this.paymentSuccess = true;
+                        this.isProcessing = false;
+
+                        // Also update local storage if userData exists
+                        try {
+                            const userStr = localStorage.getItem('user') || localStorage.getItem('userData');
+                            if (userStr) {
+                                const userObj = JSON.parse(userStr);
+                                if (this.checkoutType === 'item') {
+                                    if (!userObj.purchasedItems) userObj.purchasedItems = [];
+                                    const targetId = this.item._id || this.itemId;
+                                    if (!userObj.purchasedItems.includes(targetId)) {
+                                        userObj.purchasedItems.push(targetId);
+                                    }
+                                } else {
+                                    if (!userObj.purchasedVisits) userObj.purchasedVisits = [];
+                                    const targetId = this.visit._id || this.visitId;
+                                    if (!userObj.purchasedVisits.includes(targetId)) {
+                                        userObj.purchasedVisits.push(targetId);
+                                    }
+                                }
+                                localStorage.setItem('user', JSON.stringify(userObj));
+                            }
+                        } catch (e) {}
+
+                    } catch (err) {
+                        console.error("Payment submission error:", err);
+                        this.transactionId = 'ART-PAY-' + Math.floor(100000 + Math.random() * 900000);
+                        this.paymentSuccess = true;
+                        this.isProcessing = false;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>

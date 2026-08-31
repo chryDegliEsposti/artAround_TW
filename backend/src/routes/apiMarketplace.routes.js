@@ -5,6 +5,8 @@ const { requireRole } = require("../middlewares/auth.middleware");
 
 // --- ITEMS SECTION ---
 apiMarketplaceRouter.post("/create/items", authorization, requireRole(['creator']), apiMarketplaceController.createItems);
+apiMarketplaceRouter.get("/items/:id", authorization, apiMarketplaceController.getItemById);
+apiMarketplaceRouter.put("/items/:id", authorization, requireRole(['creator']), apiMarketplaceController.updateItem);
 
 // --- VISITS SECTION---
 apiMarketplaceRouter.post("/create/visits", authorization, requireRole(['creator']), apiMarketplaceController.createVisit);
@@ -16,6 +18,7 @@ apiMarketplaceRouter.post("/museums/create", authorization, requireRole(['creato
 apiMarketplaceRouter.get("/museums/search", authorization, apiMarketplaceController.searchMuseum);
 apiMarketplaceRouter.post("/museums/join/:museumId", authorization, apiMarketplaceController.joinReqMuseum);
 apiMarketplaceRouter.get("/museums/getManaged", authorization, apiMarketplaceController.getManagedMuseums);
+apiMarketplaceRouter.get("/museums/export/:id", authorization, requireRole(['creator']), apiMarketplaceController.exportMuseumJSON);
 apiMarketplaceRouter.post("/museums/handleJoinRequest", authorization, requireRole(['creator']), apiMarketplaceController.handleJoinReq);
 
 // --- USER NOTIFICATION SECTION---

@@ -65,7 +65,13 @@
                             </div>
                         </div>
                         
-                        <div class="flex items-center space-x-4">
+                        <div class="flex items-center space-x-3">
+                            <button @click.stop="downloadMuseumJSON(museum)"
+                                    class="text-xs bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700 hidden sm:inline-flex items-center gap-1.5 shadow-sm"
+                                    title="Esporta e Scarica JSON del Museo">
+                                <i class="fas fa-download"></i> Esporta JSON
+                            </button>
+
                             <a :href="'/navigator/editor?id=' + museum._id + '&museumId=' + museum.museumId + '&lat=' + (museum.latitude || 44.4975) + '&lng=' + (museum.longitude || 11.3533)" 
                                @click.stop
                                class="text-xs bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-700 hidden sm:inline-flex items-center gap-1.5 shadow-sm">
@@ -178,6 +184,31 @@
                         }
                     } catch (e) {
                         console.error("Errore caricamento musei:", e);
+                    }
+                },
+
+                async downloadMuseumJSON(museum) {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch(`/api/v1/marketplace/museums/export/${museum._id}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (!res.ok) {
+                            const err = await res.json();
+                            alert("Errore esportazione: " + (err.message || 'Accesso negato'));
+                            return;
+                        }
+                        const data = await res.json();
+                        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                        const downloadAnchor = document.createElement('a');
+                        downloadAnchor.setAttribute("href", dataStr);
+                        downloadAnchor.setAttribute("download", `${museum.museumId || 'museum'}_export.json`);
+                        document.body.appendChild(downloadAnchor);
+                        downloadAnchor.click();
+                        downloadAnchor.remove();
+                    } catch (err) {
+                        console.error("Export error:", err);
+                        alert("Errore durante il download del JSON.");
                     }
                 },
 

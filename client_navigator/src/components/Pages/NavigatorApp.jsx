@@ -1055,12 +1055,13 @@ const mockMuseumData = {
 }
 
 const transformDataForCanvas = (data, canvasSize = 500, padding = 40) => {
+  if (!data) return { scale: 1, offsetX: 0, offsetY: 0 };
   let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
   const zoom = 22; // Must match Editor zoom level for scale match
 
   const ensureXY = (pt) => {
     if (pt && pt.lat !== undefined && pt.lng !== undefined && (pt.x === undefined || pt.y === undefined)) {
-      const centerPt = data.museumCenter || [40.77943, -73.96324];
+      const centerPt = data?.museumCenter || [44.4975, 11.3533];
       const origin = L.CRS.EPSG3857.latLngToPoint(L.latLng(centerPt[0], centerPt[1]), zoom);
       const target = L.CRS.EPSG3857.latLngToPoint(L.latLng(pt.lat, pt.lng), zoom);
       pt.x = target.x - origin.x;
@@ -1069,30 +1070,40 @@ const transformDataForCanvas = (data, canvasSize = 500, padding = 40) => {
     return pt;
   };
 
-  if (data.lines) {
-    data.lines.forEach(line => line.points.forEach(pt => {
-      ensureXY(pt);
-      if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
-      if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
-    }));
-  }
-
-  if (data.pois) {
-    data.pois.forEach(poi => {
-      ensureXY(poi.position);
-      if (poi.position.x < minX) minX = poi.position.x; if (poi.position.x > maxX) maxX = poi.position.x;
-      if (poi.position.y < minY) minY = poi.position.y; if (poi.position.y > maxY) maxY = poi.position.y;
+  if (Array.isArray(data?.lines)) {
+    data.lines.forEach(line => {
+      if (line && Array.isArray(line.points)) {
+        line.points.forEach(pt => {
+          ensureXY(pt);
+          if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
+          if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
+        });
+      }
     });
   }
 
-  if (data.areas) {
-    data.areas.forEach(area => area.points.forEach(pt => {
-      ensureXY(pt);
-      if (pt.x !== undefined && pt.y !== undefined) {
-        if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
-        if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
+  if (Array.isArray(data?.pois)) {
+    data.pois.forEach(poi => {
+      if (poi && poi.position) {
+        ensureXY(poi.position);
+        if (poi.position.x < minX) minX = poi.position.x; if (poi.position.x > maxX) maxX = poi.position.x;
+        if (poi.position.y < minY) minY = poi.position.y; if (poi.position.y > maxY) maxY = poi.position.y;
       }
-    }));
+    });
+  }
+
+  if (Array.isArray(data?.areas)) {
+    data.areas.forEach(area => {
+      if (area && Array.isArray(area.points)) {
+        area.points.forEach(pt => {
+          ensureXY(pt);
+          if (pt.x !== undefined && pt.y !== undefined) {
+            if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x;
+            if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y;
+          }
+        });
+      }
+    });
   }
 
   if (minX === Infinity) return { scale: 1, offsetX: 0, offsetY: 0 };
@@ -1116,9 +1127,11 @@ export default function NavigatorApp() {
   const [items, setItems] = useState([]);
   const [loadingError, setLoadingError] = useState('');
   const [requiresPurchase, setRequiresPurchase] = useState(false);
+  const [isLoadingTour, setIsLoadingTour] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoadingTour(true);
       try {
         const queryVisitId = new URLSearchParams(window.location.search).get('visitId');
         const pathSegments = window.location.pathname.split('/');
@@ -1130,6 +1143,7 @@ export default function NavigatorApp() {
           const fallbackData = await fetchMuseumData();
           setMuseumData(fallbackData);
           setVisitData({ title: "Esplorazione Libera", duration: 60 });
+          setIsLoadingTour(false);
           return;
         }
 
@@ -1143,6 +1157,19 @@ export default function NavigatorApp() {
         const data = await response.json();
         
         if (response.ok && data.success) {
+          const museum = data.museum;
+          const hasGeometry = museum && (
+            (Array.isArray(museum.lines) && museum.lines.length > 0) ||
+            (Array.isArray(museum.pois) && museum.pois.length > 0) ||
+            (Array.isArray(museum.areas) && museum.areas.length > 0)
+          );
+
+          if (!hasGeometry) {
+            setLoadingError(`La planimetria per il museo "${museum?.name || 'selezionato'}" non esiste o non è ancora stata disegnata. Impossibile avviare la navigazione.`);
+            setRequiresPurchase(false);
+            return;
+          }
+
           setMuseumData(data.museum);
           setVisitData(data.visit);
           setRequiresPurchase(false);
@@ -1150,14 +1177,17 @@ export default function NavigatorApp() {
         } else {
           if (response.status === 403 || data.requiresPurchase) {
             setRequiresPurchase(true);
+            setVisitData(data.visit || null);
             setLoadingError(data.error || "Accesso negato. Devi acquistare questa visita prima di iniziare il tour.");
           } else {
-            setLoadingError(data.error || "Errore nel caricamento del tour.");
+            setLoadingError(data.error || "Impossibile avviare il tour: la mappa o la visita richiesta non esiste.");
           }
         }
       } catch (err) {
         console.error("Error loading tourData:", err);
         setLoadingError("Errore di connessione durante il caricamento del tour.");
+      } finally {
+        setIsLoadingTour(false);
       }
     };
     loadData();
@@ -1215,6 +1245,12 @@ export default function NavigatorApp() {
   const [connectedVisitorsCount, setConnectedVisitorsCount] = useState(0);
   const [teacherQuizResults, setTeacherQuizResults] = useState([]);
   const socketRef = useRef(null);
+
+  // Virtual Teleport & Voice Control States
+  const [isTeleportOpen, setIsTeleportOpen] = useState(false);
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   const showToast = (message) => {
     setNotificationToast(message);
@@ -1297,6 +1333,7 @@ export default function NavigatorApp() {
 
 
   useEffect(() => {
+    if (!museumData) return;
     const layerLines = (museumData.lines || []).filter(l => l.layerId === activeLayerId);
     const extWalls = (museumData.lines || []).filter(l => l.type === 'ext-wall');
     const colsLines = layerLines.some(l => l.type === 'ext-wall') ? layerLines : [...extWalls, ...layerLines];
@@ -1316,7 +1353,7 @@ export default function NavigatorApp() {
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !museumData) return;
     const ctx = canvas.getContext('2d');
 
     // Clear background
@@ -1807,7 +1844,65 @@ export default function NavigatorApp() {
   };
 
   // Voice Command Dispatcher (Web Speech API)
+  const toggleVoiceRecognition = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast("❌ Riconoscimento vocale non supportato da questo browser.");
+      return;
+    }
 
+    if (isListening) {
+      if (recognitionRef.current) recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    try {
+      const rec = new SpeechRecognition();
+      rec.lang = 'it-IT';
+      rec.continuous = false;
+      rec.interimResults = false;
+
+      rec.onstart = () => {
+        setIsListening(true);
+        showToast("🎙️ In ascolto... Prova a dire: 'Avanti', 'Indietro', 'Riproduci'");
+      };
+
+      rec.onresult = (event) => {
+        const text = event.results[0][0].transcript.toLowerCase();
+        showToast(`🗣️ Riconosciuto: "${text}"`);
+
+        if (text.includes('avanti') || text.includes('prossim') || text.includes('next')) {
+          handleNext();
+        } else if (text.includes('indietro') || text.includes('precedent') || text.includes('prev')) {
+          handlePrev();
+        } else if (text.includes('riproduci') || text.includes('play') || text.includes('pausa') || text.includes('audio')) {
+          togglePlay();
+        } else if (text.includes('bagno') || text.includes('wc') || text.includes('toilet')) {
+          const restroom = (museumData?.pois || []).find(p => p.type === 'restroom');
+          if (restroom) handleTeleportTarget(restroom);
+        } else if (text.includes('ristor') || text.includes('bar') || text.includes('caffè')) {
+          const restaurant = (museumData?.pois || []).find(p => p.type === 'restaurant');
+          if (restaurant) handleTeleportTarget(restaurant);
+        }
+      };
+
+      rec.onerror = (e) => {
+        console.warn("Speech error:", e);
+        setIsListening(false);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = rec;
+      rec.start();
+    } catch (e) {
+      console.error("Speech start error:", e);
+      setIsListening(false);
+    }
+  };
 
   const handleCameraScan = () => {
     setIsCameraActive(prev => !prev);
@@ -1824,33 +1919,89 @@ export default function NavigatorApp() {
 
   const userScreenPos = getScreenCoords(userPos.x, userPos.y);
 
-  if (loadingError) {
+  if (isLoadingTour) {
+    return (
+      <div className="navigator-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', color: '#f8fafc' }}>
+        <div style={{ width: '48px', height: '48px', border: '4px solid rgba(99, 102, 241, 0.2)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '1.25rem' }}></div>
+        <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>Caricamento Tour Guidato...</h3>
+        <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>Preparazione della mappa 2D e dei punti di interesse</p>
+      </div>
+    );
+  }
+
+  if (requiresPurchase) {
+    const visitId = new URLSearchParams(window.location.search).get('visitId') || state?.visitId || visitData?._id;
     return (
       <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', padding: '1.5rem' }}>
         <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', padding: '2.5rem 2rem', maxWidth: '460px', width: '100%', textAlign: 'center', color: '#f8fafc', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
-          <div style={{ width: '64px', height: '64px', background: requiresPurchase ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.1)', color: requiresPurchase ? '#ef4444' : '#94a3b8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', fontSize: '28px' }}>
-            {requiresPurchase ? '🔒' : '⚠️'}
+          <div style={{ width: '64px', height: '64px', background: 'rgba(99, 102, 241, 0.15)', color: '#818cf8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', fontSize: '28px' }}>
+            🔒
           </div>
           <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#fff' }}>
-            {requiresPurchase ? 'Accesso al Tour Riservato' : 'Impossibile Avviare il Tour'}
+            Visita Guidata a Pagamento
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+            {loadingError || "Questa visita guidata richiede l'acquisto per poter accedere al percorso interattivo."}
+          </p>
+          
+          {visitData && (
+            <div style={{ background: '#0f172a', borderRadius: '1rem', padding: '1rem', marginBottom: '1.5rem', textAlign: 'left', border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ fontWeight: 'bold', fontSize: '0.95rem', color: '#f8fafc' }}>{visitData.title}</div>
+              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '0.2rem' }}>{visitData.museum?.name || "Pinacoteca Nazionale"}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '0.75rem', paddingTop: '0.5rem' }}>
+                <span style={{ fontSize: '0.85rem', color: '#94a3b8' }}>Prezzo:</span>
+                <span style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#818cf8' }}>€{Number(visitData.price || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button
+              onClick={() => window.location.href = `/marketplace/checkout?visitId=${visitId}`}
+              style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', border: 'none', borderRadius: '0.85rem', padding: '0.9rem 1.5rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            >
+              💳 Acquista Visita (Simulazione Pagamento)
+            </button>
+            <button
+              onClick={() => window.location.href = '/marketplace/browseMarket'}
+              style={{ background: '#334155', color: '#cbd5e1', border: 'none', borderRadius: '0.85rem', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              ← Torna al Marketplace
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadingError) {
+    const isMapMissing = loadingError.toLowerCase().includes('planimetria') || loadingError.toLowerCase().includes('mappa');
+    return (
+      <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', padding: '1.5rem' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', padding: '2.5rem 2rem', maxWidth: '460px', width: '100%', textAlign: 'center', color: '#f8fafc', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
+          <div style={{ width: '64px', height: '64px', background: 'rgba(239, 68, 68, 0.15)', color: '#ef4444', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', fontSize: '28px' }}>
+            🏛️
+          </div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#fff' }}>
+            {isMapMissing ? 'Planimetria Non Disponibile' : 'Impossibile Avviare il Tour'}
           </h2>
           <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '2rem', lineHeight: '1.5' }}>
             {loadingError}
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {requiresPurchase && (
+            {isMapMissing && (
               <button
-                onClick={() => window.location.href = '/marketplace/browseMarket'}
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', border: 'none', borderRadius: '0.85rem', padding: '0.9rem 1.5rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}
+                onClick={() => window.location.href = `/navigator/editor?museumId=${visitData?.museumId || ''}`}
+                style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff', border: 'none', borderRadius: '0.85rem', padding: '0.9rem 1.5rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(99, 102, 241, 0.3)' }}
               >
-                🛒 Vai al Marketplace per Acquistare
+                🛠️ Crea Planimetria nell'Editor
               </button>
             )}
             <button
-              onClick={() => navigate('/')}
+              onClick={() => window.location.href = '/marketplace/browseMarket'}
               style={{ background: '#334155', color: '#cbd5e1', border: 'none', borderRadius: '0.85rem', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}
             >
-              Torna alla Mappa
+              ← Torna al Marketplace
             </button>
           </div>
         </div>
@@ -1974,12 +2125,12 @@ export default function NavigatorApp() {
           </button>
 
           <button
-            className={`util-btn ${isVoiceModalOpen ? 'active' : ''}`}
-            onClick={() => setIsVoiceModalOpen(true)}
-            title="Comandi Vocali Web Speech API"
+            className={`util-btn ${isListening ? 'active' : ''}`}
+            onClick={toggleVoiceRecognition}
+            title="Comandi Vocali Web Speech API (Clicca per parlare)"
             style={{ background: isListening ? '#ef4444' : 'rgba(239, 68, 68, 0.15)', color: '#fff' }}
           >
-            <Mic size={22} color={isListening ? '#fff' : '#f87171'} />
+            <Mic size={22} color={isListening ? '#fff' : '#f87171'} className={isListening ? 'animate-pulse' : ''} />
           </button>
 
           <button
