@@ -112,12 +112,16 @@
     </section>
 
     <!-- Footer (stesso del welcome page) -->
-    <footer class="bg-gray-800 text-white py-12"></footer>
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
 
     <script>
-        // Funzione per gestire la registrazione
+        // Funzione per gestire il login
         async function handleSubmit() {
-            try{
+            try {
                 const res = await fetch('/api/v1/auth/login', {
                     method: 'POST',
                     headers: {
@@ -129,34 +133,35 @@
                     }),
                 });
             
-                if(res.ok){
-                    //alert('Accesso avvenuto con successo!');
+                if (res.ok) {
                     const resData = await res.json(); 
 
-                    //Salva token per eventuali API calls
+                    // Salva token e utente per Marketplace e Navigator
                     localStorage.setItem('apiToken', resData.data.token);
-                    localStorage.setItem('user', JSON.stringify(resData.data.user)); //to use in dashboard...
+                    localStorage.setItem('token', resData.data.token);
+                    localStorage.setItem('user', JSON.stringify(resData.data.user));
+                    localStorage.setItem('userData', JSON.stringify(resData.data.user));
                     
                     const urlParams = new URLSearchParams(window.location.search);
                     const redirect = urlParams.get("redirect");
-                    if(redirect) {
+                    if (redirect) {
                         window.location.href = redirect;
                     } else {
                         window.location.href = "/marketplace/homepage";
                     }
 
-                }else{
+                } else {
                     const errorData = await res.json();
                     alert("Errore durante l'accesso: " + (errorData.message || "Si è verificato un errore."));
                 }
 
-            }catch(error){
+            } catch (error) {
                 console.error('Unexpected error occured:', error);   
+                alert('Errore di connessione al server.');
             }
-            
-
         }
     </script>
+
 
 </body>
 </html>

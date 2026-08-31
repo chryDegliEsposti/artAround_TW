@@ -1,14 +1,12 @@
 const Item = require('../models/Item');
 const Visit = require('../models/Visit');
-const User = require('../models/User'); //per aggiornare i dati di acquisto dell'utente (purchasedVisits/purchasedItems)
-const Museum = require('../models/Museum'); //per check codice museo in createMuseum
-const Notification = require('../models/Notification'); //per creare notifiche in handleJoinReq
-
+const User = require('../models/User');
+const Museum = require('../models/Museum');
+const Notification = require('../models/Notification');
 
 // ----------------------------------- ITEMS HANDLERS ----------------------------------
 const createItems = async (req, res) => {
     try {
-        // Estraiamo i dati inviati dal frontend (Alpine.js formData)
         const { 
             itemType, 
             subjectId, 
@@ -21,22 +19,39 @@ const createItems = async (req, res) => {
             price 
         } = req.body;
 
-        // Creazione dell'oggetto nel DB
-        // Il campo 'creator' viene popolato automaticamente dall'ID dell'utente loggato
+        const userId = req.userId;
+        const username = req.user?.username || 'Autore';
+
+        // Resolve museum reference
+        let museumDoc = null;
+        if (museum) {
+            if (typeof museum === 'string' && museum.match(/^[0-9a-fA-F]{24}$/)) {
+                museumDoc = await Museum.findById(museum);
+            }
+            if (!museumDoc) {
+                museumDoc = await Museum.findOne({ museumId: String(museum).toUpperCase() });
+            }
+        }
+
+        const museumIdCode = museumDoc ? museumDoc.museumId : (req.user?.museumId || 'PIN-BO');
+        const museumObjId = museumDoc ? museumDoc._id : undefined;
+
         const newItem = await Item.create({
-            itemType,
-            artworkId: itemType === 'artwork' ? subjectId : undefined, // Solo per artworks, altrimenti undefined
-            title,
-            description,
-            length,
-            languageLevel,
-            museum,
-            license: itemType === 'artwork' ? license : 'CC0', // Default se non è artwork
-            price: itemType === 'artwork' ? price : 0,           // Default se non è artwork
-            creator: req.userId // Popolato dal middleware 'authorization', rappresenta l'ID dell'utente che sta creando l'item 
+            itemType: itemType || 'artwork',
+            artworkId: itemType === 'artwork' ? subjectId : undefined,
+            title: title || 'Nuovo Item',
+            description: description || '',
+            author: username,
+            creator: username,
+            length: length || '15s',
+            languageLevel: languageLevel || 'medio',
+            museumId: museumIdCode,
+            museum: museumObjId,
+            license: itemType === 'artwork' ? (license || 'CC-BY-SA') : 'CC0',
+            price: itemType === 'artwork' ? Number(price || 0) : 0,
+            isAIGenerated: req.body.isAIGenerated || false
         });
         
-        // Risposta al frontend
         res.status(201).json({
             status: 'success',
             message: 'Item creato con successo nel Marketplace',
@@ -47,8 +62,6 @@ const createItems = async (req, res) => {
 
     } catch (err) {
         console.error("Errore nel salvataggio dell'Item:", err);
-        
-        // Gestione errori di validazione di Mongoose
         res.status(400).json({
             status: 'error',
             message: err.message || 'Errore durante il salvataggio dei dati'
@@ -56,33 +69,29 @@ const createItems = async (req, res) => {
     }
 };
 
-// Funzione di ricerca soggetti (quella che abbiamo discusso per Wikidata)
-/*exports.getAuthors = async (req, res) => {
-    try {
-        const query = req.query.q;
-        const authors = await Item.find({
-            itemType: { $in: ['artist', 'style', 'movement'] },
-            title: { $regex: query, $options: 'i' }
-        }).limit(5);
-
-        res.status(200).json({
-            status: 'success',
-            authors: authors.map(a => ({
-                id: a.subjectId || a._id,
-                name: a.title
-            }))
-        });
-    } catch (err) {
-        res.status(500).json({ status: 'error', message: err.message });
-    }
-};
-*/
-
 // ----------------------------------- VISITS HANDLERS ----------------------------------
 const searchItemsForVisit = async (req, res) => {
     try {
-        const museumId = req.query.museumId;
-        const items = await Item.find({ museum: museumId });
+        const museumParam = req.query.museumId;
+        let query = {};
+
+        if (museumParam) {
+            if (museumParam.match(/^[0-9a-fA-F]{24}$/)) {
+                query.$or = [
+                    { museum: museumParam },
+                    { museumId: museumParam.toUpperCase() }
+                ];
+            } else {
+                query.museumId = museumParam.toUpperCase();
+            }
+        }
+
+        let items = await Item.find(query);
+
+        // Fallback: If no items found for this specific code, return general items for selection
+        if (items.length === 0) {
+            items = await Item.find().limit(20);
+        }
 
         res.status(200).json({
             status: 'success',
@@ -97,25 +106,68 @@ const searchItemsForVisit = async (req, res) => {
             message: err.message || 'Errore durante la ricerca degli Items'
         });
     }
-}
+};
 
 const createVisit = async (req, res) => {
     try {
-        // Extract frontend data (Alpine.js formData) to create
-        let price = 0;
-        const { title, description, museumId, items, createdBy } = req.body;
+        const { 
+            title, 
+            description, 
+            museumId, 
+            items, 
+            price = 0, 
+            duration = 60, 
+            knowledgeLevel = 'medio', 
+            targetAudience = 'Tutti', 
+            isSync = false, 
+            mnemonicName 
+        } = req.body;
         
-        // Creazione dell'oggetto Visit nel DB
+        const userId = req.userId;
+
+        // Resolve museum
+        let museumDoc = null;
+        if (museumId) {
+            if (typeof museumId === 'string' && museumId.match(/^[0-9a-fA-F]{24}$/)) {
+                museumDoc = await Museum.findById(museumId);
+            }
+            if (!museumDoc) {
+                museumDoc = await Museum.findOne({ museumId: String(museumId).toUpperCase() });
+            }
+        }
+        if (!museumDoc) {
+            museumDoc = await Museum.findOne();
+        }
+
+        // Build structured steps
+        const validItemIds = Array.isArray(items) ? items : [];
+        const steps = validItemIds.map((itemId, idx) => ({
+            order: idx + 1,
+            stepType: 'item',
+            itemId: itemId,
+            roomName: `Sala ${idx + 1}`,
+            estimatedSeconds: 60
+        }));
+
         const newVisit = await Visit.create({
-            museum: museumId,
-            title,
-            price, //TODO prendi da frontend o calcola in base agli item selezionati
-            description,
-            items, // Array di itemId selezionati per la visita
-            author: createdBy 
+            museum: museumDoc ? museumDoc._id : undefined,
+            museumId: museumDoc ? museumDoc.museumId : 'PIN-BO',
+            title: title || 'Nuovo Percorso Visita',
+            description: description || '',
+            price: Number(price) || 0,
+            duration: Number(duration) || 60,
+            knowledgeLevel: knowledgeLevel || 'medio',
+            targetAudience: targetAudience || 'Tutti',
+            status: 'published',
+            author: userId,
+            isSync: Boolean(isSync),
+            mnemonicName: mnemonicName || undefined,
+            items: validItemIds,
+            steps: steps,
+            image: req.body.image || (museumDoc?.image || "https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=600")
         });
         
-        console.log('Nuova visita creata con successo:', newVisit);
+        console.log('Nuova visita creata con successo:', newVisit._id);
 
         res.status(201).json({
             status: 'success',
@@ -127,8 +179,6 @@ const createVisit = async (req, res) => {
 
     } catch (err) {
         console.error("Errore nel salvataggio della Visita:", err);
-        
-        // Gestione errori di validazione di Mongoose
         res.status(400).json({
             status: 'error',
             message: err.message || 'Errore durante il salvataggio della visita'
@@ -140,24 +190,19 @@ const createVisit = async (req, res) => {
 const checkMuseumCode = async (req, res) => {
     try {
         const { code } = req.query;
-        const existingMuseum = await Museum.findOne({ museumId: code.toUpperCase() });
-        let exists;
-        if(existingMuseum) {
-            exists = true;
-        }else {
-            exists = false;
+        if (!code) {
+            return res.status(200).json({ status: 'success', data: { exists: false } });
         }
-
+        const existingMuseum = await Museum.findOne({ museumId: code.toUpperCase() });
         res.status(200).json({
             status: 'success',
             data: {
-                exists: exists 
+                exists: Boolean(existingMuseum)
             }
         });
 
     } catch (err) {
         console.error("Errore durante la verifica del codice museo:", err);
-        
         res.status(500).json({
             status: 'error',
             message: err.message || 'Errore durante la verifica del codice museo'
@@ -168,46 +213,57 @@ const checkMuseumCode = async (req, res) => {
 const createMuseum = async (req, res) => {
     try {
         console.log("Creazione museo - request body:", req.body);
-
         const { museum, items, mapData } = req.body;
         const userId = req.userId; 
         
-        //--- Sequential operations BLOCK for museum creation 
+        if (!museum || !museum.code || !museum.name) {
+            return res.status(400).json({ status: 'error', message: 'Codice e Nome del museo sono obbligatori.' });
+        }
+
         // 1. Check museumId uniqueness 
         const existingMuseum = await Museum.findOne({ museumId: museum.code.toUpperCase() });
         if (existingMuseum) {
             return res.status(400).json({ status: 'error', message: 'Il codice museo è già in uso.' });
         }
-        // 2. Create Museum
+
+        const lat = Number(museum.latitude) || 44.4975;
+        const lng = Number(museum.longitude) || 11.3533;
+        const centerCoord = (mapData && Array.isArray(mapData.museumCenter)) ? mapData.museumCenter : [lat, lng];
+
+        // 2. Create Museum with Map Data
         const newMuseum = await Museum.create({
             name: museum.name,
             museumId: museum.code.toUpperCase(),
-            description: museum.description,
+            description: museum.description || '',
             creator: userId,
-            city: museum.city,
-            address: museum.address,
-            longitude: museum.longitude,
-            latitude: museum.latitude,
-            image: museum.image || '',
-            layers: mapData?.layers || [],
-            lines: mapData?.lines || [],
-            areas: mapData?.areas || [],
-            pois: mapData?.pois || []
+            city: museum.city || 'Bologna',
+            address: museum.address || '',
+            latitude: lat,
+            longitude: lng,
+            image: museum.image || "https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=1200",
+            museumCenter: centerCoord,
+            layers: (mapData && Array.isArray(mapData.layers) && mapData.layers.length > 0) ? mapData.layers : [{ id: 1, name: 'Layer 1' }],
+            lines: (mapData && Array.isArray(mapData.lines)) ? mapData.lines : [],
+            areas: (mapData && Array.isArray(mapData.areas)) ? mapData.areas : [],
+            pois: (mapData && Array.isArray(mapData.pois)) ? mapData.pois : []
         });
+
         // 3. Create museum's items (if any)  
         if (items && items.length > 0) {
             const itemsWithMuseumId = items.map(item => ({
                 ...item,
                 museumId: newMuseum.museumId,
                 museum: newMuseum._id,
-                creator: userId,
-                recognitionImage: item.image || ''
+                creator: req.user?.username || 'Autore',
+                recognitionImage: item.image || item.recognitionImage || ''
             }));
             await Item.insertMany(itemsWithMuseumId);
         }
-        // 4. Add museum to user's managedMuseums 
+
+        // 4. Add museum to user's managedMuseums & museumId
         await User.findByIdAndUpdate(userId, {
-            $push: { managedMuseums: newMuseum._id }
+            $addToSet: { managedMuseums: newMuseum._id },
+            $set: { museumId: newMuseum.museumId }
         });
 
         res.status(201).json({
@@ -215,13 +271,12 @@ const createMuseum = async (req, res) => {
             message: 'Museo creato con successo',
             data: {
                 museum: newMuseum, 
-                itemsCount: items.length
+                itemsCount: items ? items.length : 0
             }
         });
 
     } catch (err) {
         console.error("Errore nel salvataggio del Museo:", err);
-        
         res.status(400).json({
             status: 'error',
             message: err.message || 'Errore durante il salvataggio del museo'
@@ -231,38 +286,28 @@ const createMuseum = async (req, res) => {
 
 const searchMuseum = async (req, res) => {
     try {
-        // 1. Recuperiamo i parametri dalla query string
-        // q: la stringa cercata (es: "Uffizi")
-        // field: il campo su cui cercare (es: "name" o "customCode")
-        const { q, field } = req.query;
+        const { q, field = 'name' } = req.query;
 
-        // 2. Protezione: se la query è troppo corta, restituiamo un array vuoto
-        if (!q || q.length < 3) {
+        if (!q || q.length < 2) {
+            const allMuseums = await Museum.find().select('name museumId city address image').limit(10).lean();
             return res.status(200).json({
                 status: 'success',
-                data: []
+                data: allMuseums
             });
         }
 
-        // 3. Costruzione della Query Dinamica
-        // Usiamo le parentesi quadre [field] per usare il valore della variabile come chiave
         const queryFilter = {};
-        // $regex: cerca la stringa all'interno del campo
-        // $options: 'i' rende la ricerca Case-Insensitive (ignora maiuscole/minuscole)
-        queryFilter[field] = { 
+        const searchField = field === 'museumId' || field === 'customCode' ? 'museumId' : 'name';
+        queryFilter[searchField] = { 
             $regex: q, 
             $options: 'i' 
         };
-        console.log('Filtro di ricerca museo costruito:', queryFilter);
-        // 4. Esecuzione della ricerca
-        // .limit(10): non vogliamo sovraccaricare il frontend con troppi risultati
-        // .select(...): prendiamo solo i campi necessari per la lista UI
-        const museums = await Museum.find(queryFilter)
-            .select('name customCode city address')
-            .limit(10)
-            .lean(); // .lean() rende la query più veloce trasformandola in oggetti JS semplici
 
-        // 5. Risposta al frontend
+        const museums = await Museum.find(queryFilter)
+            .select('name museumId city address image')
+            .limit(10)
+            .lean();
+
         res.status(200).json({
             status: 'success',
             results: museums.length,
@@ -280,23 +325,34 @@ const searchMuseum = async (req, res) => {
 
 const joinReqMuseum = async (req, res) => {
     try {
-        const { museumId } = req.params; // ID del museo a cui si vuole richiedere l'accesso
+        const { museumId } = req.params;
         const userId = req.userId; 
 
-        console.log(`User: ${userId} request to join museum: ${museumId}`);
+        let museum = null;
+        if (museumId.match(/^[0-9a-fA-F]{24}$/)) {
+            museum = await Museum.findById(museumId);
+        }
+        if (!museum) {
+            museum = await Museum.findOne({ museumId: museumId.toUpperCase() });
+        }
 
-        // Verifica che il museo esista
-        const museum = await Museum.findById(museumId);
         if (!museum) {
             return res.status(404).json({ status: 'error', message: 'Museo non trovato' });
         }
 
-        // Verifica se l'utente ha già richiesto di unirsi o è già collaboratore
-        if (museum.pendingRequests.includes(userId) || museum.collaborators.includes(userId)) { //TO-ADD:  || museum.creator.toString() === userId
-            return res.status(400).json({ status: 'error', message: 'Hai già accesso a questo museo o fatto richiesta di unirti' });
+        if (museum.creator && museum.creator.toString() === userId.toString()) {
+            return res.status(400).json({ status: 'error', message: 'Sei già il proprietario di questo museo' });
         }
 
-        // Aggiungi l'utente alla lista dei collaboratori (in attesa di approvazione del creatore)
+        if (museum.collaborators.some(c => c.toString() === userId.toString())) {
+            return res.status(400).json({ status: 'error', message: 'Sei già collaboratore di questo museo' });
+        }
+
+        const alreadyPending = museum.pendingRequests.some(r => r.userId && r.userId.toString() === userId.toString());
+        if (alreadyPending) {
+            return res.status(400).json({ status: 'error', message: 'Hai già inviato una richiesta di collaborazione per questo museo' });
+        }
+
         museum.pendingRequests.push({
             userId: userId,
             requestedAt: new Date()
@@ -305,7 +361,7 @@ const joinReqMuseum = async (req, res) => {
 
         res.status(200).json({
             status: 'success',
-            message: 'Richiesta di collaborazione inviata con successo. Il creatore del museo riceverà una notifica per approvare la tua richiesta.',
+            message: 'Richiesta di collaborazione inviata con successo.',
             data: {
                 museumId: museum._id,
                 museumName: museum.name
@@ -313,7 +369,7 @@ const joinReqMuseum = async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Errore durante la richiesta di collaborazione al museo:', err);
+        console.error('Errore durante la richiesta di collaborazione:', err);
         res.status(500).json({
             status: 'error',
             message: 'Errore interno del server durante la richiesta di collaborazione.'
@@ -321,37 +377,10 @@ const joinReqMuseum = async (req, res) => {
     }
 };
 
-/*const getPendingRequests = async (req, res) => {
-    try {
-        const userId = req.userId;
-        // Trova i musei di cui l'utente è creatore
-        const museums = await Museum.find({ creator: userId }); 
-        const pendingRequests = museums.map(museum => ({
-            museumId: museum._id,
-            museumName: museum.name,
-            requests: museum.pendingRequests 
-        }));
-        console.log('Richieste di collaborazione pendenti per i musei creati dall\'utente:', pendingRequests);
-        res.status(200).json({
-            status: 'success',
-            data: pendingRequests
-        });
-
-    } catch (err) {
-        console.error('Errore durante il recupero delle richieste di collaborazione:', err);
-        res.status(500).json({
-            status: 'error',
-            message: 'Errore interno del server durante il recupero delle richieste di collaborazione.'
-        });
-    }
-};*/
-
 const getManagedMuseums = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.id || req.userId;
         
-        // Cerchiamo i musei dove l'utente è creator O collaboratore
-        // Usiamo i nomi dei campi esatti che hai nel DB (se è 'creator', usa 'creator')
         const museums = await Museum.find({
             $or: [
                 { creator: userId }, 
@@ -360,12 +389,9 @@ const getManagedMuseums = async (req, res) => {
         })
         .populate({
             path: 'pendingRequests.userId',
-            select: 'username email', // Recupera solo questi dati dell'utente
-            model: 'User' 
+            select: 'username email'
         })
-        .lean(); //mongoose docs -> js objs
-
-        console.log(`[Dashboard] Invio musei gestiti dall'utente ${userId}`);
+        .lean();
 
         res.json({ 
             status: 'success', 
@@ -373,77 +399,74 @@ const getManagedMuseums = async (req, res) => {
         });
 
     } catch (err) {
+        console.error("Errore getManagedMuseums:", err);
         res.status(500).json({ message: "Errore server" });
     }
-}
+};
 
 const handleJoinReq = async (req, res) => {
     try {
-        const userId = req.user.id; 
+        const userId = req.user.id || req.userId; 
         const { museumId, requestId, action } = req.body;
 
-        // Checks
-        //-existence
         const museum = await Museum.findById(museumId);
         if (!museum) {
             return res.status(404).json({ status: 'error', message: 'Museo non trovato' });
         }
-        //-authorized
-        if (museum.creator.toString() !== userId) {
+
+        if (museum.creator.toString() !== userId.toString()) {
             return res.status(403).json({ status: 'error', message: 'Non sei autorizzato a gestire le richieste di questo museo' });
         }       
-        //-request existence
+
         const requestIndex = museum.pendingRequests.findIndex(
-            (req) => req._id.toString() === requestId
+            (r) => r._id.toString() === requestId
         );
         if (requestIndex === -1) {
-            return res.status(404).json({ message: "Richiesta non trovata o già stata gestita" });
+            return res.status(404).json({ message: "Richiesta non trovata o già gestita" });
         }
 
-        // Management
-        const requesterId = museum.pendingRequests[requestIndex].userId; //info for notification
+        const requesterId = museum.pendingRequests[requestIndex].userId;
         const museumName = museum.name;
 
-        if(action === 'accept') {
-            //1.Add user to collaborators
-            if (!museum.collaborators.includes(userId)) {
-                museum.collaborators.push(userId);
+        if (action === 'accept') {
+            if (!museum.collaborators.includes(requesterId)) {
+                museum.collaborators.push(requesterId);
             }
-            //2.Remove from pending
             museum.pendingRequests.splice(requestIndex, 1);
             await museum.save();
-            //3.Add museum to user's managedMuseums
-            await User.findByIdAndUpdate(userId, {
-                $push: { managedMuseums: museumId }
+
+            await User.findByIdAndUpdate(requesterId, {
+                $addToSet: { managedMuseums: museumId }
             });
-            //4.Create notification for requester
+
             await Notification.create({
                 recipient: requesterId,
                 message: `La tua richiesta per collaborare al museo "${museumName}" è stata accettata!`,
                 type: 'join_accepted',
                 museumName: museumName
             });
+
             res.json({ status: 'success', message: 'Richiesta accettata, utente aggiunto come collaboratore' });
 
-        }else if (action === 'reject') {
-            //1.Remove from pending
+        } else if (action === 'reject') {
             museum.pendingRequests.splice(requestIndex, 1);
             await museum.save();
-            //2.Create notification for requester
+
             await Notification.create({
                 recipient: requesterId,
                 message: `La tua richiesta per il museo "${museumName}" è stata declinata.`,
                 type: 'join_rejected',
                 museumName: museumName
             });
+
             res.json({ status: 'success', message: 'Richiesta rifiutata' });
         }
             
-    }catch (err) {
-        console.error('Errore durante la gestione della richiesta di collaborazione:', err);
+    } catch (err) {
+        console.error('Errore gestione richiesta:', err);
         res.status(500).json({
             status: 'error',
-            message: 'Errore interno del server durante la gestione della richiesta di collaborazione.'
+            message: 'Errore durante la gestione della richiesta.'
         });
     }
 };
@@ -451,26 +474,27 @@ const handleJoinReq = async (req, res) => {
 // ----------------------------------- USER NOTIFICATION HANDLERS ------------------------------
 const getNotifications = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const notifications = await Notification.find({ recipient: req.user.id })
-        .sort('-createdAt') //most recent first
-        .limit(20); 
+        const userId = req.user.id || req.userId;
+        const notifications = await Notification.find({ recipient: userId })
+            .sort('-createdAt')
+            .limit(20); 
         res.json({ status: 'success', data: notifications });
     } catch (err) {
-        console.error('Errore durante il recupero delle notifiche:', err);
+        console.error('Errore recupero notifiche:', err);
+        res.status(500).json({ status: 'error', message: 'Errore recupero notifiche' });
     }
 };
 
 const markNotificationsAsRead = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.id || req.userId;
         await Notification.findOneAndUpdate(
-            { _id: req.params.id, recipient: req.user.id },
+            { _id: req.params.id, recipient: userId },
             { read: true }
         );
         res.json({ status: 'success' });
     } catch (err) {
-        console.error('Errore durante la marcatura della notifica come letta:', err);
+        console.error('Errore mark read:', err);
         res.status(500).json({ status: 'error', message: 'Errore interno del server' });    
     }
 };
@@ -478,27 +502,21 @@ const markNotificationsAsRead = async (req, res) => {
 // ----------------------------------- BROWSING DATA HANDLERS ----------------------------------
 const getVisitsForBrowsing = async (req, res) => {
     try {
-        /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
-            1.aggiungi campo 'status' al modello Visit (enum: ['draft', 'published'], default: 'draft')
-            2.modifica createVisit per accettare 'status' da frontend (default a 'draft' se non fornito)
-            3.modifica questa funzione per filtrare le visite in base al 'status' richiesto (es. Visit.find({ status: req.query.status || 'published' }))
-        
-        const status = req.query.status || 'published'; // Default to 'published' if not provided
-        const visits = await Visit.find({ status }).populate('museum').populate('items');
-        */
-        
-        const visits = await Visit.find() 
-        .populate('author', 'username') //get creator username to show in browse market cards(username specific field needed)
-        .populate('museum')
+        const visits = await Visit.find({ status: 'published' })
+            .populate('author', 'username email')
+            .populate('museum')
+            .populate('items')
+            .lean();
         
         let purchasedVisits = [];
         let favoriteVisits = [];
-        if (req.user && req.user.id) {
-            const user = await User.findById(req.user.id);
+
+        const userId = req.user ? (req.user.id || req.userId) : null;
+        if (userId) {
+            const user = await User.findById(userId);
             if (user) {
-                // Estraiamo solo gli ID come stringhe per il frontend
-                purchasedVisits = user.purchasedVisits.map(id => id.toString());
-                favoriteVisits = user.favoriteVisits.map(id => id.toString());
+                purchasedVisits = (user.purchasedVisits || []).map(id => id.toString());
+                favoriteVisits = (user.favoriteVisits || []).map(id => id.toString());
             }
         }
 
@@ -522,26 +540,17 @@ const getVisitsForBrowsing = async (req, res) => {
 
 const getItemsForBrowsing = async (req, res) => {
     try {
-        /* TODO: implementare differenziazione tra visite pubbliche e private (visibili solo al creatore) in base a query param 'status' (es. ?status=published o ?status=draft)
-            1.aggiungi campo 'status' al modello Visit (enum: ['draft', 'published'], default: 'draft')
-            2.modifica createVisit per accettare 'status' da frontend (default a 'draft' se non fornito)
-            3.modifica questa funzione per filtrare le visite in base al 'status' richiesto (es. Visit.find({ status: req.query.status || 'published' }))
-        
-        const status = req.query.status || 'published'; // Default to 'published' if not provided
-        const visits = await Visit.find({ status }).populate('museum').populate('items');
-        */
-        
-        const items = await Item.find() 
-        /*.populate('author', 'username') //get creator username to show in browse market cards(username specific field needed)
-        .populate('museumId')*/
+        const items = await Item.find().populate('museum').lean();
         
         let purchasedItems = [];
-        if (req.user && req.user.id) {
-            const user = await User.findById(req.user.id);
-            if (req.user && req.user.id) {
-                // Estraiamo solo gli ID come stringhe per il frontend
-                purchasedItems = user.purchasedItems.map(id => id.toString());
-                console.log('Items posseduti dall\'utente:', purchasedItems);
+        let favoriteItems = [];
+
+        const userId = req.user ? (req.user.id || req.userId) : null;
+        if (userId) {
+            const user = await User.findById(userId);
+            if (user) {
+                purchasedItems = (user.purchasedItems || []).map(id => id.toString());
+                favoriteItems = (user.favoriteItems || []).map(id => id.toString());
             }
         }
 
@@ -549,7 +558,8 @@ const getItemsForBrowsing = async (req, res) => {
             status: 'success',
             data: {
                 items: items,
-                purchasedItems: purchasedItems
+                purchasedItems: purchasedItems,
+                favoriteItems: favoriteItems
             }
         });
 
@@ -567,17 +577,23 @@ const purchaseVisit = async (req, res) => {
     try {
         console.log("Acquisto visita - request body:", req.body);
         const visitId = req.body.visitId;   
-        const userId = req.userId; // ID dell'utente loggato, ottenuto dal middleware authorization        
+        const userId = req.userId;
 
-        // Verifica che la visita esista
+        if (!visitId) {
+            return res.status(400).json({ status: 'error', message: 'ID visita obbligatorio' });
+        }
+
         const visit = await Visit.findById(visitId);
         if (!visit) {
             return res.status(404).json({ status: 'error', message: 'Visita non trovata' });
         }   
         
-        // Verifica se l'utente ha già acquistato questa visita
-        const user = await User.findById(userId) 
-        const alreadyPurchased = user.purchasedVisits.some(p => p.toString() === visitId);
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 'error', message: 'Utente non trovato' });
+        }
+
+        const alreadyPurchased = (user.purchasedVisits || []).some(p => p.toString() === visitId.toString());
         if (alreadyPurchased) {
             return res.status(400).json({ 
                 success: false, 
@@ -585,23 +601,17 @@ const purchaseVisit = async (req, res) => {
             });
         }
 
-        user.purchasedVisits.push(visitId);
+        user.purchasedVisits.push(visit._id);
         await user.save();
 
-        //retrieve visits possedute, per mostrare in frontend (es. disabilitare pulsante acquisto se già acquistata)
-        let purchasedVisits = [];
-        if (userId) {
-            //const user = await User.findById(userId);
-            //purchasedVisits = user.purchasedVisits.map(p => p.visitId.toString());
-            purchasedVisits = user.purchasedVisits.map(p => {console.log(p); p.toString()});
-        }
+        const updatedPurchased = user.purchasedVisits.map(p => p.toString());
 
         return res.status(200).json({
             status: 'success',
             message: 'Visita acquistata con successo',
             data: {
                 visit: visit,
-                purchasedVisits: purchasedVisits 
+                purchasedVisits: updatedPurchased 
             }
         }); 
 
@@ -620,15 +630,21 @@ const purchaseItem = async (req, res) => {
         const itemId = req.body.itemId;   
         const userId = req.userId;      
 
-        // Verifica che l'item esiste
+        if (!itemId) {
+            return res.status(400).json({ status: 'error', message: 'ID item obbligatorio' });
+        }
+
         const item = await Item.findById(itemId);
         if (!item) {
             return res.status(404).json({ status: 'error', message: 'Item non trovato' });
         }   
         
-        // Verifica se l'utente ha già acquistato questo item 
-        const user = await User.findById(userId) 
-        const alreadyPurchased = user.purchasedItems.some(i => i.toString() === itemId);
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ status: 'error', message: 'Utente non trovato' });
+        }
+
+        const alreadyPurchased = (user.purchasedItems || []).some(i => i.toString() === itemId.toString());
         if (alreadyPurchased) {
             return res.status(400).json({ 
                 success: false, 
@@ -636,22 +652,17 @@ const purchaseItem = async (req, res) => {
             });
         }
 
-        user.purchasedItems.push(itemId);
+        user.purchasedItems.push(item._id);
         await user.save();
 
-        //retrieve items posseduti, per mostrare in frontend (es. disabilitare pulsante acquisto se già acquistata)
-        let purchasedItems = [];
-        if (userId) {
-            //const user = await User.findById(userId);
-            //purchasedItems = user.purchasedVisits.map(i => i.itemId.toString());
-            purchasedItems = user.purchasedItems.map(i => {console.log(i); i.toString()});
-        }
+        const updatedPurchased = user.purchasedItems.map(i => i.toString());
+
         return res.status(200).json({
             status: 'success',
-            message: 'Visita acquistata con successo',
+            message: 'Item acquistato con successo',
             data: {
                 item: item,
-                purchasedItems: purchasedItems 
+                purchasedItems: updatedPurchased 
             }
         }); 
 
@@ -667,8 +678,8 @@ const purchaseItem = async (req, res) => {
 // ----------------------------------- FAVORITE CONTENT TOGGLE HANDLERS ----------------------------------
 const toggleFavorite = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { targetId, targetType } = req.body; //targetType: 'visit' o 'item'
+        const userId = req.user.id || req.userId;
+        const { targetId, targetType } = req.body;
 
         const user = await User.findById(userId);
         if (!user) {
@@ -685,9 +696,9 @@ const toggleFavorite = async (req, res) => {
         }
 
         const index = favoritesArray.findIndex(id => id.toString() === targetId);
-        if (index === -1) { //new save
+        if (index === -1) {
             favoritesArray.push(targetId);
-        } else { //already in favorites, remove it (toggle)
+        } else {
             favoritesArray.splice(index, 1);
         }
 
@@ -718,4 +729,4 @@ module.exports = {
     getNotifications,
     markNotificationsAsRead,
     toggleFavorite,
-}
+};

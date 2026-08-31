@@ -92,4 +92,24 @@ function handleInvalidUser(req, res) {
 
 
 
+const requireRole = (allowedRoles = []) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return handleNoToken(req, res);
+        }
+        if (allowedRoles.length > 0 && !allowedRoles.includes(req.user.role)) {
+            if (isApiRequest(req)) {
+                return res.status(403).json({
+                    success: false,
+                    message: `Accesso negato: operazione riservata ai ruoli [${allowedRoles.join(', ')}]`
+                });
+            }
+            return res.redirect('/marketplace/homepage?error=unauthorized_role');
+        }
+        next();
+    };
+};
+
 module.exports = authorization;
+module.exports.authorization = authorization;
+module.exports.requireRole = requireRole;

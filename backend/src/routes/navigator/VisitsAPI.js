@@ -54,12 +54,6 @@ router.get('/tourData/:visitId', authorization, async (req, res) => {
         const visitId = req.params.visitId;
         const user = req.user;
 
-        // Accounting / Authorization
-        const alreadyPurchased = user.purchasedVisits.some(p => p.toString() === visitId);
-        if (!alreadyPurchased) {
-            return res.status(403).json({ success: false, error: 'Accesso negato. Devi acquistare la visita prima di accedere al tour.' });
-        }
-
         const visit = await Visit.findById(visitId)
             .populate('museum')
             .populate('items')
@@ -67,23 +61,50 @@ router.get('/tourData/:visitId', authorization, async (req, res) => {
             .populate('quiz');
 
         if (!visit) {
-            return res.status(404).json({ success: false, error: 'Visita non trovata' });
+            return res.status(404).json({ success: false, error: 'Visita non trovata nel database.' });
         }
 
-        if (!visit.museum) {
-            return res.status(404).json({ success: false, error: 'Questa visita non ha un museo associato.' });
+        // Accounting / Authorization:
+        // Access granted IF:
+        // 1. Visit was purchased by user
+        // 2. User is the author/creator of the visit
+        // 3. Visit is free (price === 0)
+        const isPurchased = (user.purchasedVisits || []).some(p => p.toString() === visitId.toString());
+        const isAuthor = visit.author && visit.author.toString() === user._id.toString();
+        const isFree = !visit.price || visit.price === 0;
+
+        if (!isPurchased && !isAuthor && !isFree) {
+            return res.status(403).json({ 
+                success: false, 
+                error: 'Accesso negato. Devi acquistare questa visita dal Marketplace prima di poter iniziare il tour guidato.',
+                requiresPurchase: true,
+                visitId: visit._id
+            });
+        }
+
+        // Resolve museum geometry
+        let museum = visit.museum;
+        if (!museum) {
+            const Museum = require('../../models/Museum');
+            if (visit.museumId) {
+                museum = await Museum.findOne({ museumId: visit.museumId.toUpperCase() });
+            }
+            if (!museum) {
+                museum = await Museum.findOne();
+            }
         }
 
         res.json({
             success: true,
             visit: visit,
-            museum: visit.museum
+            museum: museum
         });
     } catch (e) {
         console.error("Error in tourData:", e);
         res.status(500).json({ success: false, error: e.message });
     }
 });
+
 
 /**
  * GET /api/v1/navigator/visits/get/:id

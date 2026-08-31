@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
 import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +14,30 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+// Haversine formula for exact distance calculation in kilometers
+function getHaversineDistanceKm(lat1, lon1, lat2, lon2) {
+  if (lat1 == null || lon1 == null || lat2 == null || lon2 == null) return null;
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatDistance(distKm) {
+  if (distKm == null || isNaN(distKm)) return "Distanza n/d";
+  if (distKm < 1) {
+    return `${Math.round(distKm * 1000)} m di distanza`;
+  }
+  return `${distKm.toFixed(1)} km di distanza`;
+}
 
 const createLocationIcon = (heading) => {
   return L.divIcon({
@@ -40,7 +64,7 @@ function LocationMarker({ position, heading }) {
 
   return position === null ? null : (
     <Marker position={position} icon={createLocationIcon(heading)}>
-      <Popup>You are here</Popup>
+      <Popup>La tua posizione attuale</Popup>
     </Marker>
   );
 }
@@ -63,13 +87,11 @@ export default function MapView() {
       try {
         setIsLoading(true);
         setApiError(null);
-        console.debug("[MapView] Fetching museums from API...");
         const response = await fetch('/api/v1/navigator/museums/get');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        console.debug("[MapView] Museums fetched:", data);
         if (data && data.length > 0) {
           setLiveMuseums(data);
         } else {
@@ -77,17 +99,13 @@ export default function MapView() {
         }
       } catch (error) {
         console.error("[MapView] Error fetching museums:", error);
-        setApiError("Errore di connessione al server. Impossibile caricare i musei.");
+        setApiError("Errore di connessione al server.");
       } finally {
         setIsLoading(false);
       }
     };
     fetchMuseums();
   }, []);
-
-  const filteredMuseums = liveMuseums.filter(museum =>
-    museum.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   useEffect(() => {
     let watchId;
@@ -104,14 +122,15 @@ export default function MapView() {
         },
         (err) => {
           console.warn(err.message);
-          setPosition(prev => prev || { lat: 45.4642, lng: 9.1900 });
-          setError("Could not get exact location. Using fallback.");
+          // Default to Bologna center if GPS unavailable
+          setPosition(prev => prev || { lat: 44.4975, lng: 11.3533 });
+          setError("Impossibile ottenere la posizione GPS esatta. Utilizzo coordinate di default.");
         },
         { enableHighAccuracy: true, maximumAge: 0 }
       );
     } else {
-      setPosition({ lat: 45.4642, lng: 9.1900 });
-      setError("Geolocation is not supported by your browser");
+      setPosition({ lat: 44.4975, lng: 11.3533 });
+      setError("Geolocalizzazione non supportata dal browser");
     }
 
     return () => {
@@ -119,10 +138,32 @@ export default function MapView() {
     };
   }, []);
 
+  // Compute exact real distances and sort by closest
+  const museumsWithDistances = useMemo(() => {
+    return liveMuseums.map(museum => {
+      const dist = position ? getHaversineDistanceKm(position.lat, position.lng, museum.lat, museum.lng) : null;
+      return {
+        ...museum,
+        distanceKm: dist,
+        distanceFormatted: formatDistance(dist)
+      };
+    }).sort((a, b) => {
+      if (a.distanceKm == null) return 1;
+      if (b.distanceKm == null) return -1;
+      return a.distanceKm - b.distanceKm;
+    });
+  }, [liveMuseums, position]);
+
+  const filteredMuseums = useMemo(() => {
+    return museumsWithDistances.filter(museum =>
+      museum.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (museum.city && museum.city.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [museumsWithDistances, searchTerm]);
+
   const handlePointerDown = (e) => {
     if (e.target.closest('.scroller-pull-handle')) {
       dragStartY.current = e.clientY;
-      // Prevent Leaflet from panning if we touched the handle
       e.stopPropagation();
     }
   };
@@ -133,10 +174,9 @@ export default function MapView() {
     dragStartY.current = null;
 
     if (Math.abs(deltaY) > 30) {
-      if (deltaY < -30) setShowScroller(false); // swipe down
-      if (deltaY > 30) setShowScroller(true);   // swipe up
+      if (deltaY < -30) setShowScroller(false);
+      if (deltaY > 30) setShowScroller(true);
     } else if (e.target.closest('.scroller-pull-handle')) {
-      // Tap toggle
       setShowScroller(!showScroller);
     }
   };
@@ -146,7 +186,7 @@ export default function MapView() {
   };
 
   if (!position) {
-    return <div className="map-loading">Loading Map...</div>;
+    return <div className="map-loading">Caricamento Mappa e Posizione...</div>;
   }
 
   return (
@@ -160,7 +200,7 @@ export default function MapView() {
       <div className="main-map-container">
         <MapContainer 
           center={position} 
-          zoom={13} 
+          zoom={14} 
           scrollWheelZoom={true} 
           className="leaflet-map-container"
           zoomControl={false}
@@ -173,28 +213,31 @@ export default function MapView() {
           <LocationMarker position={position} heading={heading} />
 
           {filteredMuseums.map((museum) => (
-            <Marker key={museum.id} position={[museum.lat, museum.lng]}>
+            <Marker key={museum.id || museum._id} position={[museum.lat, museum.lng]}>
               <Popup>
                 <div className="museum-popup">
                   <h4>{museum.name}</h4>
                   <div className="popup-meta">
                     <Star size={14} className="star-icon" fill="currentColor" />
-                    <span>{museum.rating}</span>
+                    <span>{museum.rating || 4.9}</span>
+                    <span style={{ marginLeft: '6px', fontSize: '0.75rem', color: '#666' }}>
+                      • {museum.distanceFormatted}
+                    </span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
                     <button
                       className="btn btn-primary"
-                      onClick={() => navigate(`/museum/${museum.id}`)}
+                      onClick={() => navigate(`/museum/${museum.id || museum._id}`)}
                       style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', flex: 1 }}
                     >
-                      <Landmark size={14} /> Explore
+                      <Landmark size={14} /> Esplora
                     </button>
                     <button
                       className="btn btn-secondary"
                       onClick={() => openGoogleMaps(museum.lat, museum.lng)}
                       style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', flex: 1 }}
                     >
-                      <Navigation size={14} /> Go
+                      <Navigation size={14} /> Indicazioni
                     </button>
                   </div>
                 </div>
@@ -204,7 +247,7 @@ export default function MapView() {
         </MapContainer>
       </div>
 
-      {/* Modern Swipeable Scrolling Museum List */}
+      {/* Modern Swipeable Scrolling Museum List Sorted by Real Distance */}
       <div 
         className={`museums-scroller-container ${showScroller ? '' : 'collapsed'}`}
         onPointerDown={handlePointerDown}
@@ -215,29 +258,29 @@ export default function MapView() {
         </div>
         <div className="scroller-content">
           <div className="scroller-header">
-            <h3>Popular Nearby</h3>
-            <span className="scroller-subtitle">Find your next visit</span>
+            <h3>Musei Vicini a Te</h3>
+            <span className="scroller-subtitle">Ordinati per distanza reale GPS</span>
           </div>
           <div className="museum-horizontal-list">
-            {liveMuseums.map(museum => (
+            {filteredMuseums.map(museum => (
               <div 
-                key={museum.id} 
+                key={museum.id || museum._id} 
                 className="museum-card-horizontal slide-in-bottom"
-                onClick={() => navigate(`/museum/${museum.id}`)}
+                onClick={() => navigate(`/museum/${museum.id || museum._id}`)}
                 style={{ cursor: 'pointer' }}
               >
                 <div className="museum-card-image">
                   <img src={museum.img} alt={museum.name} />
                   <div className="museum-card-rating">
                     <Star size={12} fill="currentColor" />
-                    {museum.rating}
+                    {museum.rating || 4.9}
                   </div>
                 </div>
                 <div className="museum-card-info">
                   <h4>{museum.name}</h4>
                   <div className="museum-card-meta">
                     <MapPin size={12} />
-                    <span>0.8 km away</span>
+                    <span>{museum.distanceFormatted}</span>
                   </div>
                 </div>
               </div>

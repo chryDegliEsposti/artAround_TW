@@ -3,89 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crea Visit</title>
+    <title>Crea Visita - ArtAround Marketplace</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
 </head>
 
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 min-h-screen flex flex-col" x-data="createVisitApp()" x-init="init()" x-cloak>
     <!-- Header-->
     <header class="bg-white shadow sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <i class="fas fa-palette text-white"></i>
+            <a href="/marketplace/homepage" class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <i class="fas fa-palette text-white text-sm"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-gray-800">Crea visite</h1>
+                <span class="text-xl font-bold text-gray-800 tracking-tight">ArtAround</span>
+            </a>
+            
+            <div class="flex items-center space-x-6">
+                <a href="/marketplace/homepage" class="text-gray-600 hover:text-purple-600 text-sm font-medium flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Dashboard
+                </a>
+                <a href="/marketplace/browseMarket" class="text-gray-600 hover:text-purple-600 text-sm font-medium">
+                    Marketplace
+                </a>
             </div>
         </div>
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 py-8" x-data="createVisitApp()" x-init="init()">
-        <!-- Back -->
-        <div class="mb-6">
-            <a href="/marketplace/homepage" class="text-purple-600 hover:text-purple-800 flex items-center">
-                <i class="fas fa-arrow-left mr-2"></i> Torna alla Homepage
-            </a>
-        </div>
-
+    <main class="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
         <!-- title & AI Generator Button -->
         <div class="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800 mb-2">Crea Nuova Visita</h1>
-                <p class="text-gray-600">Seleziona gli item dal catalogo o genera automaticamente un percorso su vincoli con l'AI.</p>
+                <h1 class="text-3xl font-extrabold text-gray-800 mb-1">Crea Nuovo Percorso Visita</h1>
+                <p class="text-gray-600 text-sm">Seleziona le opere d'arte, definisci la sequenza delle tappe e imposta il prezzo del tour.</p>
             </div>
-            <button type="button" @click="showAIModal = true" class="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-md flex items-center gap-2 transition shrink-0">
-                <i class="fas fa-wand-magic-sparkles"></i> Assistente AI: Genera su Vincoli
+            <button type="button" @click="showAIModal = true" class="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 shadow-md flex items-center gap-2 transition shrink-0 text-sm">
+                <i class="fas fa-wand-magic-sparkles"></i> Genera con AI su Vincoli
             </button>
         </div>
 
         <!-- AI Generator Modal -->
-        <div x-show="showAIModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" x-transition>
-            <div @click.away="showAIModal = false" class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl">
+        <div x-show="showAIModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" x-transition>
+            <div @click.away="showAIModal = false" class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl">
                 <div class="flex justify-between items-center mb-4">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
-                            <i class="fas fa-robot"></i>
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+                            <i class="fas fa-robot text-base"></i>
                         </div>
-                        <h3 class="text-lg font-bold text-gray-900">Generatore Visita su Vincoli AI</h3>
+                        <h3 class="text-lg font-bold text-gray-900">Assistente AI: Generatore Percorso</h3>
                     </div>
                     <button @click="showAIModal = false" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times"></i></button>
                 </div>
-                <p class="text-xs text-gray-500 mb-4">L'assistente AI selezionerà e ordinerà i migliori capolavori del museo generando step di navigazione logistica coerenti.</p>
+                <p class="text-xs text-gray-500 mb-4">L'assistente selezionerà le opere ottimali per la durata indicata e creerà il percorso logistico.</p>
 
                 <div class="space-y-4">
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Durata Desiderata</label>
-                        <select x-model="aiConstraints.duration" class="w-full border rounded-lg p-2.5 text-sm">
-                            <option value="30">30 Minuti (Tour Essenziale)</option>
+                        <select x-model="aiConstraints.duration" class="w-full border rounded-xl p-2.5 text-sm">
+                            <option value="30">30 Minuti (Tour Rapido)</option>
                             <option value="45">45 Minuti (Tour Completo)</option>
-                            <option value="60">60 Minuti (1 Ora - Approfondito)</option>
-                            <option value="90">90 Minuti (Specialistico)</option>
+                            <option value="60">60 Minuti (1 Ora Approfondita)</option>
                         </select>
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-gray-700 mb-1">Target / Livello di Conoscenza</label>
-                        <select x-model="aiConstraints.targetAudience" class="w-full border rounded-lg p-2.5 text-sm">
-                            <option value="medio">Turista / Visitatore Generale</option>
-                            <option value="infantile">Scolaresca / Ragazzi e Bambini</option>
-                            <option value="specialistico">Specialistico / Universitario</option>
+                        <select x-model="aiConstraints.targetAudience" class="w-full border rounded-xl p-2.5 text-sm">
+                            <option value="medio">Generale / Turista</option>
+                            <option value="infantile">Bambini / Ragazzi</option>
+                            <option value="specialistico">Specialistico / Esperti</option>
                         </select>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-gray-700 mb-1">Tema / Focus Artistico</label>
-                        <input type="text" x-model="aiConstraints.theme" class="w-full border rounded-lg p-2.5 text-sm" placeholder="es. I Grandi Capolavori della Pinacoteca">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Tema Focus</label>
+                        <input type="text" x-model="aiConstraints.theme" class="w-full border rounded-xl p-2.5 text-sm" placeholder="es. I Capolavori del Rinascimento">
                     </div>
                 </div>
 
                 <div class="mt-6 flex justify-end gap-3">
-                    <button type="button" @click="showAIModal = false" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-50">Annulla</button>
-                    <button type="button" @click="generateVisitWithAI" :disabled="isGeneratingAIVisit" class="px-5 py-2 bg-purple-600 text-white rounded-lg text-sm font-bold hover:bg-purple-700 flex items-center gap-2">
+                    <button type="button" @click="showAIModal = false" class="px-4 py-2 border rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50">Annulla</button>
+                    <button type="button" @click="generateVisitWithAI" :disabled="isGeneratingAIVisit" class="px-5 py-2 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700 flex items-center gap-2">
                         <i class="fas fa-wand-magic-sparkles" :class="isGeneratingAIVisit ? 'fa-spin' : ''"></i>
-                        <span x-text="isGeneratingAIVisit ? 'Generazione...' : 'Genera Percorso'"></span>
+                        <span x-text="isGeneratingAIVisit ? 'Generazione in corso...' : 'Genera Percorso'"></span>
                     </button>
                 </div>
             </div>
@@ -95,177 +99,187 @@
         <form @submit.prevent="saveVisit" class="space-y-6">
             
             <!-- Visit details -->
-            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Dettagli Visita</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
+                <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-purple-600"></i> Informazioni Generali del Percorso
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                     <div>
-                        <label class="block text-gray-700 mb-2 font-medium">Titolo Visita</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Museo di Riferimento <span class="text-red-500">*</span></label>
+                        <select x-model="selectedMuseumId" @change="loadItems()" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
+                            <template x-for="m in managedMuseums" :key="m._id">
+                                <option :value="m._id" x-text="m.name + ' (' + m.museumId + ')'"></option>
+                            </template>
+                            <template x-if="managedMuseums.length === 0">
+                                <option value="PIN-BO">Pinacoteca Nazionale di Bologna (PIN-BO)</option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Titolo Visita <span class="text-red-500">*</span></label>
                         <input 
                             type="text" 
                             x-model="visitTitle"
                             required
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                            placeholder="es. Tour Futurismo"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                            placeholder="es. Capolavori del Barocco Bolognese"
                         >
                     </div>
+
                     <div>
-                        <label class="block text-gray-700 mb-2 font-medium">Durata stimata</label>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Durata Stimata</label>
                         <select 
                             x-model="visitDuration"
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
                         >
                             <option value="30">30 minuti</option>
+                            <option value="45">45 minuti</option>
                             <option value="60">1 ora</option>
                             <option value="90">1.5 ore</option>
                             <option value="120">2 ore</option>
-                            <option value="180">3+ ore</option>
                         </select>
                     </div>
-                </div>
-                <div class="mt-4">
-                    <label class="block text-gray-700 mb-2 font-medium">Descrizione (opzionale)</label>
-                    <textarea 
-                        x-model="visitDescription"
-                        rows="3"
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        placeholder="Descrivi brevemente la visita..."
-                    ></textarea>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Prezzo (€)</label>
+                        <input 
+                            type="number" 
+                            step="0.5"
+                            min="0"
+                            x-model="visitPrice"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                            placeholder="0 per gratuita"
+                        >
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Livello di Conoscenza</label>
+                        <select x-model="knowledgeLevel" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm">
+                            <option value="infantile">Bambini / Scolaresche</option>
+                            <option value="medio">Generale</option>
+                            <option value="specialistico">Specialistico / Critica d'Arte</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Target</label>
+                        <input type="text" x-model="targetAudience" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm" placeholder="es. Tutti, Famiglie, Studenti">
+                    </div>
+
+                    <div class="md:col-span-3">
+                        <label class="block text-xs font-bold text-gray-700 mb-1">Descrizione</label>
+                        <textarea 
+                            x-model="visitDescription"
+                            rows="2"
+                            class="w-full px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-sm"
+                            placeholder="Descrivi l'itinerario e i temi affrontati durante il tour..."
+                        ></textarea>
+                    </div>
                 </div>
             </div>
 
-            <!-- cols: Items list and Visit -->
+            <!-- Catalogo Items e Percorso Visita -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
-                <!-- LEFT COL: Items catalogue -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
+                <!-- Catalogo Items -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-gray-800">Catalogo Item</h2>
-                        <span class="text-sm bg-purple-100 text-purple-600 px-3 py-1 rounded-full" x-text="`${items.length} item disponibili`"></span>
+                        <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-boxes-stacked text-indigo-500"></i> Opere Disponibili
+                        </h2>
+                        <span class="text-xs bg-purple-100 text-purple-700 font-semibold px-2.5 py-1 rounded-full" x-text="`${items.length} disponibili`"></span>
                     </div>
                     
-                    <!-- Filters -->
-                    <div class="mb-4 flex space-x-2">
+                    <div class="mb-4">
                         <input 
                             type="text" 
                             x-model="searchTerm"
-                            placeholder="Cerca item..."
-                            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            placeholder="Filtra opere per nome o descrizione..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 text-xs"
                         >
-                        <select x-model="filterType" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="all">Tutti</option>
-                            <option value="short">Brevi (≤15s)</option>
-                            <option value="medium">Medi (≤40s)</option>
-                            <option value="long">Lunghi (>40s)</option>
-                        </select>
                     </div>
 
                     <!-- Items list -->
-                    <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                    <div class="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                         <template x-for="item in filteredItems" :key="item._id">
-                            <div class="bg-gray-50 rounded-lg p-4 hover:shadow-md transition-shadow border border-gray-200">
-                                <div class="flex justify-between items-start">
-                                    <div class="flex-1">
-                                        <h3 class="font-semibold text-gray-800" x-text="item.title || 'Senza titolo'"></h3>
-                                        <p class="text-sm text-gray-600 mt-1 line-clamp-2" x-text="item.description || 'Nessuna descrizione'"></p>
-                                        <div class="flex items-center space-x-3 mt-2 text-xs">
-                                            <span class="bg-blue-100 text-blue-600 px-2 py-1 rounded">
-                                                <i class="far fa-clock mr-1"></i>
-                                                <span x-text="item.duration || '?'"></span>s
-                                            </span>
-                                            <span class="bg-green-100 text-green-600 px-2 py-1 rounded">
-                                                <i class="fas fa-tag mr-1"></i>
-                                                <span x-text="item.language || 'it'"></span>
-                                            </span>
-                                            <span class="bg-purple-100 text-purple-600 px-2 py-1 rounded">
-                                                <i class="fas fa-museum mr-1"></i>
-                                                <span x-text="item.museumId || '?'"></span>
-                                            </span>
-                                        </div>
+                            <div class="bg-gray-50 rounded-2xl p-3 hover:bg-purple-50/40 border border-gray-100 transition flex justify-between items-center gap-3">
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-gray-800 text-sm truncate" x-text="item.title || 'Opera'"></h3>
+                                    <p class="text-xs text-gray-500 truncate" x-text="item.description || 'Nessuna descrizione'"></p>
+                                    <div class="flex items-center gap-2 mt-1 text-[11px] text-gray-500">
+                                        <span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded" x-text="item.length || '15s'"></span>
+                                        <span class="capitalize" x-text="item.languageLevel || 'medio'"></span>
                                     </div>
-                                    <button 
-                                        @click="addItemToVisit(item)"
-                                        class="ml-2 w-8 h-8 bg-purple-600 text-white rounded-full hover:bg-purple-700 flex items-center justify-center flex-shrink-0"
-                                        title="Aggiungi alla visita"
-                                    >
-                                        <i class="fas fa-plus"></i>
-                                    </button>
                                 </div>
+                                <button 
+                                    type="button"
+                                    @click="addItemToVisit(item)"
+                                    class="w-8 h-8 bg-purple-600 text-white rounded-xl hover:bg-purple-700 flex items-center justify-center flex-shrink-0 shadow transition"
+                                    title="Aggiungi al percorso"
+                                >
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
                             </div>
                         </template>
                         
-                        <!-- No items found msg -->
-                        <div x-show="filteredItems.length === 0" class="text-center py-8 text-gray-500">
-                            <i class="fas fa-box-open text-4xl mb-2 opacity-50"></i>
-                            <p>Nessun item trovato</p>
+                        <div x-show="filteredItems.length === 0" class="text-center py-10 text-gray-400 text-xs">
+                            <i class="fas fa-box-open text-2xl mb-1 block"></i>
+                            Nessun elemento disponibile per questo museo.
                         </div>
                     </div>
                 </div>
 
-                <!-- RIGHT COL: Visit creation -->
-                <div class="bg-white rounded-xl shadow-lg p-6">
+                <!-- Tappe del Percorso -->
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
                     <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold text-gray-800">La tua Visita</h2>
-                        <span class="text-sm bg-green-100 text-green-600 px-3 py-1 rounded-full" x-text="`${visitItems.length} tappe`"></span>
+                        <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-route text-green-500"></i> Sequenza Tappe Tour
+                        </h2>
+                        <span class="text-xs bg-green-100 text-green-700 font-semibold px-2.5 py-1 rounded-full" x-text="`${visitItems.length} tappe`"></span>
                     </div>
 
-                    <!-- Lista vuota o con item -->
-                    <div x-show="visitItems.length === 0" class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
-                        <i class="fas fa-arrow-left text-4xl text-gray-400 mb-2"></i>
-                        <p class="text-gray-500">Clicca il <span class="text-purple-600">+</span> sugli item per aggiungerli alla visita</p>
-                        <p class="text-sm text-gray-400 mt-2">Puoi riordinarli con le frecce o trascinandoli</p>
+                    <div x-show="visitItems.length === 0" class="text-center py-16 border-2 border-dashed border-gray-200 rounded-2xl">
+                        <i class="fas fa-map-pin text-3xl text-gray-300 mb-2 block"></i>
+                        <p class="text-xs text-gray-500 font-medium">Clicca sul pulsante <span class="text-purple-600 font-bold">+</span> per aggiungere le tappe alla visita</p>
                     </div>
 
-                    <!-- Lista item della visita (con SortableJS) -->
                     <div x-show="visitItems.length > 0">
-                        <div class="mb-3 flex justify-between items-center text-sm text-gray-600">
-                            <span><i class="fas fa-grip-vertical mr-1"></i> Trascina per riordinare</span>
-                            <span><i class="far fa-clock mr-1"></i> Durata totale: <span x-text="totalDuration"></span>s</span>
-                        </div>
-                        
-                        <div id="visit-items-list" class="space-y-3 max-h-[500px] overflow-y-auto pr-2">
+                        <div id="visit-items-list" class="space-y-2.5 max-h-[460px] overflow-y-auto pr-1">
                             <template x-for="(item, index) in visitItems" :key="item._id">
-                                <div class="bg-purple-50 rounded-lg p-4 border border-purple-200 cursor-move" :data-id="item._id">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex items-center space-x-3 flex-1">
-                                            <span class="w-6 h-6 bg-purple-600 text-white rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" x-text="index + 1"></span>
-                                            <div class="flex-1">
-                                                <h3 class="font-semibold text-gray-800" x-text="item.title || 'Senza titolo'"></h3>
-                                                <div class="flex items-center space-x-2 mt-1 text-xs">
-                                                    <span class="bg-blue-100 text-blue-600 px-2 py-0.5 rounded">
-                                                        <i class="far fa-clock mr-1"></i><span x-text="item.duration || '?'"></span>s
-                                                    </span>
-                                                    <span class="bg-green-100 text-green-600 px-2 py-0.5 rounded">
-                                                        <i class="fas fa-tag mr-1"></i><span x-text="item.language || 'it'"></span>
-                                                    </span>
-                                                </div>
-                                            </div>
+                                <div class="bg-purple-50/60 rounded-2xl p-3 border border-purple-100 flex justify-between items-center gap-3 cursor-move" :data-id="item._id">
+                                    <div class="flex items-center space-x-3 flex-1 min-w-0">
+                                        <span class="w-6 h-6 bg-purple-600 text-white rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0" x-text="index + 1"></span>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-bold text-gray-800 text-sm truncate" x-text="item.title || 'Opera'"></h3>
+                                            <p class="text-[11px] text-gray-500 truncate" x-text="item.length || '15s'"></p>
                                         </div>
-                                        <div class="flex items-center space-x-2 ml-2">
-                                            <!-- Frecce per ordinamento manuale -->
-                                            <button 
-                                                @click="moveItem(index, 'up')" 
-                                                x-show="index > 0"
-                                                class="w-7 h-7 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 flex items-center justify-center"
-                                                title="Sposta su"
-                                            >
-                                                <i class="fas fa-chevron-up text-xs"></i>
-                                            </button>
-                                            <button 
-                                                @click="moveItem(index, 'down')" 
-                                                x-show="index < visitItems.length - 1"
-                                                class="w-7 h-7 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 flex items-center justify-center"
-                                                title="Sposta giù"
-                                            >
-                                                <i class="fas fa-chevron-down text-xs"></i>
-                                            </button>
-                                            <button 
-                                                @click="removeItemFromVisit(index)"
-                                                class="w-7 h-7 bg-red-100 text-red-600 rounded hover:bg-red-200 flex items-center justify-center"
-                                                title="Rimuovi"
-                                            >
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-1">
+                                        <button 
+                                            type="button"
+                                            @click="moveItem(index, 'up')" 
+                                            x-show="index > 0"
+                                            class="w-7 h-7 bg-white text-gray-600 rounded-lg hover:bg-gray-100 flex items-center justify-center text-xs border"
+                                        >
+                                            <i class="fas fa-chevron-up"></i>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="moveItem(index, 'down')" 
+                                            x-show="index < visitItems.length - 1"
+                                            class="w-7 h-7 bg-white text-gray-600 rounded-lg hover:bg-gray-100 flex items-center justify-center text-xs border"
+                                        >
+                                            <i class="fas fa-chevron-down"></i>
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            @click="removeItemFromVisit(index)"
+                                            class="w-7 h-7 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 flex items-center justify-center text-xs"
+                                        >
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     </div>
                                 </div>
                             </template>
@@ -274,26 +288,25 @@
                 </div>
             </div>
 
-            <!-- Final btns -->
-            <div class="flex justify-end space-x-4 mt-6">
-                <a href="/marketplace/homepage" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+            <!-- Submit buttons -->
+            <div class="flex justify-end space-x-4 pt-4 border-t">
+                <a href="/marketplace/homepage" class="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-xl text-sm hover:bg-gray-50">
                     Annulla
                 </a>
                 <button 
                     type="submit" 
-                    :disabled="!visitTitle || visitItems.length === 0"
-                    class="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-bold rounded-lg hover:shadow-lg transition-shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!visitTitle || visitItems.length === 0 || loading"
+                    class="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl text-sm hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                    <i class="fas fa-save mr-2"></i>
-                    Salva Visita
+                    <i class="fas fa-save"></i>
+                    <span x-text="loading ? 'Salvataggio...' : 'Pubblica Percorso Visita'"></span>
                 </button>
             </div>
         </form>
     </main>
 
-    <!-- FOOTER -->
     <footer class="bg-gray-800 text-white py-8 mt-12">
-        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400">
             <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
         </div>
     </footer>
@@ -301,35 +314,85 @@
     <script>
         function createVisitApp() {
             return {
-                // --- FORM STATES ---
-                // User data
                 user: null,
-                museumId: null,
+                managedMuseums: [],
+                selectedMuseumId: '',
                 
-                // Form fields
                 visitTitle: '',
                 visitDescription: '',
                 visitDuration: '60',
+                visitPrice: 0,
+                knowledgeLevel: 'medio',
+                targetAudience: 'Tutti',
                 
-                // AI Visit Generation States
                 showAIModal: false,
                 isGeneratingAIVisit: false,
                 aiConstraints: {
                     duration: '45',
                     targetAudience: 'medio',
-                    theme: 'I Grandi Capolavori della Pinacoteca'
+                    theme: 'I Grandi Capolavori del Museo'
                 },
 
-                // Data
-                items: [], // Tutti gli item dal DB
-                visitItems: [], // Item selezionati per la visita
-                
-                // Filtri
+                items: [],
+                visitItems: [],
                 searchTerm: '',
-                filterType: 'all',
-                
-                // Loading states
                 loading: false,
+
+                async init() {
+                    const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+                    if (!userData.role) {
+                        window.location.href = '/marketplace/login';
+                        return;
+                    }
+                    if (userData.role !== 'creator') {
+                        alert("Accesso limitato: solo gli utenti con ruolo Creatore possono creare percorsi di visita.");
+                        window.location.href = '/marketplace/homepage';
+                        return;
+                    }
+                    this.user = userData;
+                    
+                    await this.loadManagedMuseums();
+                    await this.loadItems();
+                    this.initSortable();
+                },
+
+                async loadManagedMuseums() {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/museums/getManaged', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.managedMuseums = json.data || [];
+                            if (this.managedMuseums.length > 0) {
+                                this.selectedMuseumId = this.managedMuseums[0]._id;
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Errore caricamento musei gestiti:", e);
+                    }
+                },
+                
+                async loadItems() {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const url = this.selectedMuseumId 
+                            ? `/api/v1/marketplace/create/searchItems?museumId=${this.selectedMuseumId}`
+                            : `/api/v1/marketplace/create/searchItems`;
+
+                        const response = await fetch(url, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.items = data.data.items || [];
+                        }
+                    } catch (error) {
+                        console.error('Errore caricamento items:', error);
+                    }
+                },
 
                 async generateVisitWithAI() {
                     this.isGeneratingAIVisit = true;
@@ -341,81 +404,34 @@
                                 duration: Number(this.aiConstraints.duration),
                                 targetAudience: this.aiConstraints.targetAudience,
                                 theme: this.aiConstraints.theme,
-                                museumId: this.museumId || 'PIN-BO'
+                                museumId: this.selectedMuseumId || 'PIN-BO'
                             })
                         });
                         const data = await res.json();
                         if (data && data.title) {
                             this.visitTitle = data.title;
                             this.visitDescription = data.description;
-                            this.visitDuration = data.duration.toString();
+                            this.visitDuration = data.duration ? data.duration.toString() : '45';
                             
-                            // Select matching items in the catalog
                             if (data.items && data.items.length > 0) {
                                 const selected = [];
                                 data.items.forEach(itemId => {
-                                    const match = this.items.find(it => it._id === itemId || it._id?.toString() === itemId?.toString());
+                                    const match = this.items.find(it => it._id === itemId || it.artworkId === itemId);
                                     if (match) selected.push(match);
                                 });
-                                this.visitItems = selected.length > 0 ? selected : this.items.slice(0, 6);
+                                this.visitItems = selected.length > 0 ? selected : this.items.slice(0, 5);
                             } else {
-                                this.visitItems = this.items.slice(0, 6);
+                                this.visitItems = this.items.slice(0, 5);
                             }
 
                             this.showAIModal = false;
-                            alert(`✨ Percorso "${data.title}" generato con successo dall'AI!`);
+                            alert(`✨ Percorso "${data.title}" generato con successo!`);
                         }
                     } catch (e) {
                         console.error("AI Visit Generation Error:", e);
                         alert("Impossibile generare la visita con AI al momento.");
                     } finally {
                         this.isGeneratingAIVisit = false;
-                    }
-                },
-                
-                //--- INIT(called by x-init) ---
-                async init() {
-                    const userData = localStorage.getItem('user');
-                 
-                    if (userData) {
-                        this.user = JSON.parse(userData);
-                        this.museumId = this.user.museumId;
-                        
-                        console.log('User:', this.museumId);
-
-                        if (!this.museumId) {
-                            alert('Errore: Museo non associato al profilo');
-                            //window.location.href = '/marketplace/dashboard';
-                            return;
-                        }
-                        
-                        // Carica gli item del museo
-                        await this.loadItems();
-                        
-                        // Inizializza SortableJS per drag & drop
-                        this.initSortable();
-                    } else {
-                        window.location.href = '/marketplace/login';
-                    }
-                },
-                
-                async loadItems() {
-                    try {
-                        const token = localStorage.getItem('apiToken');
-                        const response = await fetch(`/api/v1/marketplace/create/searchItems?museumId=${this.museumId}`, {
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            }
-                        });
-                        
-                        if (response.ok) {
-                            const data = await response.json();
-                            this.items = data.data.items || [];
-                        } else {
-                            console.error('Errore nel caricamento items');
-                        }
-                    } catch (error) {
-                        console.error('Errore:', error);
                     }
                 },
                 
@@ -427,7 +443,6 @@
                                 animation: 150,
                                 handle: '.cursor-move',
                                 onEnd: (evt) => {
-                                    // Riordina l'array visitItems in base al nuovo ordine DOM
                                     const newOrder = [];
                                     const items = list.children;
                                     for (let i = 0; i < items.length; i++) {
@@ -442,34 +457,15 @@
                     });
                 },
                 
-                // Getter per item filtrati
                 get filteredItems() {
                     return this.items.filter(item => {
-                        // Filtro per search
                         const matchesSearch = !this.searchTerm || 
                             (item.title && item.title.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
                             (item.description && item.description.toLowerCase().includes(this.searchTerm.toLowerCase()));
                         
-                        // Filtro per durata
-                        let matchesType = true;
-                        if (this.filterType === 'short') {
-                            matchesType = (item.duration || 999) <= 15;
-                        } else if (this.filterType === 'medium') {
-                            matchesType = (item.duration || 999) <= 40;
-                        } else if (this.filterType === 'long') {
-                            matchesType = (item.duration || 0) > 40;
-                        }
-                        
-                        // Escludi item già aggiunti
                         const notInVisit = !this.visitItems.some(visitItem => visitItem._id === item._id);
-                        
-                        return matchesSearch && matchesType && notInVisit;
+                        return matchesSearch && notInVisit;
                     });
-                },
-                
-                // Durata totale visita
-                get totalDuration() {
-                    return this.visitItems.reduce((total, item) => total + (item.duration || 0), 0);
                 },
                 
                 addItemToVisit(item) {
@@ -495,15 +491,17 @@
                 async saveVisit() {
                     try {
                         this.loading = true;
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
                         
-                        const token = localStorage.getItem('apiToken');
                         const visitData = {
                             title: this.visitTitle,
                             description: this.visitDescription,
                             duration: parseInt(this.visitDuration),
-                            museumId: this.museumId,
-                            items: this.visitItems.map(item => item._id), // Solo gli ID nell'ordine corretto
-                            createdBy: this.user.id,
+                            price: Number(this.visitPrice) || 0,
+                            knowledgeLevel: this.knowledgeLevel,
+                            targetAudience: this.targetAudience,
+                            museumId: this.selectedMuseumId,
+                            items: this.visitItems.map(item => item._id),
                             status: 'published'
                         };
                         
@@ -517,10 +515,8 @@
                         });
                         
                         if (response.ok) {
-                            const data = await response.json();
-                            alert('Visita creata con successo!');
+                            alert('Visita creata con successo nel Marketplace!');
                             window.location.href = "/marketplace/homepage";
-
                         } else {
                             const error = await response.json();
                             alert('Errore: ' + (error.message || 'Impossibile creare la visita'));

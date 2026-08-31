@@ -1,143 +1,173 @@
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Museum join</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    </head>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unisciti a un Museo - ArtAround</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans" x-data="joinMuseumSearch()" x-init="init()" x-cloak>
     
-    <body class="bg-gray-50 min-h-screen flex flex-col">
-        <main class="max-w-4xl mx-auto px-4 py-12 flex-grow" x-data="joinMuseumSearch()">
-            <div class="mb-6">
-                <a href="/marketplace/homepage" class="text-purple-600 hover:text-purple-800 flex items-center">
-                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Homepage
+    <!-- NAVBAR -->
+    <header class="bg-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/marketplace/homepage" class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <i class="fas fa-palette text-white text-sm"></i>
+                </div>
+                <span class="text-xl font-bold text-gray-800 tracking-tight">ArtAround</span>
+            </a>
+
+            <div class="flex items-center space-x-6">
+                <a href="/marketplace/homepage" class="text-gray-600 hover:text-purple-600 text-sm font-medium flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Dashboard
                 </a>
             </div>
-            
-            <div class="bg-white rounded-2xl shadow-xl p-8">
-                <h2 class="text-2xl font-bold text-gray-800 mb-2 italic">Trova la tua Struttura</h2>
-                <p class="text-gray-500 mb-8">Cerca un museo esistente per collaborare alla creazione di contenuti.</p>
+        </div>
+    </header>
 
-                <div class="flex flex-col md:flex-row gap-0 mb-10 group">
-                    <select x-model="searchField" 
-                        class="bg-gray-100 border-2 border-transparent rounded-t-2xl md:rounded-l-2xl md:rounded-tr-none px-6 py-4 font-bold text-purple-700 outline-none focus:border-purple-500 transition-all cursor-pointer">
-                        <option value="name">Nome Museo</option>
-                        <option value="museumId">Codice Identificativo</option>
-                    </select>
+    <main class="max-w-4xl mx-auto px-4 py-10 flex-1 w-full">
+        <div class="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+            <div class="mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-semibold uppercase tracking-wider mb-2">
+                    <i class="fas fa-handshake"></i> Collaborazioni
+                </div>
+                <h2 class="text-3xl font-extrabold text-gray-800 mb-1">Trova una Struttura Museale</h2>
+                <p class="text-gray-500 text-sm">Cerca un museo esistente per richiedere l'accesso e collaborare alla creazione di percorsi e opere.</p>
+            </div>
 
-                    <div class="relative flex-1">
-                        <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-purple-500 transition-colors"></i>
-                        <input type="text" 
-                            x-model="query" 
-                            @input.debounce.400ms="search"
-                            :placeholder="searchField === 'name' ? 'Digita il nome (es: Uffizi...)' : 'Digita il codice(es: MUCIV-01)'"
-                            class="w-full pl-10 pr-14 py-4 bg-gray-50 rounded-b-2xl md:rounded-r-2xl md:rounded-bl-none border-2 border-transparent focus:border-purple-500 focus:bg-white outline-none transition-all text-sm md:text-lg shadow-inner"
-                        >
-                    </div>
+            <!-- Search box -->
+            <div class="flex flex-col md:flex-row gap-0 mb-8 border border-gray-200 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-purple-500 transition shadow-sm">
+                <select x-model="searchField" 
+                    class="bg-gray-50 px-5 py-3.5 font-bold text-sm text-purple-700 outline-none border-b md:border-b-0 md:border-r border-gray-200 cursor-pointer">
+                    <option value="name">Nome Museo</option>
+                    <option value="museumId">Codice Identificativo</option>
+                </select>
+
+                <div class="relative flex-1">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" 
+                        x-model="query" 
+                        @input.debounce.400ms="search"
+                        :placeholder="searchField === 'name' ? 'Cerca per nome (es: Pinacoteca, Uffizi...)' : 'Cerca per codice (es: PIN-BO, UFF-FI...)'"
+                        class="w-full pl-11 pr-4 py-3.5 bg-white text-sm outline-none"
+                    >
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="space-y-3">
+                <div x-show="loading" class="text-center py-10 text-purple-600">
+                    <i class="fas fa-spinner fa-spin text-3xl"></i>
+                    <p class="text-xs text-gray-500 mt-2 font-medium">Ricerca in corso...</p>
                 </div>
 
-                <div class="space-y-4">
-                    <template x-if="loading">
-                        <div class="text-center py-10"><i class="fas fa-spinner animate-spin text-3xl text-purple-600"></i></div>
-                    </template>
-
-                    <template x-for="museum in results" :key="museum._id">
-                        <div class="flex items-center justify-between p-4 border rounded-xl hover:bg-purple-50 transition group">
-                            <div class="flex items-center space-x-4">
-                                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
-                                    <i class="fas fa-university"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-800" x-text="museum.name"></h4>
-                                    <p class="text-sm text-gray-500" x-text="museum.city"></p>
-                                </div>
+                <template x-for="museum in results" :key="museum._id">
+                    <div class="flex items-center justify-between p-4 rounded-2xl border border-gray-100 bg-gray-50/50 hover:bg-purple-50/50 hover:border-purple-200 transition gap-4">
+                        <div class="flex items-center space-x-4 min-w-0">
+                            <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 text-lg flex-shrink-0 shadow-inner">
+                                <i class="fas fa-university"></i>
                             </div>
-                            <button @click="requestJoin(museum._id)" 
-                                class="bg-white border-2 border-purple-600 text-purple-600 px-4 py-2 rounded-lg font-bold hover:bg-purple-600 hover:text-white transition">
-                                Richiedi Accesso
-                            </button>
+                            <div class="min-w-0">
+                                <h4 class="font-bold text-gray-800 text-base truncate" x-text="museum.name"></h4>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <span x-text="museum.city || 'Italia'"></span> • 
+                                    <span class="font-mono text-purple-600 font-bold" x-text="museum.museumId"></span>
+                                </p>
+                            </div>
                         </div>
-                    </template>
+                        <button @click="requestJoin(museum._id, museum.name)" 
+                            class="bg-purple-600 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-purple-700 shadow-md transition flex items-center gap-1.5 flex-shrink-0">
+                            <i class="fas fa-paper-plane"></i> Richiedi Accesso
+                        </button>
+                    </div>
+                </template>
 
-                    <template x-if="query.length > 2 && results.length === 0 && !loading">
-                        <div class="text-center py-10 text-gray-500 italic">Nessun museo trovato con questo nome.</div>
-                    </template>
+                <div x-show="!loading && results.length === 0" class="text-center py-12 text-gray-400 text-xs">
+                    <i class="fas fa-search text-3xl mb-2 block"></i>
+                    Nessun museo trovato. Prova con una parola chiave diversa o il codice identificativo.
                 </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <!-- FOOTER -->
-        <footer class="bg-gray-800 text-white py-8 mt-12">
-            <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
-                <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
-            </div>
-        </footer>
-        
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
 
-        <script>
-            function joinMuseumSearch() {
-                return {
-                    query: '',
-                    searchField: 'name', // Default: ricerca per nome
-                    results: [],
-                    loading: false,
+    <script>
+        function joinMuseumSearch() {
+            return {
+                query: '',
+                searchField: 'name',
+                results: [],
+                loading: false,
 
-                    async search() {
-                        // Iniziamo la ricerca solo dopo 3 caratteri per non intasare il server
-                        if (this.query.length < 3) {
-                            this.results = [];
-                            return;
-                        }
+                async init() {
+                    const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+                    if (userData.role !== 'creator') {
+                        alert("Accesso riservato ai creatori.");
+                        window.location.href = '/marketplace/homepage';
+                        return;
+                    }
+                    await this.search();
+                },
 
-                        this.loading = true;
-                        try {
-                            // Passiamo q (valore) e field (nome o codice) alla tua API
-                            const url = `/api/v1/marketplace/museums/search?q=${encodeURIComponent(this.query)}&field=${this.searchField}`;
-                            const response = await fetch(url, {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('apiToken')}` }
-                            });
-                            
-                            if (!response.ok) throw new Error('Errore nella ricerca');
-                            
+                async search() {
+                    this.loading = true;
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const url = `/api/v1/marketplace/museums/search?q=${encodeURIComponent(this.query)}&field=${this.searchField}`;
+                        const response = await fetch(url, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        
+                        if (response.ok) {
                             const data = await response.json();
                             this.results = data.data || [];
-                        } catch (err) {
-                            console.error("Errore:", err);
-                            this.results = [];
-                        } finally {
-                            this.loading = false;
                         }
-                    },
+                    } catch (err) {
+                        console.error("Errore ricerca museo:", err);
+                        this.results = [];
+                    } finally {
+                        this.loading = false;
+                    }
+                },
 
-                    async requestJoin(museum) {
-                        if (!confirm(`Vuoi richiedere l'accesso per collaborare con "${museum}"?`)) return;
+                async requestJoin(museumId, museumName) {
+                    if (!confirm(`Vuoi inviare una richiesta di collaborazione per "${museumName}"?`)) return;
 
-                        try {
-                            const response = await fetch(`/api/v1/marketplace/museums/join/${museum}`, {
-                                method: 'POST',
-                                headers: { 
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
-                                }
-                            });
-
-                            if (response.ok) {
-                                alert('Richiesta inviata con successo! Riceverai una notifica quando verrai approvato.');
-                                window.location.href = '/marketplace/homepage';
-
-                            } else {
-                                const err = await response.json();
-                                alert(err.message || 'Errore nell\'invio della richiesta');
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const response = await fetch(`/api/v1/marketplace/museums/join/${museumId}`, {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
                             }
-                        } catch (err) {
-                            alert('Errore di connessione al server.');
+                        });
+
+                        const resData = await response.json();
+                        if (response.ok) {
+                            alert('Richiesta inviata con successo! Riceverai una notifica quando il proprietario approverà la richiesta.');
+                            window.location.href = '/marketplace/homepage';
+                        } else {
+                            alert(resData.message || 'Errore nell\'invio della richiesta');
                         }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Errore di connessione al server.');
                     }
                 }
             }
-        </script>
-
-    </body>
+        }
+    </script>
+</body>
 </html>

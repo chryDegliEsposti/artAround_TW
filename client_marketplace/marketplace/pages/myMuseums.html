@@ -1,147 +1,207 @@
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My museums</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    </head>
-    <body>
-        <main class="max-w-5xl mx-auto px-4 py-12" x-data="myMuseumsManager()">
-           
-            <h2 class="text-3xl font-bold text-gray-800 italic">I Miei Musei</h2>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I Miei Musei - ArtAround</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col font-sans" x-data="myMuseumsManager()" x-init="init()" x-cloak>
     
-            <div class="space-y-4">
-                <template x-for="museum in museums" :key="museum._id">
-                    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                        <div class="p-5 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition"
-                            @click="museum.creator === userId ? toggleMuseum(museum._id) : null">
-                            <div class="flex items-center space-x-4">
-                                <div :class="museum.creator === userId ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'" 
-                                    class="w-12 h-12 rounded-xl flex items-center justify-center">
-                                    <i class="fas fa-university text-xl"></i>
-                                </div>
-                                <div>
-                                    <h4 class="font-bold text-gray-800 text-lg" x-text="museum.name"></h4>
-                                    <p class="text-xs text-gray-400 uppercase tracking-tighter" 
-                                    x-text="museum.creator === userId ? '👑 Proprietario' : '👥 Collaboratore'"></p>
-                                </div>
+    <!-- NAVBAR -->
+    <header class="bg-white shadow sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <a href="/marketplace/homepage" class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <i class="fas fa-palette text-white text-sm"></i>
+                </div>
+                <span class="text-xl font-bold text-gray-800 tracking-tight">ArtAround</span>
+            </a>
+
+            <div class="flex items-center space-x-6">
+                <a href="/marketplace/homepage" class="text-gray-600 hover:text-purple-600 text-sm font-medium flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Dashboard
+                </a>
+                <a href="/marketplace/homepage/newMuseum" class="text-purple-600 hover:text-purple-800 text-sm font-bold flex items-center">
+                    <i class="fas fa-plus mr-1"></i> Nuovo Museo
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-10 flex-1 w-full">
+        <div class="mb-8 flex justify-between items-center flex-wrap gap-4">
+            <div>
+                <h1 class="text-3xl font-extrabold text-gray-800 mb-1">Le Tue Strutture e Collaborazioni</h1>
+                <p class="text-gray-500 text-sm">Gestisci i musei di cui sei proprietario, approva le richieste di collaborazione e modifica le piantine.</p>
+            </div>
+            <a href="/marketplace/homepage/newMuseum" class="px-5 py-2.5 bg-purple-600 text-white font-bold rounded-xl text-sm hover:bg-purple-700 shadow flex items-center gap-2">
+                <i class="fas fa-plus"></i> Registra Altro Museo
+            </a>
+        </div>
+
+        <div class="space-y-4">
+            <template x-for="museum in museums" :key="museum._id">
+                <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="p-6 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition"
+                         @click="isCreator(museum) ? toggleMuseum(museum._id) : null">
+                        <div class="flex items-center space-x-4">
+                            <div :class="isCreator(museum) ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'" 
+                                class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-inner flex-shrink-0">
+                                <i class="fas fa-university"></i>
                             </div>
-                            
-                            <!-- Icons at the end of each museum entry card -->
-                            <div class="flex items-center space-x-4">
-                                <!-- requests number-->
-                                <template x-if="museum.creator === userId && museum.pendingRequests && museum.pendingRequests.length > 0">
-                                    <span class="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-full animate-bounce" 
-                                        x-text="museum.pendingRequests.length + ' richieste'"></span>
-                                </template>
-                                <!-- click-to-open indicator-->
-                                <template x-if="museum.creator === userId">
-                                    <i class="fas fa-chevron-down text-gray-300 transition-transform" 
-                                    :class="openMuseum === museum._id ? 'rotate-180' : ''"></i>
-                                </template>
+                            <div>
+                                <h4 class="font-bold text-gray-800 text-lg" x-text="museum.name"></h4>
+                                <p class="text-xs text-gray-500 mt-0.5">
+                                    <span class="font-semibold" x-text="museum.city || 'Italia'"></span> • 
+                                    <span class="font-mono text-purple-600 font-bold" x-text="museum.museumId"></span> • 
+                                    <span class="font-medium" x-text="isCreator(museum) ? '👑 Proprietario' : '👥 Collaboratore'"></span>
+                                </p>
                             </div>
                         </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <a :href="'/navigator/editor?lat=' + (museum.latitude || 44.4975) + '&lng=' + (museum.longitude || 11.3533)" 
+                               @click.stop
+                               class="text-xs bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-700 hidden sm:inline-flex items-center gap-1.5 shadow-sm">
+                                <i class="fas fa-drafting-compass"></i> Piantina
+                            </a>
 
-                        <!-- On click museum info card opening -->
-                        <div x-show="openMuseum === museum._id" x-cloak class="bg-gray-50 border-t border-gray-100">
-                            <div class="p-6">
-                                <h5 class="text-sm font-black text-gray-400 uppercase mb-4">Richieste di Collaborazione</h5>
-                                
-                                <div class="space-y-3">
-                                    <template x-for="req in museum.pendingRequests" :key="req._id">
-                                        <div class="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
-                                            <!-- requesting user info-->
-                                            <div class="flex items-center space-x-3">
-                                                <div class="text-xs font-mono bg-gray-100 px-2 py-1 rounded" x-text="'ID: ' + req.userId?._id"></div>
-                                                <p class="font-bold text-gray-700" x-text="req.userId?.username"></p>
-                                                <p class="font-bold text-gray-700" x-text="req.userId?.email"></p>
-                                            </div>
-                                            <!-- accept/refuse-->
-                                            <div class="flex gap-2">
-                                                <button @click="handleAction(museum._id, req._id, 'accept')" 
-                                                    class="bg-green-500 text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-green-600 transition">Accetta</button>
-                                                <button @click="handleAction(museum._id, req._id, 'reject')" 
-                                                    class="bg-gray-200 text-gray-600 px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-300 transition">Rifiuta</button>
-                                            </div>
-                                        </div>
-                                    </template>
-                                    
-                                    <template x-if="museum.pendingRequests && museum.pendingRequests.length === 0">
-                                        <p class="text-center text-gray-400 text-sm py-4 italic">Nessuna richiesta in sospeso.</p>
-                                    </template>
-                                </div>
-                            </div>
+                            <template x-if="isCreator(museum) && museum.pendingRequests && museum.pendingRequests.length > 0">
+                                <span class="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-bounce" 
+                                      x-text="museum.pendingRequests.length + ' richieste'"></span>
+                            </template>
+
+                            <template x-if="isCreator(museum)">
+                                <i class="fas fa-chevron-down text-gray-400 text-sm transition-transform" 
+                                   :class="openMuseum === museum._id ? 'rotate-180' : ''"></i>
+                            </template>
                         </div>
                     </div>
-                </template>
-            </div>
-        </main>
 
-        <!-- FOOTER -->
-        <footer class="bg-gray-800 text-white py-8 mt-12">
-            <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
-                <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
-            </div>
-        </footer>
+                    <!-- Collapsible Collaboration Requests -->
+                    <div x-show="openMuseum === museum._id" class="bg-gray-50/80 border-t border-gray-100 p-6">
+                        <h5 class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-4 flex items-center gap-1.5">
+                            <i class="fas fa-user-plus text-purple-600"></i> Richieste di Collaborazione in Sospeso
+                        </h5>
+                        
+                        <div class="space-y-3">
+                            <template x-for="req in museum.pendingRequests" :key="req._id">
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center gap-4">
+                                    <div>
+                                        <p class="font-bold text-gray-800 text-sm" x-text="req.userId?.username || 'Utente'"></p>
+                                        <p class="text-xs text-gray-500" x-text="req.userId?.email || 'Nessuna email'"></p>
+                                    </div>
+                                    <div class="flex gap-2">
+                                        <button @click="handleAction(museum._id, req._id, 'accept')" 
+                                            class="bg-green-600 text-white px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-green-700 transition flex items-center gap-1">
+                                            <i class="fas fa-check"></i> Accetta
+                                        </button>
+                                        <button @click="handleAction(museum._id, req._id, 'reject')" 
+                                            class="bg-gray-200 text-gray-700 px-4 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-300 transition flex items-center gap-1">
+                                            <i class="fas fa-times"></i> Rifiuta
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <template x-if="!museum.pendingRequests || museum.pendingRequests.length === 0">
+                                <p class="text-center text-gray-400 text-xs py-4">Nessuna richiesta di collaborazione in attesa per questa struttura.</p>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </template>
 
+            <template x-if="museums.length === 0">
+                <div class="text-center py-16 bg-white rounded-3xl border border-gray-100">
+                    <i class="fas fa-university text-4xl text-gray-300 mb-3 block"></i>
+                    <p class="text-gray-500 text-sm">Non hai ancora nessun museo associato.</p>
+                    <a href="/marketplace/homepage/newMuseum" class="inline-block mt-3 text-purple-600 font-bold text-sm hover:underline">
+                        + Crea subito un nuovo museo
+                    </a>
+                </div>
+            </template>
+        </div>
+    </main>
 
-        <script>
-            function myMuseumsManager() {
-                return {
-                    museums: [],
-                    userId: '',
-                    openMuseum: null, // Tiene traccia di quale "tendina" è aperta
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
 
-                    async init() {
-                        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-                        this.userId = userData.id;
-                        await this.loadMuseums();
-                    },
+    <script>
+        function myMuseumsManager() {
+            return {
+                museums: [],
+                userId: '',
+                openMuseum: null,
 
-                    async loadMuseums() {
-                        try {
-                            // Questa rotta deve restituire sia i musei posseduti che quelli collaborati
-                            const res = await fetch('/api/v1/marketplace/museums/getManaged', {
-                                headers: { 'Authorization': `Bearer ${localStorage.getItem('apiToken')}` }
-                            });
+                async init() {
+                    const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+                    if (userData.role !== 'creator') {
+                        alert("Accesso riservato ai creatori.");
+                        window.location.href = '/marketplace/homepage';
+                        return;
+                    }
+                    this.userId = userData.id || userData._id;
+                    await this.loadMuseums();
+                },
+
+                isCreator(museum) {
+                    const c = museum.creator;
+                    return c === this.userId || (c && (c._id === this.userId || c.toString() === this.userId));
+                },
+
+                toggleMuseum(id) {
+                    this.openMuseum = this.openMuseum === id ? null : id;
+                },
+
+                async loadMuseums() {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/museums/getManaged', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
                             const json = await res.json();
-                            this.museums = json.data;
-                            console.log("Musei caricati: ", this.museums);
-
-                        } catch (err) {
-                            console.error("Errore caricamento musei");
-                        }
-                    },
-
-                    toggleMuseum(id) {
-                        this.openMuseum = this.openMuseum === id ? null : id;
-                    },
-
-                    async handleAction(museumId, requestId, action) {
-                        try {
-                            const res = await fetch('/api/v1/marketplace/museums/handleJoinRequest', {
-                                method: 'POST',
-                                headers: { 
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
-                                },
-                                body: JSON.stringify({ museumId, requestId, action })
-                            });
-
-                            const result = await res.json();
-                            if (res.ok) {
-                                alert(result.message);
-                                // Ricarichiamo i dati per aggiornare la lista
-                                await this.loadMuseums();
+                            this.museums = json.data || [];
+                            if (this.museums.length > 0 && !this.openMuseum) {
+                                this.openMuseum = this.museums[0]._id;
                             }
-                        } catch (err) {
-                            alert("Errore nell'operazione");
                         }
+                    } catch (e) {
+                        console.error("Errore caricamento musei:", e);
+                    }
+                },
+
+                async handleAction(museumId, requestId, action) {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/museums/handleJoinRequest', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ museumId, requestId, action })
+                        });
+                        if (res.ok) {
+                            alert(action === 'accept' ? 'Collaboratore aggiunto con successo!' : 'Richiesta rifiutata.');
+                            await this.loadMuseums();
+                        }
+                    } catch (e) {
+                        console.error("Errore handleAction:", e);
                     }
                 }
             }
-        </script>
-    </body>
+        }
+    </script>
+</body>
 </html>

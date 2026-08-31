@@ -16,23 +16,13 @@ router.get('/get', async (req, res) => {
 
         let result = await Museum.find(query);
 
-        if (!result || result.length === 0) {
-            return res.json([{
-                id: 'pin-bo',
-                name: "Pinacoteca Nazionale di Bologna",
-                lat: 44.4975,
-                lng: 11.3533,
-                rating: 4.9,
-                img: "https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=1200"
-            }]);
-        }
-
         const mappedResult = result.map(m => ({
             id: m._id,
+            _id: m._id,
             museumId: m.museumId,
             name: m.name,
-            lat: m.latitude || 44.4975,
-            lng: m.longitude || 11.3533,
+            lat: m.latitude != null ? m.latitude : (m.museumCenter ? m.museumCenter[0] : 44.4975),
+            lng: m.longitude != null ? m.longitude : (m.museumCenter ? m.museumCenter[1] : 11.3533),
             rating: 4.9,
             img: m.image || "https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=1200",
             description: m.description,
@@ -46,6 +36,7 @@ router.get('/get', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 /**
  * GET /api/v1/navigator/museums/get/:id

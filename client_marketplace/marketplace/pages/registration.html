@@ -88,23 +88,15 @@
                             if (this.password !== this.confirmPassword) {
                                 return false;
                             }
-                            //creator=>museumId val
-                            if (this.isCreator() && !this.museumId) {
-                                return false;
-                            }
                             //empty fields check 
                             if (this.email.trim() === '' || this.username.trim() === '' || this.password.trim() === '' || this.confirmPassword.trim() === '') {
                                 return false;
                             }
-                            if (this.isCreator() && this.museumId.trim() === '') {
-                                return false;
-                            }
-
-
                             return true;
                         },
 
                     }" @submit.prevent="handleSubmit">
+
                         
                         <!-- Username -->
                         <div class="mb-6">
@@ -221,12 +213,16 @@
     </section>
 
     <!-- Footer (stesso del welcome page) -->
-    <footer class="bg-gray-800 text-white py-12"></footer>
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
 
     <script>
         // Funzione per gestire la registrazione
         async function handleSubmit() {
-            try{
+            try {
                 const formData = {
                     email: this.email,
                     username: this.username,
@@ -234,12 +230,12 @@
                     role: this.userType,
                 };
                 
-                // Aggiungi museumId solo se è un creator
-                if (this.userType === 'creator') {
+                // Aggiungi museumId se fornito
+                if (this.userType === 'creator' && this.museumId) {
                     formData.museumId = this.museumId;
                 }
 
-                console.log('Invio dati di registrazione:', formData); // Debug log
+                console.log('Invio dati di registrazione:', formData);
 
                 const res = await fetch('/api/v1/auth/signup', {
                     method: 'POST',
@@ -249,27 +245,28 @@
                     body: JSON.stringify(formData),
                 });
             
-                if(res.ok){
-                    alert('Registrazione avvenuta con successo!');
-                    const resData = await res.json(); //to use in dashboard...
+                if (res.ok) {
+                    const resData = await res.json();
 
-                    if(resData.data.token && resData.data.user){
+                    if (resData.data.token && resData.data.user) {
+                        localStorage.setItem('apiToken', resData.data.token);
                         localStorage.setItem('token', resData.data.token);
+                        localStorage.setItem('user', JSON.stringify(resData.data.user));
                         localStorage.setItem('userData', JSON.stringify(resData.data.user));
                         window.location.href = '/marketplace/homepage'; 
                     }
-                }else{
+                } else {
                     const errorData = await res.json();
                     alert('Errore nella registrazione: ' + (errorData.message || 'Si è verificato un errore.'));
                 }
 
-            }catch(error){
+            } catch (error) {
                 console.error('Unexpected error occured:', error);   
+                alert('Errore di connessione al server.');
             }
-            
-
         }
     </script>
+
 
 </body>
 </html>

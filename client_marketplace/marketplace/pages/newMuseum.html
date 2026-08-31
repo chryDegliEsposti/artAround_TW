@@ -1,396 +1,422 @@
 <!DOCTYPE html>
 <html lang="it">
-    <head>
-        <meta charset="UTF-8">
-        <title>Nuovo Museo - ArtAround Marketplace</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    </head>
-    <body class="bg-gray-50 font-sans" x-data="createMuseumManager()" x-init="initData()">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuovo Museo - ArtAround Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans min-h-screen flex flex-col" x-data="createMuseumManager()" x-init="initData()" x-cloak>
 
-        <!-- NAVBAR -->
-        <nav class="bg-white shadow-md relative z-10">
-            <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-                <a href="/marketplace/homepage" class="text-2xl font-bold text-purple-600 tracking-tight">ArtAround</a>
-            </div>
-        </nav>
-
-        <main class="max-w-6xl mx-auto px-4 py-8">
-            <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                
-                <div class="bg-gradient-to-r from-purple-600 to-indigo-700 px-8 py-10 text-white">
-                    <h1 class="text-3xl font-extrabold mb-2">Creazione Profilo e Contenuti Museo</h1>
-                    <p class="text-indigo-100 text-lg">Definisci i dettagli del museo, la piantina e registra gli items e artworks.</p>
+    <!-- NAVBAR -->
+    <nav class="bg-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+            <a href="/marketplace/homepage" class="flex items-center space-x-3">
+                <div class="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center shadow">
+                    <i class="fas fa-palette text-white text-sm"></i>
                 </div>
+                <span class="text-xl font-bold text-gray-800 tracking-tight">ArtAround</span>
+            </a>
 
-                <div class="p-8">
-                    <!-- SEZIONE 1: Dati base del Museo -->
-                    <section class="mb-12">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                            <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">1</span>
-                            Anagrafica Museo
-                        </h2>
+            <div class="flex items-center space-x-6">
+                <a href="/marketplace/homepage" class="text-gray-600 hover:text-purple-600 text-sm font-medium flex items-center">
+                    <i class="fas fa-arrow-left mr-2"></i> Torna alla Dashboard
+                </a>
+                <a href="/marketplace/browseMarket" class="text-gray-600 hover:text-purple-600 text-sm font-medium">
+                    Marketplace
+                </a>
+                <a href="/navigator" class="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center">
+                    <i class="fas fa-compass mr-1.5"></i> Navigator
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full">
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+            
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-700 px-8 py-10 text-white">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-semibold uppercase tracking-wider mb-3">
+                    <i class="fas fa-university text-yellow-300"></i> Gestione Struttura
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-extrabold mb-2">Registrazione Nuovo Museo</h1>
+                <p class="text-indigo-100 text-base max-w-2xl">Definisci l'anagrafica del museo, disegna la piantina 2D per la navigazione indoor e associa le opere d'arte.</p>
+            </div>
+
+            <div class="p-8">
+                <!-- SEZIONE 1: Dati base del Museo -->
+                <section class="mb-12">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">1</span>
+                        Anagrafica Museo
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Codice Identificativo <span class="text-red-500">*</span></label>
+                            <div class="relative">
+                                <input type="text" x-model="museumData.code" @keyup.debounce.500ms="checkCode()" placeholder="es. PIN-BO" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 uppercase">
+                                <span class="absolute right-3 top-3 text-sm font-medium" :class="codeStatus === 'taken' ? 'text-red-500' : 'text-green-500'" x-text="codeMessage"></span>
+                            </div>
+                        </div>
                         
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Codice Identificativo <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <input type="text" x-model="museumData.code" @keyup.debounce.500ms="checkCode()" placeholder="es. PIN-BO" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 uppercase">
-                                    <span class="absolute right-3 top-3 text-sm font-medium" :class="codeStatus === 'taken' ? 'text-red-500' : 'text-green-500'" x-text="codeMessage"></span>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Ufficiale <span class="text-red-500">*</span></label>
-                                <input type="text" x-model="museumData.name" placeholder="es. Pinacoteca Nazionale di Bologna" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Descrizione</label>
-                                <textarea x-model="museumData.description" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500" placeholder="Descrivi il museo..."></textarea>
-                            </div>
-
-                            <div class="md:col-span-2">
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">URL Immagine Profilo Museo</label>
-                                <input type="text" x-model="museumData.image" placeholder="es. https://example.com/museum.jpg" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Città</label>
-                                <input type="text" x-model="museumData.city" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Indirizzo</label>
-                                <input type="text" x-model="museumData.address" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
-
-                            <!-- Coordinate GPS per la mappa -->
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Latitudine (GPS) <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.000001" x-model="museumData.latitude" placeholder="es. 44.4975" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
-                            
-                            <div>
-                                <label class="block text-sm font-semibold text-gray-700 mb-1">Longitudine (GPS) <span class="text-red-500">*</span></label>
-                                <input type="number" step="0.000001" x-model="museumData.longitude" placeholder="es. 11.3533" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                            </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Ufficiale <span class="text-red-500">*</span></label>
+                            <input type="text" x-model="museumData.name" placeholder="es. Pinacoteca Nazionale di Bologna" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
                         </div>
-                    </section>
 
-                    <!-- SEZIONE: PIANTINA INDOOR -->
-                    <section class="mb-12">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                            <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">2</span>
-                            Piantina e Mappa Indoor
-                        </h2>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Descrizione</label>
+                            <textarea x-model="museumData.description" rows="3" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500" placeholder="Descrivi la struttura e le sue collezioni..."></textarea>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">URL Immagine Copertina</label>
+                            <input type="text" x-model="museumData.image" placeholder="es. https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=1200" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Città</label>
+                            <input type="text" x-model="museumData.city" placeholder="es. Bologna" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
+                        </div>
                         
-                        <div class="bg-purple-50 p-6 rounded-xl border border-purple-100 flex flex-col md:flex-row items-center justify-between">
-                            <div class="mb-4 md:mb-0">
-                                <h3 class="font-bold text-gray-800 mb-1">Disegna o Aggiorna Piantina</h3>
-                                <p class="text-sm text-gray-600">Salva prima latitudine e longitudine in alto, poi apri l'editor interattivo.</p>
-                            </div>
-                            <div class="flex items-center space-x-4">
-                                <template x-if="hasMapAttached">
-                                    <div class="text-green-600 font-bold bg-green-100 px-4 py-2 rounded-lg flex items-center">
-                                        <i class="fas fa-check-circle mr-2"></i> Mappa Allegata
-                                    </div>
-                                </template>
-                                <button @click="openEditor()" class="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium shadow hover:bg-indigo-700 transition flex items-center">
-                                    <i class="fas fa-map-marked-alt mr-2"></i> 
-                                    <span x-text="hasMapAttached ? 'Modifica Mappa' : 'Apri Editor'"></span>
-                                </button>
-                            </div>
-                        </div>
-                    </section>
-
-                    <!-- SEZIONE 3: Creazione Items (Opere e Logistica) -->
-                    <section class="mb-8">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                            <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm">3</span>
-                            Registrazione Items (Opere e Servizi)
-                        </h2>
-
-                        <!-- Form Inserimento Singolo Item -->
-                        <div class="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8 shadow-inner">
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipologia</label>
-                                    <select x-model="tempItem.itemType" class="w-full px-4 py-2 rounded-lg border border-gray-300">
-                                        <option value="artwork">Artwork / Opera</option>
-                                        <option value="logistic">Servizio / Logistica</option>
-                                    </select>
-                                </div>
-
-                                <!-- Ricerca e Selezione (Solo se Artwork) -->
-                                <div class="md:col-span-2 relative" x-show="tempItem.itemType === 'artwork'">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Cerca Artwork (Wikidata)</label>
-                                    <div class="relative">
-                                        <input type="text" x-model="searchQuery" @input.debounce.500ms="search" placeholder="Es. Gioconda, Caravaggio..." class="w-full px-4 py-2 pl-10 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500">
-                                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-                                        <i x-show="isSearching" class="fas fa-spinner fa-spin absolute right-3 top-3 text-purple-500"></i>
-                                    </div>
-                                    
-                                    <!-- Risultati Ricerca -->
-                                    <div x-show="results.length > 0" @click.away="results = []" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-y-auto">
-                                        <template x-for="res in results" :key="res.id">
-                                            <div @click="selectSubject(res)" class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition">
-                                                <div class="flex justify-between items-start">
-                                                    <div class="font-semibold text-gray-800" x-text="res.name"></div>
-                                                    <span class="text-xs px-2 py-1 rounded bg-gray-100 text-gray-600" x-text="res.source"></span>
-                                                </div>
-                                                <div class="text-sm text-gray-500 truncate" x-text="res.description || res.id"></div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div class="md:col-span-2" x-show="tempItem.itemType === 'logistic'">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nome Servizio</label>
-                                    <input type="text" x-model="tempItem.title" placeholder="Es. Biglietteria, Bar, Bagni" class="w-full px-4 py-2 rounded-lg border border-gray-300">
-                                </div>
-
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Descrizione Audio / Contenuto testuale</label>
-                                    <textarea x-model="tempItem.description" rows="2" class="w-full px-4 py-2 rounded-lg border border-gray-300"></textarea>
-                                </div>
-
-                                <div class="md:col-span-3">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">URL Immagine Opera/Servizio (Opzionale)</label>
-                                    <input type="text" x-model="tempItem.image" placeholder="es. https://example.com/artwork.jpg" class="w-full px-4 py-2 rounded-lg border border-gray-300">
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Lunghezza Audio</label>
-                                    <select x-model="tempItem.length" class="w-full px-4 py-2 rounded-lg border border-gray-300">
-                                        <option value="15s">15 Secondi</option>
-                                        <option value="1m">1 Minuto</option>
-                                        <option value="3m">3 Minuti</option>
-                                    </select>
-                                </div>
-
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Livello Linguistico</label>
-                                    <select x-model="tempItem.languageLevel" class="w-full px-4 py-2 rounded-lg border border-gray-300">
-                                        <option value="infantile">Bambini</option>
-                                        <option value="medio">Generale</option>
-                                        <option value="specialistico">Esperti / Critici</option>
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Licenza (Solo Artwork)</label>
-                                    <select x-model="tempItem.license" :disabled="tempItem.itemType !== 'artwork'" class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white disabled:bg-gray-100">
-                                        <option value="CC0">Pubblico Dominio (CC0)</option>
-                                        <option value="CC-BY">CC-BY (Attribuzione)</option>
-                                        <option value="Copyrighted">Protetta da Copyright</option>
-                                    </select>
-                                </div>
-
-                            </div>
-                            
-                            <div class="mt-5 flex justify-end">
-                                <button @click="addItemToList()" class="bg-gray-800 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-900 transition flex items-center">
-                                    <i class="fas fa-plus mr-2"></i> Aggiungi alla lista
-                                </button>
-                            </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Indirizzo Completo</label>
+                            <input type="text" x-model="museumData.address" placeholder="es. Via delle Belle Arti 56" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
                         </div>
 
-                        <!-- Lista Items Aggiunti Temporaneamente -->
-                        <div x-show="itemsList.length > 0" class="border rounded-xl overflow-hidden">
-                            <div class="bg-gray-100 px-4 py-3 font-semibold text-gray-700 border-b flex justify-between">
-                                <span>Items in attesa di salvataggio (<span x-text="itemsList.length"></span>)</span>
-                            </div>
-                            <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto bg-white">
-                                <template x-for="(itm, index) in itemsList" :key="index">
-                                    <div class="p-4 hover:bg-gray-50 flex justify-between items-center transition">
-                                        <div>
-                                            <div class="font-bold text-gray-800 flex items-center">
-                                                <i :class="itm.itemType === 'artwork' ? 'fas fa-palette text-purple-500 mr-2' : 'fas fa-info-circle text-blue-500 mr-2'"></i>
-                                                <span x-text="itm.title"></span>
-                                            </div>
-                                            <div class="text-sm text-gray-500 mt-1">
-                                                <span x-text="itm.length"></span> • <span class="capitalize" x-text="itm.languageLevel"></span> 
-                                                <span x-show="itm.artworkId" class="ml-2 text-xs bg-gray-200 px-2 py-0.5 rounded text-gray-600" x-text="itm.artworkId"></span>
-                                            </div>
-                                        </div>
-                                        <button @click="removeItem(index)" class="text-red-400 hover:text-red-600 p-2">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </button>
-                                    </div>
-                                </template>
-                            </div>
+                        <!-- Coordinate GPS -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Latitudine GPS <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.000001" x-model="museumData.latitude" placeholder="es. 44.4975" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
                         </div>
-                    </section>
-
-                    <div class="pt-6 border-t flex justify-end">
-                        <button @click="saveEverything()" 
-                            :disabled="codeStatus === 'taken' || !museumData.name"
-                            class="bg-green-600 text-white px-10 py-3 rounded-xl font-bold shadow-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                            <i class="fas fa-cloud-upload-alt mr-2"></i> Finalizza Registrazione Museo e Item
-                        </button>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Longitudine GPS <span class="text-red-500">*</span></label>
+                            <input type="number" step="0.000001" x-model="museumData.longitude" placeholder="es. 11.3533" class="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
+                        </div>
                     </div>
+                </section>
+
+                <!-- SEZIONE 2: PIANTINA INDOOR -->
+                <section class="mb-12">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">2</span>
+                        Mappa Indoor e Piantina
+                    </h2>
+                    
+                    <div class="bg-indigo-50/70 p-6 rounded-2xl border border-indigo-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-bold text-gray-800 text-base mb-1">Editor Piantina 2D</h3>
+                            <p class="text-xs sm:text-sm text-gray-600">Disegna i muri, i punti di interesse (POI) e le stanze direttamente sulle coordinate del museo.</p>
+                        </div>
+                        <div class="flex items-center space-x-3 flex-shrink-0">
+                            <template x-if="hasMapAttached">
+                                <div class="text-green-700 font-bold bg-green-100 px-4 py-2 rounded-xl text-sm flex items-center">
+                                    <i class="fas fa-check-circle mr-2"></i> Mappa Salvata
+                                </div>
+                            </template>
+                            <button @click="openEditor()" class="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-indigo-700 transition flex items-center">
+                                <i class="fas fa-drafting-compass mr-2"></i> 
+                                <span x-text="hasMapAttached ? 'Riapri Editor' : 'Apri Editor Piantina'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SEZIONE 3: Creazione Items (Opere e Logistica) -->
+                <section class="mb-8">
+                    <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="bg-purple-100 text-purple-600 w-8 h-8 rounded-full flex items-center justify-center mr-3 text-sm font-bold">3</span>
+                        Registrazione Opere e Servizi Iniziali (Opzionale)
+                    </h2>
+
+                    <!-- Form Inserimento Singolo Item -->
+                    <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Tipologia</label>
+                                <select x-model="tempItem.itemType" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                                    <option value="artwork">Artwork / Opera d'Arte</option>
+                                    <option value="logistic">Servizio / Logistica</option>
+                                </select>
+                            </div>
+
+                            <!-- Ricerca Wikidata se Artwork -->
+                            <div class="md:col-span-2 relative" x-show="tempItem.itemType === 'artwork'">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Cerca Artwork (Wikidata)</label>
+                                <div class="relative">
+                                    <input type="text" x-model="searchQuery" @input.debounce.500ms="search" placeholder="Es. Pala di Santa Cecilia, Raffaello..." class="w-full px-4 py-2.5 pl-10 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500">
+                                    <i class="fas fa-search absolute left-3 top-3.5 text-gray-400"></i>
+                                    <i x-show="isSearching" class="fas fa-spinner fa-spin absolute right-3 top-3.5 text-purple-500"></i>
+                                </div>
+                                
+                                <div x-show="results.length > 0" @click.away="results = []" class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl max-h-60 overflow-y-auto">
+                                    <template x-for="res in results" :key="res.id">
+                                        <div @click="selectSubject(res)" class="p-3 hover:bg-purple-50 cursor-pointer border-b border-gray-100 last:border-0 transition">
+                                            <div class="flex justify-between items-start">
+                                                <div class="font-bold text-gray-800 text-sm" x-text="res.name"></div>
+                                                <span class="text-[10px] px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-semibold" x-text="res.id"></span>
+                                            </div>
+                                            <div class="text-xs text-gray-500 truncate mt-0.5" x-text="res.description"></div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <div class="md:col-span-2" x-show="tempItem.itemType === 'logistic'">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Nome Servizio</label>
+                                <input type="text" x-model="tempItem.title" placeholder="Es. Biglietteria, Bar, Bagni" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Descrizione Audio / Testo Esplicativo</label>
+                                <textarea x-model="tempItem.description" rows="2" class="w-full px-4 py-2.5 rounded-xl border border-gray-300" placeholder="Inserisci la descrizione o lasciala generare..."></textarea>
+                            </div>
+
+                            <div class="md:col-span-3">
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">URL Immagine Riconoscimento Visivo</label>
+                                <input type="text" x-model="tempItem.image" placeholder="es. https://example.com/artwork.jpg" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Lunghezza Audio</label>
+                                <select x-model="tempItem.length" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                                    <option value="15s">15 Secondi</option>
+                                    <option value="1m">1 Minuto</option>
+                                    <option value="3m">3 Minuti</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Livello Linguistico</label>
+                                <select x-model="tempItem.languageLevel" class="w-full px-4 py-2.5 rounded-xl border border-gray-300">
+                                    <option value="infantile">Bambini</option>
+                                    <option value="medio">Generale</option>
+                                    <option value="specialistico">Specialistico / Esperti</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-1">Licenza</label>
+                                <select x-model="tempItem.license" :disabled="tempItem.itemType !== 'artwork'" class="w-full px-4 py-2.5 rounded-xl border border-gray-300 bg-white disabled:bg-gray-100">
+                                    <option value="CC0">Pubblico Dominio (CC0)</option>
+                                    <option value="CC-BY">CC-BY (Attribuzione)</option>
+                                    <option value="Copyrighted">Protetta da Copyright</option>
+                                </select>
+                            </div>
+
+                        </div>
+                        
+                        <div class="mt-4 flex justify-end">
+                            <button @click="addItemToList()" class="bg-gray-800 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-gray-900 transition flex items-center">
+                                <i class="fas fa-plus mr-2"></i> Aggiungi alla lista
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Items Temporanei -->
+                    <div x-show="itemsList.length > 0" class="border border-gray-200 rounded-2xl overflow-hidden">
+                        <div class="bg-gray-100 px-4 py-2.5 font-bold text-gray-700 text-sm flex justify-between">
+                            <span>Opere in attesa di salvataggio (<span x-text="itemsList.length"></span>)</span>
+                        </div>
+                        <div class="divide-y divide-gray-100 max-h-60 overflow-y-auto bg-white">
+                            <template x-for="(itm, index) in itemsList" :key="index">
+                                <div class="p-3 hover:bg-gray-50 flex justify-between items-center transition">
+                                    <div>
+                                        <div class="font-bold text-gray-800 text-sm flex items-center">
+                                            <i :class="itm.itemType === 'artwork' ? 'fas fa-palette text-purple-500 mr-2' : 'fas fa-info-circle text-blue-500 mr-2'"></i>
+                                            <span x-text="itm.title"></span>
+                                        </div>
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            <span x-text="itm.length"></span> • <span class="capitalize" x-text="itm.languageLevel"></span> 
+                                            <span x-show="itm.artworkId" class="ml-2 bg-gray-100 px-1.5 py-0.5 rounded text-gray-600" x-text="itm.artworkId"></span>
+                                        </div>
+                                    </div>
+                                    <button @click="removeItem(index)" class="text-red-400 hover:text-red-600 p-1.5">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </section>
+
+                <div class="pt-6 border-t flex justify-end">
+                    <button @click="saveEverything()" 
+                        :disabled="codeStatus === 'taken' || !museumData.name || !museumData.code"
+                        class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-8 py-3.5 rounded-2xl font-bold shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                        <i class="fas fa-cloud-upload-alt"></i> Finalizza Registrazione Museo
+                    </button>
                 </div>
             </div>
-        </main>
+        </div>
+    </main>
 
-        <footer class="bg-gray-800 text-white py-8 mt-12">
-            <div class="max-w-6xl mx-auto px-4 text-center text-sm text-gray-400">
-                <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
-            </div>
-        </footer>
+    <footer class="bg-gray-800 text-white py-8 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-xs text-gray-400">
+            <p>ArtAround Marketplace - Esplora l'arte in modo personalizzato</p>
+        </div>
+    </footer>
 
-        <script>
-            function createMuseumManager() {
-                return {
-                    museumData: { code: '', name: '', description: '', address: '', city: '', longitude: '', latitude: '', image: '' },
-                    codeStatus: '', 
-                    codeMessage: '',
+    <script>
+        function createMuseumManager() {
+            return {
+                museumData: { code: '', name: '', description: '', address: '', city: 'Bologna', longitude: '11.3533', latitude: '44.4975', image: '' },
+                codeStatus: '', 
+                codeMessage: '',
+                
+                tempItem: { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' },
+                itemsList: [],
+                searchQuery: '',
+                results: [],
+                isSearching: false,
+                hasMapAttached: false,
+
+                initData() {
+                    // Check user authentication and creator role
+                    const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
+                    if (userData.role && userData.role !== 'creator') {
+                        alert("Accesso limitato: solo gli utenti con ruolo Creatore possono registrare nuovi musei.");
+                        window.location.href = '/marketplace/homepage';
+                        return;
+                    }
+
+                    // Restore state if returning from map editor
+                    const savedState = sessionStorage.getItem('tempMuseumData');
+                    if (savedState) {
+                        try {
+                            const parsed = JSON.parse(savedState);
+                            this.museumData = parsed.museum || this.museumData;
+                            this.itemsList = parsed.items || this.itemsList;
+                        } catch(e) {}
+                    }
                     
-                    tempItem: { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' },
-                    itemsList: [],
-                    searchQuery: '',
-                    results: [],
-                    isSearching: false,
-                    
-                    hasMapAttached: false,
+                    const mapData = sessionStorage.getItem('editorMapData');
+                    if (mapData) {
+                        this.hasMapAttached = true;
+                    }
+                },
 
-                    initData() {
-                        // Ripristina stato se torniamo dall'editor
-                        const savedState = sessionStorage.getItem('tempMuseumData');
-                        if (savedState) {
-                            try {
-                                const parsed = JSON.parse(savedState);
-                                this.museumData = parsed.museum || this.museumData;
-                                this.itemsList = parsed.items || this.itemsList;
-                            } catch(e) {}
-                        }
-                        
-                        // Controlla se la mappa è stata esportata
-                        const mapData = sessionStorage.getItem('editorMapData');
-                        if (mapData) {
-                            this.hasMapAttached = true;
-                        }
-                    },
+                openEditor() {
+                    if (!this.museumData.latitude || !this.museumData.longitude) {
+                        return alert("Inserisci prima la Latitudine e la Longitudine del museo.");
+                    }
+                    sessionStorage.setItem('tempMuseumData', JSON.stringify({
+                        museum: this.museumData,
+                        items: this.itemsList
+                    }));
+                    window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=/marketplace/homepage/newMuseum`;
+                },
 
-                    openEditor() {
-                        if (!this.museumData.latitude || !this.museumData.longitude) {
-                            return alert("Inserisci prima la Latitudine e la Longitudine del museo.");
+                async checkCode() {
+                    if (!this.museumData.code || this.museumData.code.length < 2) return;
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch(`/api/v1/marketplace/museums/checkCode?code=${this.museumData.code.toUpperCase()}`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        const data = await res.json();
+                        if (data.data && data.data.exists) {
+                            this.codeStatus = 'taken';
+                            this.codeMessage = '❌ Già in uso';
+                        } else {
+                            this.codeStatus = 'available';
+                            this.codeMessage = '✅ Disponibile';
                         }
-                        // Salva lo stato temporaneo per non perderlo
-                        sessionStorage.setItem('tempMuseumData', JSON.stringify({
-                            museum: this.museumData,
-                            items: this.itemsList
+                    } catch (e) { console.error("Errore check codice:", e); }
+                },
+
+                addItemToList() {
+                    if (!this.tempItem.title || !this.tempItem.itemType) {
+                        return alert("Inserisci i campi richiesti per registrare l'item!");
+                    }
+                    this.itemsList.push({ ...this.tempItem });
+                    this.tempItem = { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' };
+                },
+
+                removeItem(index) {
+                    this.itemsList.splice(index, 1);
+                },
+
+                async search() {
+                    if (this.searchQuery.length < 3) {
+                        this.results = [];
+                        return;
+                    }
+                    this.isSearching = true;
+                    try {
+                        const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
+                        const wikiResponse = await fetch(wikiUrl);
+                        const wikiData = await wikiResponse.json();
+
+                        this.results = (wikiData.search || []).map(i => ({
+                            id: i.id,
+                            name: i.label,
+                            description: i.description || 'Opera / Soggetto Wikidata',
+                            source: 'Wikidata'
                         }));
-                        window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=/marketplace/newMuseum`;
-                    },
+                    } catch (err) {
+                        console.error("Errore ricerca:", err);
+                    } finally {
+                        this.isSearching = false;
+                    }
+                },
 
-                    async checkCode() {
-                        if (this.museumData.code.length < 3) return;
+                selectSubject(item) {
+                    this.tempItem.artworkId = item.id;
+                    this.tempItem.title = item.name;
+                    this.searchQuery = item.name;
+                    this.results = []; 
+                },
+
+                async saveEverything() {
+                    if (this.codeStatus === 'taken') return alert("Il codice museo è già in uso!");
+                    
+                    let mapDataObj = null;
+                    if (this.hasMapAttached) {
                         try {
-                            const res = await fetch(`/api/v1/marketplace/museums/checkCode?code=${this.museumData.code.toUpperCase()}`);
-                            const data = await res.json();
-                            if (data.exists) {
-                                this.codeStatus = 'taken';
-                                this.codeMessage = '❌ Già in uso';
-                            } else {
-                                this.codeStatus = 'available';
-                                this.codeMessage = '✅ Codice disponibile';
-                            }
-                        } catch (e) { console.error("Errore check codice"); }
-                    },
+                            mapDataObj = JSON.parse(sessionStorage.getItem('editorMapData'));
+                        } catch(e) {}
+                    }
 
-                    addItemToList() {
-                        if (!this.tempItem.title || !this.tempItem.description || !this.tempItem.length || !this.tempItem.languageLevel || !this.tempItem.itemType) {
-                            return alert("Inserisci i campi richiesti per registrare l'item!");
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/museums/create', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                museum: this.museumData,
+                                items: this.itemsList,
+                                mapData: mapDataObj
+                            })
+                        });
+
+                        if (res.ok) {
+                            alert('Museo e contenuti registrati con successo nel database!');
+                            sessionStorage.removeItem('tempMuseumData');
+                            sessionStorage.removeItem('editorMapData');
+                            window.location.href = '/marketplace/homepage';
+                        } else {
+                            const errData = await res.json();
+                            alert('Errore: ' + (errData.message || 'Impossibile completare'));
                         }
-                        if(this.tempItem.itemType === 'artwork' && !this.tempItem.artworkId) {
-                            return alert("Seleziona o specifica l'ID dell'artwork per completare l'inserimento.");
-                        }
-                        this.itemsList.push({ ...this.tempItem });
-                        this.tempItem = { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' };
-                    },
-
-                    removeItem(index) {
-                        this.itemsList.splice(index, 1);
-                    },
-
-                    async search() {
-                        if (this.searchQuery.length < 3) {
-                            this.results = [];
-                            return;
-                        }
-                        this.isSearching = true;
-                        try {
-                            let combinedResults = [];
-                            const wikiUrl = `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(this.searchQuery)}&language=it&format=json&origin=*`;
-                            const wikiResponse = await fetch(wikiUrl);
-                            const wikiData = await wikiResponse.json();
-
-                            const wikiResults = (wikiData.search || []).map(i => ({
-                                id: i.id,
-                                name: i.label,
-                                description: i.description,
-                                source: 'Wikidata'
-                            }));
-                            combinedResults = [...combinedResults, ...wikiResults];
-                            this.results = combinedResults;
-                        } catch (err) {
-                            console.error("Errore durante la ricerca:", err);
-                        } finally {
-                            this.isSearching = false;
-                        }
-                    },
-
-                    selectSubject(item) {
-                        this.tempItem.artworkId = item.id;
-                        this.tempItem.title = item.name;
-                        this.searchQuery = item.name;
-                        this.results = []; 
-                    },
-
-                    async saveEverything() {
-                        if (this.codeStatus === 'taken') return alert("Cambia il codice identificativo!");
-                        
-                        // Parse JSON Map se c'è
-                        let mapDataObj = null;
-                        if (this.hasMapAttached) {
-                            try {
-                                mapDataObj = JSON.parse(sessionStorage.getItem('editorMapData'));
-                            } catch(e) {}
-                        }
-
-                        try {
-                            const res = await fetch('/api/v1/marketplace/museums/create', {
-                                method: 'POST',
-                                headers: { 
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${localStorage.getItem('apiToken')}`
-                                },
-                                body: JSON.stringify({
-                                    museum: this.museumData,
-                                    items: this.itemsList,
-                                    mapData: mapDataObj
-                                })
-                            });
-
-                            if (res.ok) {
-                                alert('Profilo dati museo registrato con successo!');
-                                sessionStorage.removeItem('tempMuseumData');
-                                sessionStorage.removeItem('editorMapData');
-                                window.location.href = '/marketplace/homepage';
-                            } else {
-                                const errData = await res.json();
-                                alert('Errore: ' + (errData.message || 'Impossibile completare'));
-                            }
-                        } catch (err) {
-                            alert('Errore di rete durante il salvataggio.');
-                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert('Errore di rete durante il salvataggio.');
                     }
                 }
             }
-        </script>
-    </body>
+        }
+    </script>
+</body>
 </html>

@@ -352,12 +352,20 @@ export default function Editor() {
 
       <div className={`editor-sidebar ${isSidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <button className="back-to-app" onClick={() => navigate('/')}>
+          <button className="back-to-app" onClick={() => {
+            const returnUrl = new URLSearchParams(window.location.search).get('returnUrl');
+            if (returnUrl) {
+              window.location.href = returnUrl;
+            } else {
+              navigate('/');
+            }
+          }}>
             <ArrowLeft size={20} /> Back
           </button>
           <h2>Map Editor</h2>
           <p className="sidebar-desc">Select a tool and click the map to draw. Click the active tool again to deselect and navigate map.</p>
         </div>
+
 
         <div className="tool-section">
           <h3><Layers size={14} style={{ display: 'inline', marginRight: '4px' }} /> Layers</h3>

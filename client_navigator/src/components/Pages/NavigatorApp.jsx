@@ -1115,20 +1115,29 @@ export default function NavigatorApp() {
   const [visitData, setVisitData] = useState(null);
   const [items, setItems] = useState([]);
   const [loadingError, setLoadingError] = useState('');
+  const [requiresPurchase, setRequiresPurchase] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        const visitId = state?.visitId || window.location.pathname.split('/').pop();
-        if (!visitId || visitId === 'tour') {
-           return setLoadingError("ID Visita non fornito.");
+        const queryVisitId = new URLSearchParams(window.location.search).get('visitId');
+        const pathSegments = window.location.pathname.split('/');
+        const lastSegment = pathSegments[pathSegments.length - 1];
+        const visitId = state?.visitId || queryVisitId || (lastSegment && lastSegment !== 'tour' ? lastSegment : null);
+
+        if (!visitId) {
+          // Fallback to explore indoor map if no specific tour requested
+          const fallbackData = await fetchMuseumData();
+          setMuseumData(fallbackData);
+          setVisitData({ title: "Esplorazione Libera", duration: 60 });
+          return;
         }
 
-        const token = localStorage.getItem('apiToken');
-        if (!token) return setLoadingError("Non autorizzato. Effettua il login.");
+        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
         const response = await fetch(`/api/v1/navigator/visits/tourData/${visitId}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
+          headers
         });
         
         const data = await response.json();
@@ -1136,15 +1145,24 @@ export default function NavigatorApp() {
         if (response.ok && data.success) {
           setMuseumData(data.museum);
           setVisitData(data.visit);
+          setRequiresPurchase(false);
+          setLoadingError('');
         } else {
-          setLoadingError(data.error || "Errore nel caricamento del tour.");
+          if (response.status === 403 || data.requiresPurchase) {
+            setRequiresPurchase(true);
+            setLoadingError(data.error || "Accesso negato. Devi acquistare questa visita prima di iniziare il tour.");
+          } else {
+            setLoadingError(data.error || "Errore nel caricamento del tour.");
+          }
         }
       } catch (err) {
-        setLoadingError("Errore di rete.");
+        console.error("Error loading tourData:", err);
+        setLoadingError("Errore di connessione durante il caricamento del tour.");
       }
     };
     loadData();
   }, [state?.visitId]);
+
 
   const { scale, offsetX, offsetY } = useMemo(() => {
     if (!museumData) return { scale: 1, offsetX: 0, offsetY: 0 };
@@ -1808,11 +1826,38 @@ export default function NavigatorApp() {
 
   if (loadingError) {
     return (
-      <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#111', color: '#ff6b6b' }}>
-        <h2>{loadingError}</h2>
+      <div className="navigator-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#0f172a', padding: '1.5rem' }}>
+        <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '1.5rem', padding: '2.5rem 2rem', maxWidth: '460px', width: '100%', textAlign: 'center', color: '#f8fafc', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)' }}>
+          <div style={{ width: '64px', height: '64px', background: requiresPurchase ? 'rgba(239, 68, 68, 0.15)' : 'rgba(148, 163, 184, 0.1)', color: requiresPurchase ? '#ef4444' : '#94a3b8', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', fontSize: '28px' }}>
+            {requiresPurchase ? '🔒' : '⚠️'}
+          </div>
+          <h2 style={{ fontSize: '1.4rem', fontWeight: 'bold', marginBottom: '0.75rem', color: '#fff' }}>
+            {requiresPurchase ? 'Accesso al Tour Riservato' : 'Impossibile Avviare il Tour'}
+          </h2>
+          <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '2rem', lineHeight: '1.5' }}>
+            {loadingError}
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {requiresPurchase && (
+              <button
+                onClick={() => window.location.href = '/marketplace/browseMarket'}
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff', border: 'none', borderRadius: '0.85rem', padding: '0.9rem 1.5rem', fontWeight: 'bold', fontSize: '0.95rem', cursor: 'pointer', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.2)' }}
+              >
+                🛒 Vai al Marketplace per Acquistare
+              </button>
+            )}
+            <button
+              onClick={() => navigate('/')}
+              style={{ background: '#334155', color: '#cbd5e1', border: 'none', borderRadius: '0.85rem', padding: '0.75rem 1.5rem', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer' }}
+            >
+              Torna alla Mappa
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
+
 
   if (!museumData || !visitData) {
     return (

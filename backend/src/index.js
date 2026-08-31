@@ -21,14 +21,15 @@ const navAccountRoute = require("./routes/navigator/AccountAPI");
 //DB connection
 const dbConnection = async () => {
     try {
-        console.log(`Connecting to MongoDB at: ${process.env.MONGO_URI}`);
-        await mongoose.connect(process.env.MONGO_URI)
-        console.log(`Connected to MongoDB in ${process.env.NODE_ENV} mode.`);
+        const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/artaround';
+        console.log(`Connecting to MongoDB at: ${mongoUri}`);
+        await mongoose.connect(mongoUri);
+        console.log(`Connected to MongoDB successfully.`);
     } catch (error) {
-        console.error("MongoDB connection error:", error);
-        // process.exit(1); // Removed to allow server to stay alive for UI testing
+        console.error("MongoDB connection error:", error.message);
     }
 };
+
 
 //------------- START SERVER -----------------
 const http = require('http');

@@ -20,8 +20,15 @@ const getCreateVisits = servePage("createVisits")
 const getBrowseMarket = servePage("browseMarket")
 const getNewMuseum = servePage("newMuseum")
 const getJoinMuseum = servePage("joinMuseum")
-const getMyMuseums = servePage("myMuseums")
-const getQrCodes = servePage("qrCodes")
+const getMyMuseums = servePage("myMuseums");
+const getQrCodes = (req, res) => {
+    res.redirect('/marketplace');
+};
+const getEditor = (req, res) => {
+    const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(`/navigator/editor${queryString}`);
+};
+
 
 module.exports = {
     getIndex,
@@ -35,4 +42,5 @@ module.exports = {
     getJoinMuseum,
     getMyMuseums,
     getQrCodes,
-};
+    getEditor,
+};
