@@ -1,150 +1,156 @@
 ================================================================================
-PROGETTO TECNOLOGIE WEB 2025/2026 - RELAZIONE DI CONSEGNA
+# Università di Bologna - Corso di Laurea in Informatica
+# Tecnologie Web (A.A. 2025/26) - Prof. Fabio Vitali
 ================================================================================
 
-TITOLO PROGETTO: ArtAround - Ecosistema Museale Digitale Integrato
-FASCIA DI VOTO TARGET: 18 - 33 PUNTI (Progetto Base + Modulo 1 Guida/Docente + Modulo 2 Geo/LLM)
+# READ ME DEL PROGETTO ARTAROUND
+# Progetto ArtAround 18-27
 
-AUTORI DEL PROGETTO:
-- Nome e Cognome: [Nome Cognome] | Matricola: [Matricola] | Email: [email@studio.unibo.it]
-- Repository GitHub: https://github.com/chryDegliEsposti/artAround_TW.git
+## Nome del gruppo: 
+Vai Roma
+
+## Membri del gruppo:
+* Nome e cognome: Christian Degli Esposti, matricola: 0001160851, mail: christi.degliesposti@studio.unibo.it (Punto di contatto primario)
+* Nome e cognome: Matteo Lombardo, matricola: 0001172254, mail: matteo.lombardo7@studio.unibo.it
+* Nome e cognome: Mohammed Ababil Hossain, matricola: 0001160957, mail: mohammed.hossain4@studio.unibo.it
+* LLM utilizzata: Gemini 3.7 Flash (Licenza commerciale / Google DeepMind API)
+
+## Tipo progetto:
+18-27 (Progetto Base + Estensione Modulo 1: Sincronizzazione Guida/Docente e Quiz di Valutazione)
+
+## Data di disponibilità delle applicazioni:
+Disponibile immediatamente per la valutazione.
+
+## Locazione del progetto:
+* URI del Marketplace & Editor: https://site2526XX.tw.cs.unibo.it/marketplace (in locale: http://localhost:3000/marketplace)
+* URI del Navigator (React):    https://site2526XX.tw.cs.unibo.it/navigator   (in locale: http://localhost:3000/navigator)
+* URI Sorgenti:                 https://site2526XX.tw.cs.unibo.it/source/
+* Altri URI rilevanti:
+  - Editor Planimetria:         https://site2526XX.tw.cs.unibo.it/navigator/editor
 
 ================================================================================
-1. CREDENZIALI DI ACCESSO AGLI ACCOUNT OBBLIGATORI
+## Credenziali degli Account Obbligatori Preconfigurati
 ================================================================================
+Tutti gli account hanno come password comune: 12345678
 
-Tutti gli account sono preconfigurati nel database e hanno come password comune:
-Password: 12345678
+1. AUTORE 1 (Ruolo: Creator):
+   - Email: autore1@artaround.it | Password: 12345678
+   - Permessi: Creazione Item (con AI), Creazione Visite, Gestione Museo e Planimetria 2D.
 
-1. AUTORE 1 (Ruolo: Autore / Creator):
-   - Email: autore1@artaround.it
-   - Password: 12345678
-   - Permessi: Creazione Item (con AI), Creazione Visite (su vincoli), Gestione Museo.
-
-2. AUTORE 2 (Ruolo: Autore / Creator):
-   - Email: autore2@artaround.it
-   - Password: 12345678
+2. AUTORE 2 (Ruolo: Creator):
+   - Email: autore2@artaround.it | Password: 12345678
    - Permessi: Creazione e pubblicazione contenuti nel Marketplace.
 
-3. VISITATORE 1 (Ruolo: Visitatore / Visitor):
-   - Email: visitatore1@artaround.it
-   - Password: 12345678
-   - Permessi: Navigazione indoor, scansione QR, fruizione visite, traduzione.
+3. VISITATORE 1 (Ruolo: Visitor):
+   - Email: visitatore1@artaround.it | Password: 12345678
+   - Permessi: Navigazione indoor, ascolto descrizioni, acquisto visite/opere.
 
-4. VISITATORE 2 (Ruolo: Visitatore / Visitor):
-   - Email: visitatore2@artaround.it
-   - Password: 12345678
+4. VISITATORE 2 (Ruolo: Visitor):
+   - Email: visitatore2@artaround.it | Password: 12345678
    - Permessi: Fruizione visite, partecipazione a visite sincronizzate.
 
-5. DOCENTE 1 (Ruolo: Docente / Guida):
-   - Email: docente1@artaround.it
-   - Password: 12345678
-   - Permessi: Avvio sessione sincronizzata con nome mnemonico "Fenice rossa", broadcast movimenti, somministrazione Quiz finale alla classe.
+5. DOCENTE 1 (Ruolo: Teacher / Guida):
+   - Email: docente1@artaround.it | Password: 12345678
+   - Permessi: Avvio sessione sincronizzata con nome mnemonico "Fenice rossa", broadcast in tempo reale alla classe, creazione e somministrazione Quiz finale.
 
 ================================================================================
-2. MUSEO REALE E DATASET IMPLEMENTATO
+## Organizzazione dei Sorgenti
 ================================================================================
+Tutti i file sorgenti sono posizionati nella cartella /home/web/site2526XX/html/source/
+con permessi 755 per le directory e 644 per i file:
 
-- Museo Reale Scelto: Pinacoteca Nazionale di Bologna (Codice identificativo: PIN-BO)
-- Pianta Indoor: Mappa vettoriale 2D a 2 livelli (Piano Terra L1, Primo Piano L2) con pareti, porte, aree tematiche, corridoi e punti di interesse (POI).
-- Opere d'Arte Reali Documentate (12 Capolavori):
-  1. Girolamo Mazzola Bedoli - Ritratto di frate in veste di San Tommaso d'Aquino (Q126599960)
-  2. Raffaello Sanzio - Estasi di santa Cecilia (Q2453886)
-  3. Guido Reni - Strage degli innocenti (Q3824424)
-  4. Vitale da Bologna - San Giorgio e il drago (Q3947230)
-  5. Parmigianino - Madonna di Santa Margherita (Q3842416)
-  6. Annibale Carracci - Assunzione della Vergine (Q3627389)
-  7. Ludovico Carracci - Annunciazione (Q3618174)
-  8. Guercino - San Sebastiano soccorso da Irene (Q3947885)
-  9. Giotto e bottega - Polittico di Bologna (Q3907519)
-  10. Pietro Perugino - Madonna in gloria e santi (Q3842426)
-  11. Lorenzo Costa - Matrimonio mistico di santa Caterina
-  12. Francesco Francia - Pala Felicini
+* source/backend/
+  - src/index.js: Entry point del server Express e inizializzazione WebSocket Socket.io (porta 8000).
+  - src/models/: Schemi Mongoose (User, Museum, Item, Visit, Quiz).
+  - src/routes/: Routing modulare Express per Marketplace (/api/v1/marketplace) e Navigator (/api/v1/navigator).
+  - src/controllers/: Logica applicativa business, acquisti, gestione musei, items, visite e quiz.
+  - src/sockets/syncTour.socket.js: Gestore WebSocket per la sincronizzazione real-time docente-studenti e quiz.
+  - src/seed/: Script per il popolamento automatico del dataset museale iniziale.
 
-- 4 Visite Guidate Complete (3 con >= 10 opere con step logistici separati dagli item + 1 sincronizzata):
-  * Visita 1: "I Grandi Capolavori della Pinacoteca" (Tono Medio, 10 opere + indicazioni per le sale)
-  * Visita 2: "Caccia all'Arte per Ragazzi: Draghi, Santi ed Eroi" (Tono Infantile, 10 opere per famiglie)
-  * Visita 3: "Dal Manierismo al Barocco Emiliano: Bedoli, Carracci e Guido Reni" (Tono Specialistico, 10 opere per studiosi)
-  * Visita 4 (Sincronizzata): "Visita Guidata Classe 4B - Liceo Artistico" (Nome mnemonico: "Fenice rossa", con Quiz finale di 5 domande)
+* source/marketplace/
+  - marketplace/pages/: Pagine HTML dell'applicazione Marketplace (homepage, browseMarket, createItems, createVisits, newMuseum, checkout, login/register).
+  - marketplace/scripts/: Logica client Alpine.js e gestione chiamate API autenticate JWT.
+
+* source/navigator/
+  - src/components/Pages/: Componenti React per la navigazione (Home, ExploreMuseum, Tour con mappa indoor e Leaflet, Editor 2D planimetrie).
+  - src/components/Shared/: Componenti riutilizzabili (Player audio TTS, Modale Sincronizzazione Docente/Studente, Modale Quiz).
+  - dist/: Bundle di produzione compilato con Vite e servito staticamente da Express.
 
 ================================================================================
-3. ISTRUZIONI PER L'AVVIO
+## Tecnologie Utilizzate
 ================================================================================
 
---- OPZIONE A: TRAMITE DOCKER (CONSIGLIATA PER IL COLLAUDO) ---
-Requisiti: Docker e Docker Compose installati.
+#### Server-Side:
+- Runtime: Node.js (v20/v22)
+- Framework Web: Express.js
+- Database: MongoDB con ODM Mongoose
+- Comunicazione Real-Time: Socket.io (WebSockets)
+- Sicurezza & Autenticazione: JSON Web Token (JWT), bcryptjs, CORS
+- Sintesi Vocale: Web Speech Synthesis API & Google Cloud Text-to-Speech API
 
-1. Posizionarsi nella cartella radice del progetto:
-   cd artAround_TW_merge
+#### Applicazione Marketplace & Editor (Vincolo No-Framework rispettato):
+- Linguaggi: HTML5 Semantico, Vanilla JavaScript (ES6+)
+- Framework Reattivo Leggero: Alpine.js (Nessun framework pesante SPA come da vincolo)
+- Grafica & Styling: Tailwind CSS e FontAwesome
 
-2. Avviare i container (MongoDB + Applicazione unificata con seed automatico):
-   docker compose up --build
-
-3. Aprire il browser agli indirizzi:
-   - Marketplace / Editor:  http://localhost:3000/marketplace
-   - Navigator (React):     http://localhost:3000/navigator
-   - Foglio QR Code Stampa: http://localhost:3000/qr-codes
-
---- OPZIONE B: AVVIO IN LOCALE (SENZA DOCKER) ---
-Requisiti: Node.js (v18+) e un'istanza MongoDB locale in esecuzione su porta 27017.
-
-1. Installazione dipendenze:
-   cd backend && npm install
-   cd ../client_navigator && npm install
-
-2. Compilazione frontend Navigator:
-   cd ../client_navigator && npm run build
-
-3. Inserimento dataset nel database:
-   cd ../backend && npm run seed
-
-4. Avvio server Express:
-   cd ../backend && npm run dev (oppure npm start)
+#### Applicazione Navigator (Mobile-First):
+- Framework: React 19 con Vite
+- Mappe & Navigazione Indoor: Leaflet e React-Leaflet (Mappa vettoriale 2D multi-layer con coordinate locali)
+- Iconografia & UI: Lucide React e Material Symbols
+- Riconoscimento & Sintesi Vocale: Web Speech API (SpeechRecognition & SpeechSynthesis)
 
 ================================================================================
-4. GUIDA AL COLLAUDO DELLE FUNZIONALITA' (FASCIA 18-33)
+## Descrizione del Progetto e Feature Rilevanti (Estensione 18-27)
 ================================================================================
 
-1. MODULO DI TELETRASPORTO VIRTUALE (Slide 33):
-   - Nel Navigator, cliccare sul pulsante con l'icona del fulmine (Zap) a sinistra.
-   - Nella lista, selezionare un'opera (es. "Estasi di santa Cecilia" di Raffaello).
-   - L'utente viene teletrasportato istantaneamente davanti al quadro, la mappa centra la visuale, il piano cambia automaticamente a L2 e la scheda dell'opera si apre.
+1. Dataset Reale (Pinacoteca Nazionale di Bologna - Codice: PIN-BO):
+   - Pianta indoor vettoriale 2D su due piani (Piano Terra e Primo Piano) con muri perimetrali, pareti interne, aree di servizio e 17 POI.
+   - 12 Opere d'Arte reali documentate da Wikidata con immagini, stili e descrizioni differenziate per tono (Infantile, Medio, Specialistico) e durata (15s, 1m, 3m).
+   - 4 Visite guidate complete (di cui 3 con >= 10 opere con step logistici separati dagli item).
 
-2. TRIGGER QR CODE REALE & FOGLIO STAMPABILE:
-   - Visitare http://localhost:3000/qr-codes per visualizzare il foglio con i 12 QR Code ad alta definizione dei capolavori.
-   - Nel Navigator, cliccare sul pulsante fotocamera e inquadrare un QR (o incollare il Q-ID Wikidata): l'opera viene agganciata e aperta all'istante.
+2. Presentazione Museo & Slider Anteprima:
+   - Pagina di presentazione dinamica nel Navigator con Hero banner, slider interattivo a frecce per le opere scelte dal curatore (previewItems), reindirizzamento al Marketplace per l'acquisto di visite e catalogo opere filtrate.
+   - Sezione "Servizi & Struttura" generata in tempo reale dalla geometria della planimetria senza hardcoding.
 
-3. CONTROLLO VOCALE WEB SPEECH API CON VOCABOLARIO CONTROLLATO (Slide 27):
-   - Nel Navigator, cliccare sul pulsante microfono.
-   - Pronunciare comandi in italiano quali: "prossima opera", "ripeti spiegazione", "pausa", "apri dettagli", "vai a Raffaello", "mostrami il Bedoli", "dov'è il bagno", "strada più facile", "sali al primo piano".
-   - Il sistema visualizza le onde sonore, trascrive la voce ed esegue l'azione.
+3. Editor 2D Planimetrie con Controllo Accessi:
+   - Accesso consentito unicamente agli utenti con ruolo Creator che possiedono almeno 1 museo registrato.
+   - Disegno interattivo di muri perimetrali, pareti, aree ristoro/WC e posizionamento POI agganciati alle opere del database.
 
-4. ACCESSIBILITA' FISICA E COGNITIVA (Slide 24, 26):
-   - Cliccare sul pulsante Accessibilità (icona omino) a sinistra o nel player.
-   - Opzioni testabili: Percorso Senza Barriere / Strada Facile (esclude le scale), Dimensione Testi (100%-140%), Velocità Voce (0.75x-1.5x), Modalità Alto Contrasto.
-
-5. GENERATIVE AI / LLM NEL MARKETPLACE E NAVIGATOR (Slide 33):
-   - Creazione Item con AI: in /marketplace -> "Crea Item", cercare un'opera su Wikidata e cliccare "🪄 Genera Testo con AI". Il testo viene autocompilato con metadato 'autore_contenuto: "AI"'.
-   - Generazione Visita su Vincoli con AI: in /marketplace -> "Crea Visite", cliccare "⚡ Assistente AI: Genera su Vincoli", impostare durata (es. 45 min) e target (Bambini / Specialistico). L'AI crea il percorso, ordina i capolavori e genera le istruzioni logistiche.
-   - Traduzione Real-Time: nella scheda dell'opera nel Navigator, cliccare sulle bandiere (IT, EN, ES, FR, DE) per tradurre istantaneamente il testo e ascoltarlo nella lingua selezionata.
-   - Adattamento Tono al Volo: cambiare tono tra "👶 Ragazzi", "👤 Standard" e "🎓 Esperto".
-
-6. SINCRONIZZAZIONE REAL-TIME GUIDA/DOCENTE & QUIZ (Slide 31-32):
-   - Aprire due finestre del browser su http://localhost:3000/navigator:
-     * Finestra 1 (Docente): Cliccare sull'icona Antenna/Radio, selezionare "Modalità Docente" e avviare la sessione con nome mnemonico "Fenice rossa".
-     * Finestra 2 (Studente): Cliccare sull'icona Antenna/Radio, inserire "Fenice rossa" e cliccare "Unisciti".
-   - Muovendo la mappa o cambiando opera dal Docente, la finestra dello Studente si sincronizza istantaneamente in tempo reale via WebSocket.
-   - Dal Docente, cliccare "⚡ Somministra Quiz Finale alla Classe": il Quiz di 5 domande appare all'istante sullo schermo dello Studente.
-   - Lo studente risponde, consegna e visualizza il punteggio percentuale con spiegazioni; il docente riceve in tempo reale il report con i voti della classe.
+4. Modulo Sincronizzazione Guida/Docente Real-Time (Estensione 18-27):
+   - La docente attiva la visita sul Marketplace assegnando un nome mnemonico (es. "Fenice rossa").
+   - Gli studenti si collegano digitando il nome e la docente visualizza i partecipanti in tempo reale.
+   - Broadcast istantaneo dei movimenti e delle spiegazioni dal dispositivo docente a tutti gli studenti.
+   - Chat interattiva per domande e richieste di spiegazione da parte degli studenti al docente.
+   - Creazione e somministrazione istantanea del Quiz a scelta multipla con calcolo automatico del punteggio e report voti live per la docente.
+   - Chiusura sincronizzata della sessione che disconnette automaticamente tutti gli allievi.
 
 ================================================================================
-5. ARCHITETTURA E SCELTE TECNOLOGICHE
+## Contributo Individuale dei Membri del Gruppo
 ================================================================================
-- Backend: Node.js, Express, MongoDB (Mongoose), Socket.io, Google TTS API.
-- Navigator Client: React, Vite, Leaflet Indoor Mapping, Web Speech API.
-- Marketplace & Editor: HTML5 semantico, TailwindCSS, Alpine.js (No-framework constraint rispettato).
-- Containerizzazione: Docker, Docker Compose multi-stage.
+La suddivisione del lavoro è stata effettuata su base funzionale (Full-Stack):
+
+* Christian Degli Esposti:
+  - Architettura backend Express, autenticazione JWT e middleware ruoli.
+  - Sviluppo del modulo WebSocket Socket.io per la sincronizzazione real-time della visita sincronizzata Docente/Studente e gestione Quiz.
+  - Implementazione delle viste Marketplace (browseMarket, checkout, createVisits) e logica Alpine.js.
+
+* Matteo Lombardo:
+  - Progettazione e sviluppo dell'applicazione Navigator in React/Vite.
+  - Implementazione della mappa indoor interattiva multi-layer con Leaflet e sistema di navigazione.
+  - Sviluppo della pagina di presentazione museo (ExploreMuseum) con slider interattivo e filtri dinamici.
+  - Integrazione Web Speech API per comandi vocali e sintesi audio.
+
+* Mohammed Ababil Hossain:
+  - Sviluppo dell'Editor 2D della planimetria (disegno muri, aree, calcolo facilities dinamiche).
+  - Modellazione schemi database Mongoose (User, Museum, Item, Visit, Quiz) e script di seeding iniziale.
+  - Sviluppo della sezione creazione museo/items e controlli di autorizzazione per i Creator.
+  - Configurazione dei container Docker di dipartimento e test di collaudo.
 
 ================================================================================
-Fine Relazione di Consegna - ArtAround TW 2025/2026
+## Contributo della LLM (Gemini 3.7 Flash)
+================================================================================
+L'assistente AI (LLM) è stato utilizzato in modalità Pair Programming per:
+1. Generazione e arricchimento dei testi descrittivi delle opere d'arte della Pinacoteca Nazionale di Bologna secondo i vari livelli linguistici (infantile, medio, specialistico) e durate (15s, 1m, 3m).
+2. Supporto al debug degli handler WebSocket per la sincronizzazione real-time delle stanze e disconnessione dei client.
+3. Ottimizzazione delle query Mongoose e calcolo delle coordinate geometriche per il rendering dei muri Leaflet nell'Editor 2D.
 ================================================================================

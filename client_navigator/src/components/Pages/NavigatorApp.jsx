@@ -4,11 +4,8 @@ import {
   ArrowLeft,
   Map as MapIcon,
   Mic,
-  Accessibility as EasierIcon,
-  Accessibility,
   Droplets as ToiletIcon,
   Utensils as RestaurantIcon,
-  Camera,
   MoreVertical,
   Plus,
   Minus,
@@ -18,7 +15,6 @@ import {
   ChevronLeft,
   ChevronRight,
   LocateFixed,
-  Zap,
   Sparkles,
   Radio,
   Users,
@@ -26,7 +22,6 @@ import {
 } from 'lucide-react';
 import BottomBar from '../UI/BottomBar';
 import ItemDescription from '../UI/ItemDescription';
-import AccessibilityModal from '../UI/AccessibilityModal';
 import SyncSessionModal from '../UI/SyncSessionModal';
 import QuizModal from '../UI/QuizModal';
 import QuizPickerModal from '../UI/QuizPickerModal';
@@ -1225,13 +1220,6 @@ export default function NavigatorApp() {
   const [showDescription, setShowDescription] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
-  const [isCameraActive, setIsCameraActive] = useState(false);
-  const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState(false);
-  const [accessibleRoute, setAccessibleRoute] = useState(false);
-  const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1);
-  const [speechRate, setSpeechRate] = useState(1.0);
-  const [autoPlayAudio, setAutoPlayAudio] = useState(false);
-  const [highContrast, setHighContrast] = useState(false);
   const [notificationToast, setNotificationToast] = useState(null);
   const [aiResponse, setAiResponse] = useState(null);
   const [hasTriggeredCurrent, setHasTriggeredCurrent] = useState(false);
@@ -1251,8 +1239,7 @@ export default function NavigatorApp() {
   const [isQuizPickerOpen, setIsQuizPickerOpen] = useState(false);
   const socketRef = useRef(null);
 
-  // Virtual Teleport & Voice Control States
-  const [isTeleportOpen, setIsTeleportOpen] = useState(false);
+  // Voice Control States
   const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef(null);
@@ -1308,33 +1295,6 @@ export default function NavigatorApp() {
   // User simulated position (started near the first exhibit)
   const startPos = items?.length > 0 ? { x: items[0].x, y: items[0].y + 40 } : { x: 250, y: 250 };
   const [userPos, setUserPos] = useState(startPos);
-
-  const handleTeleportTarget = (poi) => {
-    setIsTeleportOpen(false);
-    if (!poi || !poi.position) return;
-
-    const targetX = tx(poi.position.x || 0);
-    const targetY = ty(poi.position.y || 0) + 25; // position right in front of the artwork/service
-
-    setUserPos({ x: targetX, y: targetY });
-    setCameraPos({ x: targetX, y: targetY });
-    setIsTrackingUser(true);
-
-    if (poi.layerId && poi.layerId !== activeLayerId) {
-      setActiveLayerId(poi.layerId);
-    }
-
-    if (poi.type === 'exhibit') {
-      const idx = items.findIndex(it => it.id === poi.id || (poi.artworkId && it.artworkId === poi.artworkId));
-      if (idx !== -1) {
-        setCurrentIndex(idx);
-      }
-      setShowDescription(true);
-      showToast(`⚡ Teletrasportato davanti a: ${poi.name}`);
-    } else {
-      showToast(`📍 Raggiunto: ${poi.name || poi.type}`);
-    }
-  };
 
 
   useEffect(() => {
@@ -2012,12 +1972,6 @@ export default function NavigatorApp() {
           handlePrev();
         } else if (text.includes('riproduci') || text.includes('play') || text.includes('pausa') || text.includes('audio')) {
           togglePlay();
-        } else if (text.includes('bagno') || text.includes('wc') || text.includes('toilet')) {
-          const restroom = (museumData?.pois || []).find(p => p.type === 'restroom');
-          if (restroom) handleTeleportTarget(restroom);
-        } else if (text.includes('ristor') || text.includes('bar') || text.includes('caffè')) {
-          const restaurant = (museumData?.pois || []).find(p => p.type === 'restaurant');
-          if (restaurant) handleTeleportTarget(restaurant);
         }
       };
 
@@ -2036,10 +1990,6 @@ export default function NavigatorApp() {
       console.error("Speech start error:", e);
       setIsListening(false);
     }
-  };
-
-  const handleCameraScan = () => {
-    setIsCameraActive(prev => !prev);
   };
 
   const getScreenCoords = (abstractX, abstractY) => {
@@ -2197,58 +2147,14 @@ export default function NavigatorApp() {
         </div>
 
         {notificationToast && (
-          <div className="teleport-toast-notification slide-in-top">
+          <div className="navigator-toast-notification slide-in-top">
             <span>{notificationToast}</span>
             <button onClick={() => setNotificationToast(null)}><X size={14} /></button>
           </div>
         )}
 
-        {isCameraActive && (
-          <QRScanner
-            onScanSuccess={(text) => {
-              setIsCameraActive(false);
-              const cleanText = text.trim();
-              const pois = museumData.pois || [];
-              const matchedPoi = pois.find(p => 
-                (p.artworkId && p.artworkId.toUpperCase() === cleanText.toUpperCase()) ||
-                (p.id && p.id.toString() === cleanText) ||
-                (cleanText.toUpperCase().includes(p.artworkId?.toUpperCase() || '___NONE___')) ||
-                (p.name && cleanText.toLowerCase().includes(p.name.toLowerCase()))
-              );
-
-              if (matchedPoi) {
-                handleTeleportTarget(matchedPoi);
-                showToast(`📷 Opera riconosciuta da QR: ${matchedPoi.name}`);
-              } else {
-                showToast(`ℹ️ QR Scansionato: "${cleanText}" (Nessuna opera associata nel museo)`);
-              }
-            }}
-            onScanError={(err) => {
-              console.warn('QRScanner error', err);
-            }}
-            onClose={() => setIsCameraActive(false)}
-          />
-        )}
-
         {/* Left Side Utility Buttons */}
         <div className="utility-buttons-left">
-          <button
-            className={`util-btn ${isCameraActive ? 'active' : ''}`}
-            onClick={handleCameraScan}
-            title="Scansiona QR Code Opera"
-          >
-            <Camera size={24} />
-          </button>
-
-          <button
-            className="util-btn teleport-btn-trigger"
-            onClick={() => setIsTeleportOpen(true)}
-            title="Modulo Teletrasporto Virtuale"
-            style={{ background: 'linear-gradient(135deg, #6366f1, #4f46e5)', color: '#fff' }}
-          >
-            <Zap size={22} color="#fbbf24" />
-          </button>
-
           <button
             className={`util-btn ${isSyncModalOpen || isSyncedVisitor || isTeacherMode ? 'active' : ''}`}
             onClick={() => setIsSyncModalOpen(true)}
@@ -2265,15 +2171,6 @@ export default function NavigatorApp() {
             style={{ background: isListening ? '#ef4444' : 'rgba(239, 68, 68, 0.15)', color: '#fff' }}
           >
             <Mic size={22} color={isListening ? '#fff' : '#f87171'} className={isListening ? 'animate-pulse' : ''} />
-          </button>
-
-          <button
-            className={`util-btn ${accessibleRoute ? 'active' : ''}`}
-            onClick={() => setIsAccessibilityModalOpen(true)}
-            title="Accessibilità & Strada Facile"
-            style={accessibleRoute ? { background: '#2563eb', color: '#fff' } : {}}
-          >
-            <Accessibility size={22} color={accessibleRoute ? '#fff' : '#60a5fa'} />
           </button>
 
           <div className="layer-controls">
@@ -2369,26 +2266,6 @@ export default function NavigatorApp() {
         />
       )}
 
-
-
-      <AccessibilityModal
-        isOpen={isAccessibilityModalOpen}
-        onClose={() => setIsAccessibilityModalOpen(false)}
-        accessibleRoute={accessibleRoute}
-        onToggleAccessibleRoute={() => {
-          setAccessibleRoute(prev => !prev);
-          showToast(`Percorso accessibile ${!accessibleRoute ? 'ATTIVATO (senza scale)' : 'DISATTIVATO'}`);
-        }}
-        fontSizeMultiplier={fontSizeMultiplier}
-        onChangeFontSize={setFontSizeMultiplier}
-        speechRate={speechRate}
-        onChangeSpeechRate={setSpeechRate}
-        autoPlayAudio={autoPlayAudio}
-        onToggleAutoPlayAudio={() => setAutoPlayAudio(prev => !prev)}
-        highContrast={highContrast}
-        onToggleHighContrast={() => setHighContrast(prev => !prev)}
-      />
-
       <SyncSessionModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}
@@ -2426,7 +2303,6 @@ export default function NavigatorApp() {
         onPrev={handlePrev}
         onNext={handleNext}
         onPlayPause={togglePlay}
-        onEasier={() => setIsAccessibilityModalOpen(true)}
         onSeekBack={handleSeekBack}
         onSeekForward={handleSeekForward}
         isPlaying={isPlaying}
@@ -2436,8 +2312,6 @@ export default function NavigatorApp() {
         showDescription={showDescription}
         setShowDescription={setShowDescription}
         currentItem={currentItem}
-        fontSizeMultiplier={fontSizeMultiplier}
-        highContrast={highContrast}
       />
     </div>
   );

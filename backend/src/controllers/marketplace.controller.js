@@ -23,9 +23,6 @@ const getJoinMuseum = servePage("joinMuseum")
 const getMyMuseums = servePage("myMuseums");
 const getCheckout = servePage("checkout");
 const getCreateQuiz = servePage("createQuiz");
-const getQrCodes = (req, res) => {
-    res.redirect('/marketplace');
-};
 const getEditor = (req, res) => {
     const queryString = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
     res.redirect(`/navigator/editor${queryString}`);
@@ -45,6 +42,5 @@ module.exports = {
     getMyMuseums,
     getCheckout,
     getCreateQuiz,
-    getQrCodes,
     getEditor,
 };

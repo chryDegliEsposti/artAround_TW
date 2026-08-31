@@ -6,7 +6,6 @@ export default function BottomBar({
   onNext,
   onPlayPause,
   onMic,
-  onEasier,
   onSeekBack,
   onSeekForward,
   isPlaying,
@@ -15,9 +14,7 @@ export default function BottomBar({
   progress = 0,
   showDescription,
   setShowDescription,
-  currentItem,
-  fontSizeMultiplier = 1,
-  highContrast = false
+  currentItem
 }) {
   const dragStartY = useRef(null);
   const dragStartTarget = useRef(null);
@@ -147,20 +144,12 @@ export default function BottomBar({
       </div>
 
       {/* ---------------- EXPANDED STATE (ARTWORK DETAIL) ---------------- */}
-      <div 
-        className={`expanded-view ${showDescription ? 'visible' : ''} ${highContrast ? 'high-contrast-mode' : ''}`}
-        style={{ fontSize: `${fontSizeMultiplier * 100}%` }}
-      >
+      <div className={`expanded-view ${showDescription ? 'visible' : ''}`}>
         <header className="expanded-header">
           <button className="action-circle-btn" onClick={() => setShowDescription(false)} title="Chiudi scheda">
             <span className="material-symbols-outlined">close</span>
           </button>
           <h1 className="expanded-logo">ArtAround Curator</h1>
-          <div className="flex items-center gap-2">
-            <button className="action-circle-btn" onClick={onEasier} title="Impostazioni Accessibilità">
-              <span className="material-symbols-outlined">accessibility</span>
-            </button>
-          </div>
         </header>
 
         <main className="expanded-main no-scrollbar" ref={scrollRef}>
@@ -172,7 +161,7 @@ export default function BottomBar({
           <div className="content-section">
             <div className="header-block">
               <span className="room-label">Pinacoteca Nazionale di Bologna • Sala {currentItem?.layerId || 1}</span>
-              <h2 className="artwork-title" style={{ fontSize: `${fontSizeMultiplier * 1.5}rem` }}>{currentItem?.name || 'Capolavoro'}</h2>
+              <h2 className="artwork-title">{currentItem?.name || 'Capolavoro'}</h2>
               <div className="artist-row">
                 <div className="artist-line"></div>
                 <span className="artist-name">{currentItem?.artist || 'Autore Sconosciuto'}</span>
@@ -200,10 +189,9 @@ export default function BottomBar({
               </div>
             </div>
 
-            <article className="description-article" style={{ fontSize: `${fontSizeMultiplier * 1}rem`, lineHeight: 1.6 }}>
+            <article className="description-article">
               <div className="flex justify-between items-center mb-1">
                 <h3 className="desc-heading">Descrizione dell'Opera</h3>
-                 
               </div>
               <p className="desc-body">
                 {liveData.description || currentItem?.desc || 'Descrizione non disponibile.'}

@@ -8,8 +8,6 @@ marketplaceRouter.get("/", marketplaceController.getIndex);
 marketplaceRouter.get("/index", marketplaceController.getIndex);
 marketplaceRouter.get("/registration", marketplaceController.getSignup);
 marketplaceRouter.get("/login", marketplaceController.getLogin);
-marketplaceRouter.get("/qr-codes", marketplaceController.getQrCodes);
-marketplaceRouter.get("/homepage/qr-codes", marketplaceController.getQrCodes);
 
 // Protected general routes (all logged-in users)
 marketplaceRouter.get("/homepage", authorization, marketplaceController.getHomepage);
