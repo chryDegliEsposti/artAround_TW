@@ -20,8 +20,8 @@ marketplaceRouter.get("/homepage/browseMarket", authorization, marketplaceContro
 marketplaceRouter.get("/newMuseum", authorization, requireRole(['creator']), marketplaceController.getNewMuseum);
 marketplaceRouter.get("/homepage/newMuseum", authorization, requireRole(['creator']), marketplaceController.getNewMuseum);
 
-marketplaceRouter.get("/createVisits", authorization, requireRole(['creator']), marketplaceController.getCreateVisits);
-marketplaceRouter.get("/homepage/createVisits", authorization, requireRole(['creator']), marketplaceController.getCreateVisits);
+marketplaceRouter.get("/createVisits", authorization, requireRole(['creator', 'teacher']), marketplaceController.getCreateVisits);
+marketplaceRouter.get("/homepage/createVisits", authorization, requireRole(['creator', 'teacher']), marketplaceController.getCreateVisits);
 
 marketplaceRouter.get("/createItems", authorization, requireRole(['creator']), marketplaceController.getCreateItems);
 marketplaceRouter.get("/homepage/createItems", authorization, requireRole(['creator']), marketplaceController.getCreateItems);
@@ -39,5 +39,9 @@ marketplaceRouter.get("/homepage/checkout", authorization, marketplaceController
 // Map editor route
 marketplaceRouter.get("/editor", authorization, requireRole(['creator']), marketplaceController.getEditor);
 marketplaceRouter.get("/homepage/editor", authorization, requireRole(['creator']), marketplaceController.getEditor);
+
+// Create Quiz route (Teachers and Creators)
+marketplaceRouter.get("/createQuiz", authorization, requireRole(['teacher', 'creator']), marketplaceController.getCreateQuiz);
+marketplaceRouter.get("/homepage/createQuiz", authorization, requireRole(['teacher', 'creator']), marketplaceController.getCreateQuiz);
 
 module.exports = marketplaceRouter;

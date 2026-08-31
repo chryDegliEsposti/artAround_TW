@@ -7,6 +7,8 @@
 
 const Quiz = require('../models/Quiz');
 const Visit = require('../models/Visit');
+const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
 // In-memory active synchronized tour sessions
 const activeSessions = new Map();
@@ -18,7 +20,7 @@ function initSyncTourSockets(io) {
     console.log(`[Socket.io] Client connesso a /sync-tour: ${socket.id}`);
 
     /**
-     * Teacher creates or takes control of a mnemonic synchronized session
+     * Teacher creates or resets a mnemonic synchronized session
      */
     socket.on('teacher:create_session', async (payload) => {
       const mnemonicName = (payload?.mnemonicName || 'Fenice rossa').trim();
@@ -29,8 +31,8 @@ function initSyncTourSockets(io) {
       socket.mnemonicRoom = mnemonicName;
       socket.isTeacher = true;
 
-      // Initialize session state
-      let session = activeSessions.get(mnemonicName) || {
+      // Always create a clean, fresh session state for the newly started session
+      const session = {
         mnemonicName,
         teacherSocketId: socket.id,
         visitId,
@@ -40,27 +42,73 @@ function initSyncTourSockets(io) {
         userPos: { x: 0, y: 0 },
         isPlaying: false,
         visitors: new Set(),
-        quizResults: []
+        visitorsList: new Map(),
+        quizResults: [],
+        inquiries: []
       };
 
-      session.teacherSocketId = socket.id;
       activeSessions.set(mnemonicName, session);
 
-      console.log(`[Socket.io] Sessione Docente creata per: "${mnemonicName}"`);
+      console.log(`[Socket.io] Nuova sessione Docente creata e dati azzerati per: "${mnemonicName}"`);
 
       socket.emit('teacher:session_created', {
         mnemonicName,
-        visitorsCount: session.visitors.size,
+        visitorsCount: 0,
         session
+      });
+
+      // Send empty student list and inquiries to teacher
+      socket.emit('teacher:connected_students', {
+        students: [],
+        count: 0,
+        inquiries: []
       });
     });
 
     /**
-     * Visitor joins a mnemonic synchronized session
+     * Teacher ends the session: cleans memory and terminates all student sessions
+     */
+    socket.on('teacher:end_session', (payload) => {
+      const mnemonicName = socket.mnemonicRoom || payload?.mnemonicName || 'Fenice rossa';
+      console.log(`[Socket.io] Sessione Docente chiusa per "${mnemonicName}". Pulizia completa dati.`);
+
+      // Remove session from memory completely
+      activeSessions.delete(mnemonicName);
+
+      // Broadcast termination to all visitors/students in the room
+      syncNamespace.to(mnemonicName).emit('sync:session_ended', {
+        mnemonicName,
+        message: 'La Docente ha terminato la visita guidata sincronizzata.'
+      });
+
+      // Also force-leave for all sockets currently in this room
+      const roomSockets = syncNamespace.adapter.rooms.get(mnemonicName);
+      if (roomSockets) {
+        for (const sockId of Array.from(roomSockets)) {
+          const s = syncNamespace.sockets.get(sockId);
+          if (s) {
+            s.emit('sync:session_ended', {
+              mnemonicName,
+              message: 'La Docente ha terminato la visita guidata sincronizzata.'
+            });
+            s.leave(mnemonicName);
+            s.mnemonicRoom = null;
+            s.isTeacher = false;
+          }
+        }
+      }
+
+      socket.leave(mnemonicName);
+      socket.mnemonicRoom = null;
+      socket.isTeacher = false;
+    });
+
+    /**
+     * Visitor joins a mnemonic synchronized session (Classroom Sync Tour)
      */
     socket.on('visitor:join_session', async (payload) => {
       const mnemonicName = (payload?.mnemonicName || 'Fenice rossa').trim();
-      const visitorName = payload?.visitorName || `Visitatore_${socket.id.substring(0, 4)}`;
+      const visitorName = (payload?.visitorName || `Studente_${socket.id.substring(0, 4)}`).trim();
 
       socket.join(mnemonicName);
       socket.mnemonicRoom = mnemonicName;
@@ -69,7 +117,6 @@ function initSyncTourSockets(io) {
 
       let session = activeSessions.get(mnemonicName);
       if (!session) {
-        // Create an empty session entry if teacher hasn't connected yet
         session = {
           mnemonicName,
           teacherSocketId: null,
@@ -78,14 +125,22 @@ function initSyncTourSockets(io) {
           userPos: { x: 0, y: 0 },
           isPlaying: false,
           visitors: new Set(),
-          quizResults: []
+          visitorsList: new Map(),
+          quizResults: [],
+          inquiries: []
         };
         activeSessions.set(mnemonicName, session);
       }
 
       session.visitors.add(socket.id);
+      if (!session.visitorsList) session.visitorsList = new Map();
+      session.visitorsList.set(socket.id, {
+        socketId: socket.id,
+        visitorName: visitorName,
+        joinedAt: new Date()
+      });
 
-      console.log(`[Socket.io] Visitatore "${visitorName}" unito a: "${mnemonicName}". Totale: ${session.visitors.size}`);
+      console.log(`[Socket.io] Studente/Visitatore "${visitorName}" (socket: ${socket.id}) unito a stanza: "${mnemonicName}". Totale: ${session.visitors.size}`);
 
       // Send current state to newly joined visitor
       socket.emit('sync:state_changed', {
@@ -97,11 +152,77 @@ function initSyncTourSockets(io) {
         message: `Sei sincronizzato con la sessione "${mnemonicName}".`
       });
 
-      // Notify teacher and room of new participant count
+      // Broadcast updated participant count and student list to all in room (including teacher)
+      const studentsList = Array.from(session.visitorsList.values());
       syncNamespace.to(mnemonicName).emit('sync:participant_count', {
         count: session.visitors.size,
         visitorName
       });
+
+      syncNamespace.to(mnemonicName).emit('teacher:connected_students', {
+        students: studentsList,
+        count: studentsList.length,
+        inquiries: session.inquiries || []
+      });
+    });
+
+    /**
+     * Visitor asks a question or requests deeper explanation
+     */
+    socket.on('visitor:ask_question', (payload) => {
+      const mnemonicName = socket.mnemonicRoom || payload?.mnemonicName;
+      if (!mnemonicName) return;
+
+      const session = activeSessions.get(mnemonicName);
+      const inquiry = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+        visitorName: socket.visitorName || payload?.visitorName || 'Studente',
+        artworkTitle: payload?.artworkTitle || 'Opera Corrente',
+        text: payload?.text || payload?.question || 'Richiesta di approfondimento',
+        type: payload?.type || 'domanda',
+        timestamp: new Date()
+      };
+
+      if (session) {
+        if (!session.inquiries) session.inquiries = [];
+        session.inquiries.unshift(inquiry); // newest first
+        if (session.inquiries.length > 50) session.inquiries.pop();
+
+        syncNamespace.to(mnemonicName).emit('teacher:student_inquiry', {
+          inquiry,
+          allInquiries: session.inquiries
+        });
+      }
+
+      console.log(`[Socket.io] Domanda da ${inquiry.visitorName} nella stanza "${mnemonicName}": "${inquiry.text}" (Opera: ${inquiry.artworkTitle})`);
+    });
+
+    /**
+     * Visitor leaves the synchronized room
+     */
+    socket.on('visitor:leave_session', (payload) => {
+      const mnemonicName = socket.mnemonicRoom || payload?.mnemonicName;
+      if (!mnemonicName) return;
+
+      const session = activeSessions.get(mnemonicName);
+      if (session) {
+        session.visitors.delete(socket.id);
+        if (session.visitorsList) session.visitorsList.delete(socket.id);
+
+        const studentsList = Array.from(session.visitorsList.values());
+        syncNamespace.to(mnemonicName).emit('sync:participant_count', {
+          count: session.visitors.size
+        });
+        syncNamespace.to(mnemonicName).emit('teacher:connected_students', {
+          students: studentsList,
+          count: studentsList.length,
+          inquiries: session.inquiries || []
+        });
+      }
+
+      socket.leave(mnemonicName);
+      socket.mnemonicRoom = null;
+      console.log(`[Socket.io] Visitatore uscito dalla stanza "${mnemonicName}"`);
     });
 
     /**
@@ -137,14 +258,28 @@ function initSyncTourSockets(io) {
       const mnemonicName = socket.mnemonicRoom || payload?.mnemonicName;
       if (!mnemonicName) return;
 
-      console.log(`[Socket.io] Docente avvia Quiz per la stanza: "${mnemonicName}"`);
+      console.log(`[Socket.io] Docente avvia Quiz per la stanza: "${mnemonicName}"`, payload?.quizId || payload?.quiz?.title || 'default');
 
-      // Try to find Quiz from DB or use standard Pinacoteca Quiz
-      let quizData = null;
-      try {
-        quizData = await Quiz.findOne();
-      } catch (e) {
-        console.warn("Could not fetch quiz from DB:", e);
+      let quizData = payload?.quiz;
+
+      if (!quizData && payload?.quizId) {
+        try {
+          quizData = await Quiz.findById(payload.quizId);
+        } catch (e) {
+          console.warn("Could not fetch quiz by ID:", e);
+        }
+      }
+
+      // Try to find Quiz from DB by museum or any
+      if (!quizData) {
+        try {
+          const session = activeSessions.get(mnemonicName);
+          const museumId = session?.museumId || 'PIN-BO';
+          quizData = await Quiz.findOne({ $or: [{ museumId }, { museum: museumId }] });
+          if (!quizData) quizData = await Quiz.findOne();
+        } catch (e) {
+          console.warn("Could not fetch quiz from DB:", e);
+        }
       }
 
       if (!quizData) {
@@ -187,10 +322,23 @@ function initSyncTourSockets(io) {
         };
       }
 
-      // Broadcast quiz to all devices in room
-      syncNamespace.to(mnemonicName).emit('sync:quiz_started', {
+      // Reset quiz results for the new quiz
+      const session = activeSessions.get(mnemonicName);
+      if (session) {
+        session.quizResults = [];
+      }
+
+      // Broadcast quiz ONLY to students in room (EXCLUDE the teacher)
+      socket.to(mnemonicName).emit('sync:quiz_started', {
         mnemonicName,
         quiz: quizData
+      });
+
+      // Acknowledge teacher that quiz is active
+      socket.emit('teacher:quiz_started', {
+        mnemonicName,
+        quiz: quizData,
+        message: `Quiz "${quizData.title}" somministrato con successo agli studenti della classe!`
       });
     });
 
@@ -217,8 +365,8 @@ function initSyncTourSockets(io) {
       console.log(`[Socket.io] Quiz inviato da ${resultEntry.visitorName}: ${resultEntry.score}/${resultEntry.total} (${resultEntry.percentage}%)`);
 
       // Notify teacher of the new quiz submission
-      if (session && session.teacherSocketId) {
-        syncNamespace.to(session.teacherSocketId).emit('teacher:quiz_result', {
+      if (session) {
+        syncNamespace.to(mnemonicName).emit('teacher:quiz_result', {
           result: resultEntry,
           allResults: session.quizResults
         });
@@ -233,12 +381,23 @@ function initSyncTourSockets(io) {
       if (mnemonicName && activeSessions.has(mnemonicName)) {
         const session = activeSessions.get(mnemonicName);
         session.visitors.delete(socket.id);
+        if (session.visitorsList) {
+          session.visitorsList.delete(socket.id);
+        }
         if (socket.isTeacher) {
           session.teacherSocketId = null;
         }
         syncNamespace.to(mnemonicName).emit('sync:participant_count', {
           count: session.visitors.size
         });
+        if (session.teacherSocketId) {
+          const studentsList = Array.from(session.visitorsList.values());
+          syncNamespace.to(session.teacherSocketId).emit('teacher:connected_students', {
+            students: studentsList,
+            count: studentsList.length,
+            inquiries: session.inquiries || []
+          });
+        }
       }
       console.log(`[Socket.io] Client disconnesso: ${socket.id}`);
     });

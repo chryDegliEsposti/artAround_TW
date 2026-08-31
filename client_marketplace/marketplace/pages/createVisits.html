@@ -344,8 +344,8 @@
                         window.location.href = '/marketplace/login';
                         return;
                     }
-                    if (userData.role !== 'creator') {
-                        alert("Accesso limitato: solo gli utenti con ruolo Creatore possono creare percorsi di visita.");
+                    if (userData.role !== 'creator' && userData.role !== 'teacher') {
+                        alert("Accesso limitato: solo gli utenti con ruolo Docente o Creatore possono creare percorsi di visita.");
                         window.location.href = '/marketplace/homepage';
                         return;
                     }
@@ -359,18 +359,48 @@
                 async loadManagedMuseums() {
                     try {
                         const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
-                        const res = await fetch('/api/v1/marketplace/museums/getManaged', {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
+                        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                        // 1. Try to load user's managed museums
+                        const res = await fetch('/api/v1/marketplace/museums/getManaged', { headers });
                         if (res.ok) {
                             const json = await res.json();
                             this.managedMuseums = json.data || [];
-                            if (this.managedMuseums.length > 0) {
-                                this.selectedMuseumId = this.managedMuseums[0]._id;
+                        }
+
+                        // 2. If user has no managed museums (e.g. teachers), load all public museums
+                        if (!this.managedMuseums || this.managedMuseums.length === 0) {
+                            const allRes = await fetch('/api/v1/navigator/museums', { headers });
+                            if (allRes.ok) {
+                                const allData = await allRes.json();
+                                const list = Array.isArray(allData) ? allData : (allData.data || allData.museums || []);
+                                if (list && list.length > 0) {
+                                    this.managedMuseums = list;
+                                }
                             }
                         }
+
+                        // 3. Fallback to marketplace search if still empty
+                        if (!this.managedMuseums || this.managedMuseums.length === 0) {
+                            const searchRes = await fetch('/api/v1/marketplace/museums/search', { headers });
+                            if (searchRes.ok) {
+                                const searchData = await searchRes.json();
+                                this.managedMuseums = searchData.data || [];
+                            }
+                        }
+
+                        // 4. Default fallback
+                        if (!this.managedMuseums || this.managedMuseums.length === 0) {
+                            this.managedMuseums = [
+                                { _id: 'PIN-BO', museumId: 'PIN-BO', name: 'Pinacoteca Nazionale di Bologna' }
+                            ];
+                        }
+
+                        if (this.managedMuseums.length > 0) {
+                            this.selectedMuseumId = this.managedMuseums[0]._id || this.managedMuseums[0].museumId;
+                        }
                     } catch (e) {
-                        console.error("Errore caricamento musei gestiti:", e);
+                        console.error("Errore caricamento musei:", e);
                     }
                 },
                 

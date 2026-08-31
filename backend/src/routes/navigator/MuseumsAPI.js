@@ -4,10 +4,10 @@ const Museum = require('../../models/Museum');
 const Item = require('../../models/Item');
 
 /**
- * GET /api/v1/navigator/museums/get
+ * GET /api/v1/navigator/museums or /api/v1/navigator/museums/get
  * Returns all museums or filtered by name query
  */
-router.get('/get', async (req, res) => {
+router.get(['/', '/get'], async (req, res) => {
     try {
         let query = {};
         if (req.query.name) {

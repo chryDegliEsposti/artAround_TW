@@ -22,6 +22,7 @@ const getNewMuseum = servePage("newMuseum")
 const getJoinMuseum = servePage("joinMuseum")
 const getMyMuseums = servePage("myMuseums");
 const getCheckout = servePage("checkout");
+const getCreateQuiz = servePage("createQuiz");
 const getQrCodes = (req, res) => {
     res.redirect('/marketplace');
 };
@@ -43,6 +44,7 @@ module.exports = {
     getJoinMuseum,
     getMyMuseums,
     getCheckout,
+    getCreateQuiz,
     getQrCodes,
     getEditor,
 };

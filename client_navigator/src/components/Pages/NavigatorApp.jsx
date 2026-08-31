@@ -29,6 +29,7 @@ import ItemDescription from '../UI/ItemDescription';
 import AccessibilityModal from '../UI/AccessibilityModal';
 import SyncSessionModal from '../UI/SyncSessionModal';
 import QuizModal from '../UI/QuizModal';
+import QuizPickerModal from '../UI/QuizPickerModal';
 import { useSpeaker } from '../../utils/useSpeaker';
 import { createCollisionGrid, findPath } from '../../utils/gridPathfinding';
 import { io } from 'socket.io-client';
@@ -1242,8 +1243,12 @@ export default function NavigatorApp() {
   const [isTeacherMode, setIsTeacherMode] = useState(false);
   const [isSyncedVisitor, setIsSyncedVisitor] = useState(false);
   const [activeMnemonic, setActiveMnemonic] = useState('');
+  const [activeVisitorName, setActiveVisitorName] = useState('Studente');
   const [connectedVisitorsCount, setConnectedVisitorsCount] = useState(0);
+  const [connectedStudents, setConnectedStudents] = useState([]);
+  const [studentInquiries, setStudentInquiries] = useState([]);
   const [teacherQuizResults, setTeacherQuizResults] = useState([]);
+  const [isQuizPickerOpen, setIsQuizPickerOpen] = useState(false);
   const socketRef = useRef(null);
 
   // Virtual Teleport & Voice Control States
@@ -1688,15 +1693,28 @@ export default function NavigatorApp() {
   const handleSeekBack = () => seek(Math.max(0, currentTime - 5));
   const handleSeekForward = () => seek(Math.min(duration || 9999, currentTime + 5));
 
-  // Initialize Socket.io connection
+  const isTeacherModeRef = useRef(isTeacherMode);
+  isTeacherModeRef.current = isTeacherMode;
+
+  const currentItemRef = useRef(currentItem);
+  currentItemRef.current = currentItem;
+
+  const speakRef = useRef(speak);
+  speakRef.current = speak;
+
+  const activeMnemonicRef = useRef(activeMnemonic);
+  activeMnemonicRef.current = activeMnemonic;
+
+  // Initialize Socket.io connection (Persisted single socket instance)
   useEffect(() => {
     const socket = io('/sync-tour', {
-      transports: ['websocket', 'polling']
+      transports: ['websocket', 'polling'],
+      reconnection: true
     });
     socketRef.current = socket;
 
     socket.on('connect', () => {
-      console.log('Connected to /sync-tour websocket');
+      console.log('Connected to /sync-tour websocket:', socket.id);
     });
 
     socket.on('sync:state_changed', (data) => {
@@ -1704,8 +1722,10 @@ export default function NavigatorApp() {
         if (data.currentIndex !== undefined) setCurrentIndex(data.currentIndex);
         if (data.activeLayerId !== undefined) setActiveLayerId(data.activeLayerId);
         if (data.userPos) setUserPos(data.userPos);
-        if (data.isPlaying && currentItem?.desc) {
-          speak(currentItem.desc, currentItem.id);
+        if (data.isPlaying && currentItemRef.current?.desc) {
+          if (speakRef.current) {
+            speakRef.current(currentItemRef.current.desc, currentItemRef.current.id);
+          }
         }
         if (data.message) {
           showToast(`📡 Docente: ${data.message}`);
@@ -1724,9 +1744,32 @@ export default function NavigatorApp() {
 
     socket.on('sync:quiz_started', (data) => {
       if (data && data.quiz) {
-        setActiveQuizData(data.quiz);
-        setIsQuizModalOpen(true);
-        showToast("📝 Il Docente ha avviato il Quiz di fine visita!");
+        // Only open quiz for students, never for the teacher administering it
+        if (!isTeacherModeRef.current) {
+          setActiveQuizData(data.quiz);
+          setIsQuizModalOpen(true);
+          showToast("📝 Il Docente ha avviato il Quiz di fine visita!");
+        }
+      }
+    });
+
+    socket.on('teacher:quiz_started', (data) => {
+      if (data && data.quiz) {
+        showToast(`🚀 Quiz "${data.quiz.title || 'della Classe'}" inviato agli studenti!`);
+        setIsSyncModalOpen(true);
+      }
+    });
+
+    socket.on('sync:join_error', (data) => {
+      setIsSyncedVisitor(false);
+      setActiveMnemonic('');
+      showToast(`❌ ${data.message}`);
+      if (data.requiresPurchase && data.visitId) {
+        if (window.confirm(`${data.message}\n\nVuoi acquistare il biglietto per questa visita adesso?`)) {
+          window.location.href = `/marketplace/checkout?visitId=${data.visitId}`;
+        }
+      } else {
+        alert(data.message);
       }
     });
 
@@ -1737,44 +1780,104 @@ export default function NavigatorApp() {
       }
     });
 
+    socket.on('teacher:connected_students', (data) => {
+      if (data) {
+        if (data.students) setConnectedStudents(data.students);
+        if (data.count !== undefined) setConnectedVisitorsCount(data.count);
+        if (data.inquiries) setStudentInquiries(data.inquiries);
+      }
+    });
+
+    socket.on('teacher:student_inquiry', (data) => {
+      if (data && data.inquiry) {
+        setStudentInquiries(prev => [data.inquiry, ...prev]);
+        showToast(`🙋 ${data.inquiry.visitorName}: "${data.inquiry.text.substring(0, 30)}..." (${data.inquiry.artworkTitle})`);
+      }
+    });
+
+    socket.on('sync:session_ended', (data) => {
+      setIsSyncedVisitor(false);
+      setIsTeacherMode(false);
+      setActiveMnemonic('');
+      setConnectedStudents([]);
+      setStudentInquiries([]);
+      setTeacherQuizResults([]);
+      setConnectedVisitorsCount(0);
+      setIsQuizModalOpen(false);
+      setIsSyncModalOpen(false);
+      showToast(`📢 ${data?.message || 'La Docente ha terminato la visita sincronizzata.'}`);
+    });
+
     return () => {
       socket.disconnect();
     };
-  }, [currentItem, speak]);
+  }, []);
 
   const handleStartTeacherSession = (mnemonic) => {
     const name = mnemonic || 'Fenice rossa';
     setActiveMnemonic(name);
     setIsTeacherMode(true);
     setIsSyncedVisitor(false);
+    setConnectedStudents([]);
+    setStudentInquiries([]);
+    setTeacherQuizResults([]);
+    setConnectedVisitorsCount(0);
     if (socketRef.current) {
       socketRef.current.emit('teacher:create_session', {
         mnemonicName: name,
-        museumId: 'PIN-BO'
+        museumId: museumData?.museumId || 'PIN-BO'
       });
     }
-    showToast(`🎓 Sessione Docente avviata: "${name}"`);
+    showToast(`🎓 Nuova Sessione Docente avviata: "${name}"`);
   };
 
   const handleJoinVisitorSession = (mnemonic, visitorName) => {
     const name = mnemonic || 'Fenice rossa';
+    const effectiveName = (visitorName || '').trim() || 'Studente';
     setActiveMnemonic(name);
+    setActiveVisitorName(effectiveName);
     setIsSyncedVisitor(true);
     setIsTeacherMode(false);
     if (socketRef.current) {
+      const userStr = localStorage.getItem('user') || localStorage.getItem('userData');
+      let userObj = null;
+      try { userObj = JSON.parse(userStr); } catch (e) {}
+      const finalName = visitorName || userObj?.username || 'Studente';
+      setActiveVisitorName(finalName);
+      const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
       socketRef.current.emit('visitor:join_session', {
         mnemonicName: name,
-        visitorName: visitorName || 'Studente'
+        visitorName: finalName,
+        userId: userObj?._id,
+        token: token,
+        visitId: museumData?.visitId || museumData?.visit?._id
       });
     }
-    showToast(`🟢 Sincronizzato con la stanza "${name}"`);
+    showToast(`🟢 Connesso alla stanza "${name}" come ${visitorName || 'Studente'}`);
   };
 
   const handleLeaveSyncSession = () => {
+    const room = activeMnemonic || activeMnemonicRef.current || 'Fenice rossa';
+    const isTeacher = isTeacherMode || isTeacherModeRef.current;
+
+    if (socketRef.current) {
+      if (isTeacher) {
+        socketRef.current.emit('teacher:end_session', { mnemonicName: room });
+      } else {
+        socketRef.current.emit('visitor:leave_session', { mnemonicName: room });
+      }
+    }
     setIsTeacherMode(false);
     setIsSyncedVisitor(false);
     setActiveMnemonic('');
-    showToast("Sessione sincronizzata terminata");
+    setConnectedStudents([]);
+    setStudentInquiries([]);
+    setTeacherQuizResults([]);
+    setConnectedVisitorsCount(0);
+    setIsQuizModalOpen(false);
+    setIsSyncModalOpen(false);
+    stopSpeaking();
+    showToast(isTeacher ? "Sessione Docente chiusa per tutti gli studenti." : "Sessione sincronizzata terminata.");
   };
 
   const handleBroadcastState = (type) => {
@@ -1825,11 +1928,24 @@ export default function NavigatorApp() {
   };
 
   const handleStartGroupQuiz = () => {
+    if (!activeMnemonic) {
+      showToast("⚠️ Avvia prima una sessione docente.");
+      return;
+    }
+    // Open Quiz Picker so teacher can select which quiz to launch
+    setIsSyncModalOpen(false);
+    setIsQuizPickerOpen(true);
+  };
+
+  const handleSelectAndLaunchQuiz = (quiz) => {
     if (!socketRef.current || !activeMnemonic) return;
     socketRef.current.emit('teacher:start_quiz', {
-      mnemonicName: activeMnemonic
+      mnemonicName: activeMnemonic,
+      quizId: quiz?._id,
+      quiz: quiz
     });
-    showToast("📝 Quiz inviato a tutti i dispositivi!");
+    showToast(`📝 Quiz "${quiz?.title || 'della Classe'}" inviato agli studenti!`);
+    setIsSyncModalOpen(true);
   };
 
   const handleSubmitQuizResults = (results) => {
@@ -1840,6 +1956,24 @@ export default function NavigatorApp() {
         total: results.total,
         answers: results.answers
       });
+    }
+  };
+
+  const handleAskQuestion = (questionText, type = 'domanda') => {
+    if (socketRef.current && activeMnemonic) {
+      const userStr = localStorage.getItem('user') || localStorage.getItem('userData');
+      let userObj = null;
+      try { userObj = JSON.parse(userStr); } catch (e) {}
+      
+      const senderName = activeVisitorName || userObj?.username || 'Studente';
+      socketRef.current.emit('visitor:ask_question', {
+        mnemonicName: activeMnemonic,
+        visitorName: senderName,
+        artworkTitle: currentItem?.name || currentItem?.title || 'Opera Corrente',
+        text: questionText,
+        type: type
+      });
+      showToast("📨 Domanda inviata alla docente!");
     }
   };
 
@@ -2262,11 +2396,14 @@ export default function NavigatorApp() {
         isSyncedVisitor={isSyncedVisitor}
         activeMnemonic={activeMnemonic}
         connectedVisitorsCount={connectedVisitorsCount}
+        connectedStudents={connectedStudents}
+        studentInquiries={studentInquiries}
         onStartTeacherSession={handleStartTeacherSession}
         onJoinVisitorSession={handleJoinVisitorSession}
         onLeaveSyncSession={handleLeaveSyncSession}
         onBroadcastState={handleBroadcastState}
         onStartGroupQuiz={handleStartGroupQuiz}
+        onAskQuestion={handleAskQuestion}
         teacherQuizResults={teacherQuizResults}
       />
 
@@ -2275,6 +2412,14 @@ export default function NavigatorApp() {
         onClose={() => setIsQuizModalOpen(false)}
         quiz={activeQuizData}
         onSubmitResults={handleSubmitQuizResults}
+      />
+
+      <QuizPickerModal
+        isOpen={isQuizPickerOpen}
+        onClose={() => setIsQuizPickerOpen(false)}
+        museumId={museumData?.museumId || 'PIN-BO'}
+        museumName={museumData?.name || 'Pinacoteca Nazionale di Bologna'}
+        onSelectAndLaunchQuiz={handleSelectAndLaunchQuiz}
       />
 
       <BottomBar

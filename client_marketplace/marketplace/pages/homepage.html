@@ -122,6 +122,12 @@
                                    class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700 text-sm flex items-center border-t border-gray-100">
                                     <i class="fas fa-route mr-3 text-green-500"></i>Imposta Percorso Visita
                                 </a>
+
+                                <a href="/marketplace/homepage/createQuiz" 
+                                   @click="isCreateMenuOpen = false"
+                                   class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700 text-sm flex items-center border-t border-gray-100">
+                                    <i class="fas fa-graduation-cap mr-3 text-amber-500"></i>Crea Quiz Didattico
+                                </a>
                             </div>
                         </div>
                         
@@ -157,6 +163,18 @@
                                 </a>
                             </div>
                         </div>
+                    </div>
+                </template>
+
+                <!-- TEACHER ONLY MENUS -->
+                <template x-if="userRole === 'teacher'">
+                    <div class="inline-flex items-center space-x-6 flex-wrap">
+                        <a href="/marketplace/homepage/createQuiz" class="hover:text-purple-400 text-sm font-medium flex items-center text-amber-300">
+                            <i class="fas fa-file-pen mr-2"></i>Crea Quiz Didattico
+                        </a>
+                        <a href="/navigator" class="hover:text-purple-400 text-sm font-medium flex items-center text-emerald-300">
+                            <i class="fas fa-radio mr-2"></i>Sessioni Sincronizzate (Fenice rossa)
+                        </a>
                     </div>
                 </template>
 
@@ -328,6 +346,101 @@
             </div>
         </template>
 
+        <!-- ================= TEACHER VIEW ================= -->
+        <template x-if="userRole === 'teacher'">
+            <div class="space-y-8">
+                <!-- Teacher Welcome Banner -->
+                <div class="bg-gradient-to-r from-indigo-700 via-purple-700 to-purple-900 rounded-3xl text-white p-8 shadow-xl relative overflow-hidden">
+                    <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-semibold uppercase tracking-wider mb-3">
+                                <i class="fas fa-graduation-cap text-yellow-300"></i> Account Docente / Guida
+                            </div>
+                            <h1 class="text-3xl sm:text-4xl font-extrabold mb-2">
+                                Bentornato, <span x-text="username"></span>!
+                            </h1>
+                            <p class="text-purple-100 text-base max-w-xl">
+                                Gestisci le sessioni sincronizzate in aula o al museo ("Fenice rossa") e somministra questionari di valutazione delle competenze alla classe.
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <a href="/marketplace/homepage/createQuiz" class="px-5 py-2.5 bg-white text-indigo-700 font-bold rounded-xl shadow hover:bg-purple-50 transition text-sm flex items-center gap-2">
+                                <i class="fas fa-plus-circle"></i> Nuovo Quiz
+                            </a>
+                            <a href="/navigator" class="px-5 py-2.5 bg-indigo-500/40 text-white font-bold rounded-xl hover:bg-indigo-500/60 border border-white/20 transition text-sm flex items-center gap-2">
+                                <i class="fas fa-compass"></i> Avvia Guida Sincronizzata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Action Cards for Teacher -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <a href="/marketplace/homepage/createQuiz" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                        <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
+                            <i class="fas fa-file-circle-plus"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1">Crea Quiz per la Classe</h3>
+                        <p class="text-sm text-gray-500">Componi domande a risposta multipla su misura per ciascun museo e opera d'arte.</p>
+                    </a>
+
+                    <a href="/navigator" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
+                            <i class="fas fa-radio"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1">Sessione Live ("Fenice rossa")</h3>
+                        <p class="text-sm text-gray-500">Controlla la posizione della classe, trasmetti audio broadcast e avvia il quiz finale.</p>
+                    </a>
+
+                    <a href="/marketplace/browseMarket" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-lg transition group">
+                        <div class="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition">
+                            <i class="fas fa-store"></i>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1">Catalogo Opere e Percorsi</h3>
+                        <p class="text-sm text-gray-500">Esplora e acquisisci i percorsi museali da utilizzare durante le tue lezioni guidate.</p>
+                    </a>
+                </div>
+
+                <!-- Teacher Quizzes Preview -->
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fas fa-list-check text-indigo-600"></i> I Tuoi Questionari Creati
+                        </h2>
+                        <a href="/marketplace/homepage/createQuiz" class="text-sm font-semibold text-indigo-600 hover:underline flex items-center gap-1">
+                            <i class="fas fa-plus"></i> Crea Nuovo Quiz
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <template x-for="q in myQuizzes" :key="q._id">
+                            <div class="p-5 rounded-2xl border border-gray-100 bg-gray-50 hover:bg-white hover:shadow-md transition flex flex-col justify-between">
+                                <div>
+                                    <span class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50 px-2 py-0.5 rounded-md" x-text="q.museumId || (q.museum?.museumId) || 'Museo'"></span>
+                                    <h4 class="font-bold text-gray-800 text-base mt-2 mb-1" x-text="q.title"></h4>
+                                    <p class="text-xs text-gray-500 line-clamp-2" x-text="q.description || 'Nessuna descrizione'"></p>
+                                </div>
+                                <div class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                                    <span><i class="fas fa-list-ol mr-1"></i><span x-text="q.questions?.length || 0"></span> domande</span>
+                                    <span><i class="fas fa-clock mr-1"></i><span x-text="(q.timeLimitMinutes || 10) + ' min'"></span></span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="myQuizzes.length === 0">
+                            <div class="col-span-3 py-8 text-center text-gray-400">
+                                <i class="fas fa-clipboard-question text-3xl mb-2 text-gray-300 block"></i>
+                                <p class="text-sm">Non hai ancora creato nessun quiz personalizzato.</p>
+                                <a href="/marketplace/homepage/createQuiz" class="inline-block mt-3 text-sm font-bold text-indigo-600 hover:underline">
+                                    + Crea il tuo primo Quiz per la classe
+                                </a>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+
         <!-- ================= VISITOR VIEW ================= -->
         <template x-if="userRole === 'visitor'">
             <div class="space-y-8">
@@ -406,6 +519,7 @@
                 username: '',
                 email: '',
                 myMuseums: [],
+                myQuizzes: [],
                 
                 async init() {
                     const userData = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
@@ -415,6 +529,23 @@
                     
                     if (this.userRole === 'creator') {
                         await this.loadMyMuseums();
+                    } else if (this.userRole === 'teacher') {
+                        await this.loadMyQuizzes();
+                    }
+                },
+
+                async loadMyQuizzes() {
+                    try {
+                        const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                        const res = await fetch('/api/v1/marketplace/quizzes/my', {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            const json = await res.json();
+                            this.myQuizzes = json.data || [];
+                        }
+                    } catch (err) {
+                        console.error('Errore caricamento quiz docente:', err);
                     }
                 },
 

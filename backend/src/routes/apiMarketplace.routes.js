@@ -9,7 +9,7 @@ apiMarketplaceRouter.get("/items/:id", authorization, apiMarketplaceController.g
 apiMarketplaceRouter.put("/items/:id", authorization, requireRole(['creator']), apiMarketplaceController.updateItem);
 
 // --- VISITS SECTION---
-apiMarketplaceRouter.post("/create/visits", authorization, requireRole(['creator']), apiMarketplaceController.createVisit);
+apiMarketplaceRouter.post("/create/visits", authorization, requireRole(['creator', 'teacher']), apiMarketplaceController.createVisit);
 apiMarketplaceRouter.get('/create/searchItems', authorization, apiMarketplaceController.searchItemsForVisit);
 
 // --- MUSEUMS SECTION---
@@ -35,5 +35,11 @@ apiMarketplaceRouter.post("/purchase/item", authorization, apiMarketplaceControl
 
 // --- FAVORITES TOGGLE SECTION ---
 apiMarketplaceRouter.post("/favorites/toggle", authorization, apiMarketplaceController.toggleFavorite);
+
+// --- QUIZZES SECTION (FOR TEACHERS & CREATORS) ---
+apiMarketplaceRouter.get("/quizzes/by-museum/:museumId", authorization, apiMarketplaceController.getQuizzesByMuseum);
+apiMarketplaceRouter.get("/quizzes/my", authorization, requireRole(['teacher', 'creator']), apiMarketplaceController.getMyQuizzes);
+apiMarketplaceRouter.post("/quizzes/create", authorization, requireRole(['teacher', 'creator']), apiMarketplaceController.createQuiz);
+apiMarketplaceRouter.delete("/quizzes/:id", authorization, requireRole(['teacher', 'creator']), apiMarketplaceController.deleteQuiz);
 
 module.exports = apiMarketplaceRouter;

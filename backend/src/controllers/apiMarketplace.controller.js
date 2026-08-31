@@ -3,6 +3,8 @@ const Visit = require('../models/Visit');
 const User = require('../models/User');
 const Museum = require('../models/Museum');
 const Notification = require('../models/Notification');
+const Quiz = require('../models/Quiz');
+const mongoose = require('mongoose');
 
 // ----------------------------------- ITEMS HANDLERS ----------------------------------
 const createItems = async (req, res) => {
@@ -299,10 +301,11 @@ const searchMuseum = async (req, res) => {
     try {
         const { q, field = 'name' } = req.query;
 
-        if (!q || q.length < 2) {
-            const allMuseums = await Museum.find().select('name museumId city address image').limit(10).lean();
+        if (!q || q.trim().length === 0) {
+            const allMuseums = await Museum.find().select('name museumId city address image').lean();
             return res.status(200).json({
                 status: 'success',
+                results: allMuseums.length,
                 data: allMuseums
             });
         }
@@ -310,13 +313,12 @@ const searchMuseum = async (req, res) => {
         const queryFilter = {};
         const searchField = field === 'museumId' || field === 'customCode' ? 'museumId' : 'name';
         queryFilter[searchField] = { 
-            $regex: q, 
+            $regex: q.trim(), 
             $options: 'i' 
         };
 
         const museums = await Museum.find(queryFilter)
             .select('name museumId city address image')
-            .limit(10)
             .lean();
 
         res.status(200).json({
@@ -909,6 +911,133 @@ const exportMuseumJSON = async (req, res) => {
     }
 };
 
+// ----------------------------------- QUIZ HANDLERS ----------------------------------
+const getQuizzesByMuseum = async (req, res) => {
+    try {
+        const museumParam = req.params.museumId;
+        if (!museumParam) {
+            return res.status(400).json({ status: 'error', message: 'ID museo richiesto' });
+        }
+
+        let museumDoc = null;
+        if (mongoose.Types.ObjectId.isValid(museumParam)) {
+            museumDoc = await Museum.findById(museumParam);
+        }
+        if (!museumDoc) {
+            museumDoc = await Museum.findOne({ museumId: museumParam.toUpperCase() });
+        }
+
+        let query = {};
+        if (museumDoc) {
+            query = {
+                $or: [
+                    { museum: museumDoc._id },
+                    { museumId: museumDoc.museumId },
+                    { museumId: museumParam.toUpperCase() }
+                ]
+            };
+        } else {
+            query = { museumId: museumParam.toUpperCase() };
+        }
+
+        const quizzes = await Quiz.find(query).populate('museum').populate('teacher', 'username email').sort({ createdAt: -1 });
+        return res.status(200).json({ status: 'success', data: quizzes });
+    } catch (err) {
+        console.error("Error fetching quizzes by museum:", err);
+        return res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+const getMyQuizzes = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const quizzes = await Quiz.find({ teacher: userId }).populate('museum').sort({ createdAt: -1 });
+        return res.status(200).json({ status: 'success', data: quizzes });
+    } catch (err) {
+        console.error("Error fetching my quizzes:", err);
+        return res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+const createQuiz = async (req, res) => {
+    try {
+        const { title, description, museumId, visitId, questions, timeLimitMinutes } = req.body;
+        const userId = req.userId;
+        const user = req.user;
+
+        if (!title || !questions || !Array.isArray(questions) || questions.length === 0) {
+            return res.status(400).json({ status: 'error', message: 'Titolo e almeno una domanda sono obbligatori.' });
+        }
+
+        let museumDoc = null;
+        if (museumId) {
+            if (mongoose.Types.ObjectId.isValid(museumId)) {
+                museumDoc = await Museum.findById(museumId);
+            }
+            if (!museumDoc) {
+                museumDoc = await Museum.findOne({ museumId: museumId.toUpperCase() });
+            }
+        }
+
+        // Format questions ensuring correctAnswerIndex and correctIndex are set
+        const formattedQuestions = questions.map(q => {
+            const cIndex = (q.correctAnswerIndex !== undefined) ? Number(q.correctAnswerIndex) : Number(q.correctIndex || 0);
+            return {
+                question: q.question,
+                options: q.options,
+                correctIndex: cIndex,
+                correctAnswerIndex: cIndex,
+                explanation: q.explanation || '',
+                points: Number(q.points || 1)
+            };
+        });
+
+        const newQuiz = await Quiz.create({
+            title,
+            description,
+            museum: museumDoc ? museumDoc._id : undefined,
+            museumId: museumDoc ? museumDoc.museumId : (museumId ? museumId.toUpperCase() : undefined),
+            visit: visitId || undefined,
+            questions: formattedQuestions,
+            timeLimitMinutes: Number(timeLimitMinutes || 10),
+            teacher: userId,
+            teacherName: user ? (user.username || user.email) : 'Docente'
+        });
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Quiz creato con successo!',
+            data: newQuiz
+        });
+    } catch (err) {
+        console.error("Error creating quiz:", err);
+        return res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
+const deleteQuiz = async (req, res) => {
+    try {
+        const quizId = req.params.id;
+        const userId = req.userId;
+        const user = req.user;
+
+        const quiz = await Quiz.findById(quizId);
+        if (!quiz) {
+            return res.status(404).json({ status: 'error', message: 'Quiz non trovato.' });
+        }
+
+        if (user.role !== 'creator' && quiz.teacher && quiz.teacher.toString() !== userId.toString()) {
+            return res.status(403).json({ status: 'error', message: 'Non hai i permessi per eliminare questo quiz.' });
+        }
+
+        await Quiz.findByIdAndDelete(quizId);
+        return res.status(200).json({ status: 'success', message: 'Quiz eliminato con successo.' });
+    } catch (err) {
+        console.error("Error deleting quiz:", err);
+        return res.status(500).json({ status: 'error', message: err.message });
+    }
+};
+
 module.exports = {
     createItems,
     searchItemsForVisit,
@@ -929,4 +1058,8 @@ module.exports = {
     getNotifications,
     markNotificationsAsRead,
     toggleFavorite,
+    getQuizzesByMuseum,
+    getMyQuizzes,
+    createQuiz,
+    deleteQuiz
 };

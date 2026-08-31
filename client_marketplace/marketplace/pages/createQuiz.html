@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crea Quiz di Valutazione - ArtAround</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        [x-cloak] { display: none !important; }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen flex flex-col" x-data="createQuizApp()" x-init="init()" x-cloak>
+    
+    <!-- Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-md text-white font-bold text-lg">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <span class="text-xl font-black text-slate-900 tracking-tight">ArtAround</span>
+                    <span class="text-xs bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded-full ml-2">Docenti & Guide</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <a href="/marketplace/homepage" class="text-slate-600 hover:text-indigo-600 text-sm font-semibold flex items-center gap-1.5 transition">
+                    <i class="fas fa-arrow-left"></i> Dashboard
+                </a>
+                <a href="/navigator" class="px-4 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-xl transition flex items-center gap-1.5">
+                    <i class="fas fa-compass"></i> Apri Navigator
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-1 w-full space-y-8">
+        
+        <!-- Header Title Banner -->
+        <div class="bg-gradient-to-r from-indigo-700 via-purple-700 to-purple-900 rounded-3xl text-white p-8 shadow-xl relative overflow-hidden">
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                <div>
+                    <div class="inline-flex items-center gap-2 px-3 py-1 bg-white/20 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                        <i class="fas fa-award text-amber-300"></i> Somministrazione Didattica
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl font-black mb-2">
+                        Crea Nuovo Quiz per la Classe
+                    </h1>
+                    <p class="text-purple-100 text-sm sm:text-base max-w-2xl">
+                        Componi un questionario di verifica delle competenze per un museo reale. Potrai attivarlo in tempo reale durante le sessioni sincronizzate con la classe.
+                    </p>
+                </div>
+
+                <button type="button" @click="loadPinacotecaTemplate()" class="px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold rounded-2xl border border-white/30 transition text-xs flex items-center gap-2 shrink-0">
+                    <i class="fas fa-magic"></i> Carica Template Esempio
+                </button>
+            </div>
+        </div>
+
+        <!-- Form Box -->
+        <form @submit.prevent="submitQuiz" class="space-y-8">
+            
+            <!-- Section 1: General Info -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+                <h2 class="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-info-circle text-indigo-600"></i> Informazioni Generali
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    <!-- Museum Selection -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                            Museo di Riferimento <span class="text-red-500">*</span>
+                        </label>
+                        <select x-model="form.museumId" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="">-- Seleziona il Museo --</option>
+                            <template x-for="m in museums" :key="m._id">
+                                <option :value="m.museumId || m._id" x-text="m.name + ' (' + (m.museumId || 'ID') + ')'"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Time Limit -->
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                            Tempo Limite (Minuti)
+                        </label>
+                        <div class="relative">
+                            <input type="number" x-model.number="form.timeLimitMinutes" min="1" max="60" required
+                                   class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <span class="absolute right-4 top-3.5 text-xs text-slate-400 font-bold">min</span>
+                        </div>
+                    </div>
+
+                    <!-- Quiz Title -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                            Titolo del Quiz <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" x-model="form.title" required placeholder="es. Verifica delle Competenze - I Capolavori della Pinacoteca"
+                               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                    </div>
+
+                    <!-- Quiz Description -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                            Descrizione / Istruzioni per gli Studenti
+                        </label>
+                        <textarea x-model="form.description" rows="2" placeholder="es. Rispondi alle 5 domande per verificare quanto appreso durante il tour sincronizzato con la classe."
+                                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Questions Builder -->
+            <div class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <i class="fas fa-list-ol text-purple-600"></i> Domande del Quiz (<span x-text="form.questions.length"></span>)
+                        </h2>
+                        <p class="text-xs text-slate-500">Inserisci le domande a risposta multipla e seleziona l'opzione corretta.</p>
+                    </div>
+
+                    <button type="button" @click="addQuestion()" 
+                            class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow transition text-xs flex items-center gap-2">
+                        <i class="fas fa-plus"></i> Aggiungi Domanda
+                    </button>
+                </div>
+
+                <!-- Questions List -->
+                <div class="space-y-6">
+                    <template x-for="(q, qIndex) in form.questions" :key="qIndex">
+                        <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-5 relative">
+                            
+                            <!-- Question Header -->
+                            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                                <span class="text-xs font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl" x-text="'Domanda ' + (qIndex + 1)"></span>
+                                
+                                <button type="button" @click="removeQuestion(qIndex)" :disabled="form.questions.length <= 1"
+                                        class="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-30 transition flex items-center gap-1">
+                                    <i class="fas fa-trash"></i> Elimina Domanda
+                                </button>
+                            </div>
+
+                            <!-- Question Text -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Testo della Domanda</label>
+                                <input type="text" x-model="q.question" required placeholder="es. Quale celebre santo è raffigurato nel dipinto del Bedoli?"
+                                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+
+                            <!-- Options Grid -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                                    Opzioni di Risposta (Seleziona il pallino della risposta corretta)
+                                </label>
+                                <div class="space-y-3">
+                                    <template x-for="(opt, optIndex) in q.options" :key="optIndex">
+                                        <div class="flex items-center gap-3 p-2 bg-slate-50 rounded-2xl border border-slate-200 focus-within:border-indigo-500 focus-within:bg-white transition">
+                                            
+                                            <!-- Radio for correct answer -->
+                                            <label class="flex items-center gap-2 pl-3 cursor-pointer">
+                                                <input type="radio" :name="'correct_' + qIndex" :value="optIndex" 
+                                                       x-model="q.correctAnswerIndex"
+                                                       class="w-4 h-4 text-emerald-600 focus:ring-emerald-500">
+                                                <span class="text-xs font-extrabold text-slate-600" x-text="String.fromCharCode(65 + optIndex)"></span>
+                                            </label>
+
+                                            <!-- Option Text Input -->
+                                            <input type="text" x-model="q.options[optIndex]" required :placeholder="'Opzione ' + String.fromCharCode(65 + optIndex)"
+                                                   class="w-full px-2 py-1.5 bg-transparent text-sm font-medium outline-none">
+
+                                            <!-- Correct Badge if selected -->
+                                            <template x-if="q.correctAnswerIndex === optIndex">
+                                                <span class="text-[11px] font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-lg shrink-0 mr-2 flex items-center gap-1">
+                                                    <i class="fas fa-check"></i> Corretta
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Explanation Feedback -->
+                            <div>
+                                <label class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+                                    Spiegazione / Feedback Didattico (Mostrato dopo la risposta)
+                                </label>
+                                <input type="text" x-model="q.explanation" placeholder="es. Il dipinto del Bedoli raffigura un frate domenicano con il sole radiante di San Tommaso."
+                                       class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Submit Section -->
+            <div class="flex justify-end gap-4 pt-4">
+                <a href="/marketplace/homepage" class="px-6 py-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-2xl transition text-sm">
+                    Annulla
+                </a>
+                <button type="submit" :disabled="isSubmitting"
+                        class="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl shadow-lg shadow-emerald-200 hover:shadow-emerald-300 transition flex items-center gap-2 text-base disabled:opacity-50">
+                    <i class="fas" :class="isSubmitting ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+                    <span x-text="isSubmitting ? 'Salvataggio in corso...' : 'Salva e Pubblica Quiz'"></span>
+                </button>
+            </div>
+        </form>
+
+    </main>
+
+    <script>
+        function createQuizApp() {
+            return {
+                museums: [],
+                isSubmitting: false,
+                form: {
+                    title: '',
+                    description: '',
+                    museumId: 'PIN-BO',
+                    timeLimitMinutes: 10,
+                    questions: [
+                        {
+                            question: '',
+                            options: ['', '', '', ''],
+                            correctAnswerIndex: 0,
+                            explanation: '',
+                            points: 1
+                        }
+                    ]
+                },
+
+                async init() {
+                    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+                    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+                    try {
+                        const res = await fetch('/api/v1/navigator/museums', { headers });
+                        if (res.ok) {
+                            const data = await res.json();
+                            const list = Array.isArray(data) ? data : (data.data || data.museums || []);
+                            if (list && list.length > 0) {
+                                this.museums = list;
+                            }
+                        }
+                    } catch (err) {
+                        console.warn("Recupero da /api/v1/navigator/museums non riuscito, provo search...", err);
+                    }
+
+                    // Fallback to marketplace search if needed
+                    if (!this.museums || this.museums.length === 0) {
+                        try {
+                            const res2 = await fetch('/api/v1/marketplace/museums/search', { headers });
+                            if (res2.ok) {
+                                const data2 = await res2.json();
+                                const list2 = Array.isArray(data2) ? data2 : (data2.data || []);
+                                if (list2 && list2.length > 0) {
+                                    this.museums = list2;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("Fallback musei search fallito:", e);
+                        }
+                    }
+
+                    // Final fallback to default museums catalog
+                    if (!this.museums || this.museums.length === 0) {
+                        this.museums = [
+                            {
+                                _id: 'PIN-BO',
+                                museumId: 'PIN-BO',
+                                name: 'Pinacoteca Nazionale di Bologna',
+                                city: 'Bologna'
+                            }
+                        ];
+                    }
+
+                    // Set initial selected museum
+                    if (this.museums.length > 0 && !this.form.museumId) {
+                        this.form.museumId = this.museums[0].museumId || this.museums[0]._id;
+                    }
+
+                    // Check URL params for prefilled museum
+                    const params = new URLSearchParams(window.location.search);
+                    if (params.get('museumId')) {
+                        this.form.museumId = params.get('museumId');
+                    }
+                },
+
+                addQuestion() {
+                    this.form.questions.push({
+                        question: '',
+                        options: ['', '', '', ''],
+                        correctAnswerIndex: 0,
+                        explanation: '',
+                        points: 1
+                    });
+                },
+
+                removeQuestion(index) {
+                    if (this.form.questions.length > 1) {
+                        this.form.questions.splice(index, 1);
+                    }
+                },
+
+                loadPinacotecaTemplate() {
+                    this.form.title = "Quiz di Competenza: I Capolavori della Pinacoteca Nazionale";
+                    this.form.description = "Verifica finale per la classe sulle opere d'arte analizzate durante il tour guidato.";
+                    this.form.museumId = "PIN-BO";
+                    this.form.timeLimitMinutes = 10;
+                    this.form.questions = [
+                        {
+                            question: "Quale celebre santo è raffigurato nel ritratto di frate dipinto da Girolamo Mazzola Bedoli?",
+                            options: ["San Tommaso d'Aquino", "San Francesco d'Assisi", "San Petronio", "San Domenico"],
+                            correctAnswerIndex: 0,
+                            explanation: "Il dipinto del Bedoli raffigura un frate domenicano con il sole radiante sul petto e il libro sacro.",
+                            points: 1
+                        },
+                        {
+                            question: "Quale strumento musicale regge Santa Cecilia nel celebre capolavoro di Raffaello Sanzio?",
+                            options: ["Liuto", "Organo portatile", "Arpa celtica", "Viola da gamba"],
+                            correctAnswerIndex: 1,
+                            explanation: "Nell'Estasi di Santa Cecilia, la santa regge un organo portatile mentre ascolta il coro degli angeli.",
+                            points: 1
+                        },
+                        {
+                            question: "Quale schema compositivo geometrico caratterizza la 'Strage degli innocenti' di Guido Reni?",
+                            options: ["Piramidale inverso", "Orizzontale a fregio continuo", "Spirale barocca", "Prospettiva aerea"],
+                            correctAnswerIndex: 0,
+                            explanation: "Guido Reni impiega una calibrata struttura a piramide rovesciata con i due carnefici in alto.",
+                            points: 1
+                        },
+                        {
+                            question: "In quale epoca e corrente artistica si colloca il 'San Giorgio e il drago' di Vitale da Bologna?",
+                            options: ["Barocco seicentesco", "Trecento Gotico bolognese", "Neoclassicismo", "Manierismo cinquecentesco"],
+                            correctAnswerIndex: 1,
+                            explanation: "Vitale da Bologna dipinse il capolavoro attorno al 1335-1340, vertice del dinamismo gotico.",
+                            points: 1
+                        },
+                        {
+                            question: "Quale celebre accademia artistica fu fondata a Bologna dai cugini Carracci?",
+                            options: ["Accademia della Crusca", "Accademia degli Incamminati", "Accademia di San Luca", "Accademia dei Lincei"],
+                            correctAnswerIndex: 1,
+                            explanation: "I Carracci fondarono l'Accademia degli Incamminati, rinnovando l'arte con il ritorno al disegno dal vero.",
+                            points: 1
+                        }
+                    ];
+                },
+
+                async submitQuiz() {
+                    // Validate
+                    if (!this.form.title.trim()) {
+                        alert("Inserisci il titolo del Quiz.");
+                        return;
+                    }
+
+                    for (let i = 0; i < this.form.questions.length; i++) {
+                        const q = this.form.questions[i];
+                        if (!q.question.trim()) {
+                            alert(`Compila il testo della Domanda ${i + 1}.`);
+                            return;
+                        }
+                        for (let j = 0; j < q.options.length; j++) {
+                            if (!q.options[j].trim()) {
+                                alert(`Compila l'Opzione ${String.fromCharCode(65 + j)} della Domanda ${i + 1}.`);
+                                return;
+                            }
+                        }
+                    }
+
+                    this.isSubmitting = true;
+                    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+
+                    try {
+                        const res = await fetch('/api/v1/marketplace/quizzes/create', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                            },
+                            body: JSON.stringify(this.form)
+                        });
+
+                        const data = await res.json();
+                        if (res.ok && data.status === 'success') {
+                            alert("🎉 Quiz creato con successo! È ora disponibile per essere attivato nelle sessioni sincronizzate.");
+                            window.location.href = '/marketplace/homepage';
+                        } else {
+                            alert("Errore: " + (data.message || 'Impossibile creare il quiz'));
+                        }
+                    } catch (err) {
+                        console.error("Errore salvataggio quiz:", err);
+                        alert("Errore di connessione al server.");
+                    } finally {
+                        this.isSubmitting = false;
+                    }
+                }
+            };
+        }
+    </script>
+</body>
+</html>
