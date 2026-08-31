@@ -79,7 +79,7 @@ router.get('/get/:id', async (req, res) => {
 
 /**
  * GET /api/v1/navigator/museums/museumData
- * Returns 2D floor plan map geometry, layers, areas, lines, and POIs for NavigatorApp
+ * Returns 2D floor plan map geometry, layers, areas, lines, and POIs for NavigatorApp & Editor
  */
 router.get('/museumData', async (req, res) => {
     try {
@@ -93,23 +93,81 @@ router.get('/museumData', async (req, res) => {
             museum = await Museum.findOne();
         }
 
-        if (museum && museum.layers && museum.layers.length > 0 && museum.pois && museum.pois.length > 0) {
+        if (museum) {
             return res.json({
                 id: museum._id,
+                museumId: museum.museumId,
                 name: museum.name,
-                museumCenter: museum.museumCenter || [44.4975, 11.3533],
-                layers: museum.layers,
-                lines: museum.lines,
-                areas: museum.areas,
-                pois: museum.pois
+                museumCenter: museum.museumCenter && museum.museumCenter.length === 2 ? museum.museumCenter : [museum.latitude || 44.4975, museum.longitude || 11.3533],
+                layers: museum.layers && museum.layers.length > 0 ? museum.layers : [{ id: 1, name: 'Layer 1' }],
+                lines: museum.lines || [],
+                areas: museum.areas || [],
+                pois: museum.pois || []
             });
         }
 
-        // If not populated yet, return error to trigger client fallback
-        res.status(404).json({ error: 'No museum map geometry found in database' });
+        // If no museum exists in DB at all
+        res.status(404).json({ error: 'No museum found in database' });
     } catch (err) {
         console.error("Error fetching museumData:", err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * PUT /api/v1/navigator/museums/map/:id
+ * Saves updated map geometry (layers, lines, areas, pois, museumCenter) to MongoDB
+ */
+router.put(['/map/:id', '/map'], async (req, res) => {
+    try {
+        const idParam = req.params.id || req.body.id || req.body.museumId;
+        const { layers, lines, areas, pois, museumCenter } = req.body;
+
+        let museum = null;
+        if (idParam && typeof idParam === 'string' && idParam.match(/^[0-9a-fA-F]{24}$/)) {
+            museum = await Museum.findById(idParam);
+        } else if (idParam) {
+            museum = await Museum.findOne({ museumId: String(idParam).toUpperCase() });
+        }
+
+        if (!museum) {
+            museum = await Museum.findOne();
+        }
+
+        if (!museum) {
+            return res.status(404).json({ success: false, error: 'Museum not found in database' });
+        }
+
+        if (layers && Array.isArray(layers)) museum.layers = layers;
+        if (lines && Array.isArray(lines)) museum.lines = lines;
+        if (areas && Array.isArray(areas)) museum.areas = areas;
+        if (pois && Array.isArray(pois)) museum.pois = pois;
+        if (museumCenter && Array.isArray(museumCenter) && museumCenter.length === 2) {
+            museum.museumCenter = museumCenter;
+            museum.latitude = museumCenter[0];
+            museum.longitude = museumCenter[1];
+        }
+
+        await museum.save();
+        console.log(`[Editor] Mappa aggiornata con successo per museo: ${museum.name} (${museum.museumId})`);
+
+        res.json({
+            success: true,
+            message: `Mappa di "${museum.name}" salvata con successo nel database!`,
+            museum: {
+                id: museum._id,
+                museumId: museum.museumId,
+                name: museum.name,
+                museumCenter: museum.museumCenter,
+                layersCount: museum.layers.length,
+                linesCount: museum.lines.length,
+                areasCount: museum.areas.length,
+                poisCount: museum.pois.length
+            }
+        });
+    } catch (err) {
+        console.error("Error updating museum map:", err);
+        res.status(500).json({ success: false, error: err.message });
     }
 });
 

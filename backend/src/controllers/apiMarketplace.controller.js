@@ -249,9 +249,20 @@ const createMuseum = async (req, res) => {
         });
 
         // 3. Create museum's items (if any)  
-        if (items && items.length > 0) {
+        if (items && Array.isArray(items) && items.length > 0) {
             const itemsWithMuseumId = items.map(item => ({
-                ...item,
+                title: item.title || item.subjectId || 'Opera d\'Arte',
+                description: item.description || item.title || 'Descrizione opera d\'arte.',
+                itemType: item.itemType || 'artwork',
+                artworkId: item.artworkId || item.subjectId || undefined,
+                author: item.author || 'Artista',
+                authorId: item.authorId || undefined,
+                style: item.style || undefined,
+                styleId: item.styleId || undefined,
+                length: item.length || '15s',
+                languageLevel: item.languageLevel || 'medio',
+                license: item.license || 'CC-BY-SA',
+                price: Number(item.price || 0),
                 museumId: newMuseum.museumId,
                 museum: newMuseum._id,
                 creator: req.user?.username || 'Autore',

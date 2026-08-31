@@ -66,7 +66,7 @@
                         </div>
                         
                         <div class="flex items-center space-x-4">
-                            <a :href="'/navigator/editor?lat=' + (museum.latitude || 44.4975) + '&lng=' + (museum.longitude || 11.3533)" 
+                            <a :href="'/navigator/editor?id=' + museum._id + '&museumId=' + museum.museumId + '&lat=' + (museum.latitude || 44.4975) + '&lng=' + (museum.longitude || 11.3533)" 
                                @click.stop
                                class="text-xs bg-indigo-600 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-indigo-700 hidden sm:inline-flex items-center gap-1.5 shadow-sm">
                                 <i class="fas fa-drafting-compass"></i> Piantina

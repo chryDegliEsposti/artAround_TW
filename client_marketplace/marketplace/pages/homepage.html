@@ -305,7 +305,7 @@
                                 <h4 class="font-bold text-gray-800 text-base" x-text="m.name"></h4>
                                 <p class="text-xs text-gray-500 mt-1" x-text="m.city + ' • Codice: ' + m.museumId"></p>
                                 <div class="mt-3 flex gap-2">
-                                    <a :href="'/navigator/editor?lat=' + (m.latitude || 44.4975) + '&lng=' + (m.longitude || 11.3533)" class="text-xs bg-indigo-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700">
+                                    <a :href="'/navigator/editor?id=' + m._id + '&museumId=' + m.museumId + '&lat=' + (m.latitude || 44.4975) + '&lng=' + (m.longitude || 11.3533)" class="text-xs bg-indigo-600 text-white font-medium px-3 py-1.5 rounded-lg hover:bg-indigo-700">
                                         Modifica Piantina
                                     </a>
                                 </div>

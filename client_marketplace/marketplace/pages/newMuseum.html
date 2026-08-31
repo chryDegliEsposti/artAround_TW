@@ -312,7 +312,7 @@
                         museum: this.museumData,
                         items: this.itemsList
                     }));
-                    window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=/marketplace/homepage/newMuseum`;
+                    window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=/marketplace/homepage/newMuseum&newMuseum=true&museumName=${encodeURIComponent(this.museumData.name || 'Nuovo Museo')}`;
                 },
 
                 async checkCode() {

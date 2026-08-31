@@ -30,7 +30,7 @@ const ItemSchema = new mongoose.Schema({
     // Parametri per filtro audience / personalizzazione
     length: {
         type: String,
-        enum: ['3s', '15s', '40s', '1min', '4min'], 
+        enum: ['3s', '15s', '30s', '40s', '45s', '1m', '1min', '2m', '2min', '3m', '3min', '4m', '4min', '5m', '5min'], 
         required: true,
         default: '15s'
     },
