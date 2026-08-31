@@ -253,7 +253,7 @@
                                     
                                     <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
                                         <span class="capitalize" x-text="'Livello: ' + (item.languageLevel || 'medio')"></span>
-                                        <span class="text-gray-400 font-mono text-[10px]" x-text="item.artworkId || ''"></span>
+                                        <span class="text-purple-600 font-semibold truncate max-w-[150px]" x-text="item.museum?.name || item.museumId || 'Pinacoteca'"></span>
                                     </div>
                                 </div>
                             </div>
@@ -509,6 +509,19 @@
                 isSpeaking: false,
 
                 async init() {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.has('tab')) {
+                        const tab = urlParams.get('tab');
+                        if (['visits', 'items', 'my_items'].includes(tab)) {
+                            this.activeTab = tab;
+                        }
+                    }
+                    if (urlParams.has('search')) {
+                        this.searchTerm = urlParams.get('search');
+                    } else if (urlParams.has('museum')) {
+                        this.searchTerm = urlParams.get('museum');
+                    }
+
                     this.currentUser = JSON.parse(localStorage.getItem('user') || localStorage.getItem('userData') || '{}');
                     if (this.currentUser && this.currentUser.role === 'creator') {
                         await this.loadManagedMuseums();
@@ -583,12 +596,17 @@
                 get filteredMyItems() {
                     let list = this.myPurchasedAndOwnedItems;
                     if (this.searchTerm) {
-                        const term = this.searchTerm.toLowerCase();
+                        const term = this.searchTerm.toLowerCase().trim();
                         list = list.filter(i => 
                             i.title?.toLowerCase().includes(term) ||
                             i.description?.toLowerCase().includes(term) ||
                             i.author?.toLowerCase().includes(term) ||
-                            i.museum?.name?.toLowerCase().includes(term)
+                            i.style?.toLowerCase().includes(term) ||
+                            i.artworkId?.toLowerCase().includes(term) ||
+                            i.museum?.name?.toLowerCase().includes(term) ||
+                            i.museum?.museumId?.toLowerCase().includes(term) ||
+                            i.museumId?.toLowerCase().includes(term) ||
+                            i.creator?.toLowerCase().includes(term)
                         );
                     }
                     if (this.durationFilter === 'short') {
@@ -637,11 +655,14 @@
                     let filtered = [...this.visits];
                     
                     if (this.searchTerm) {
-                        const term = this.searchTerm.toLowerCase();
+                        const term = this.searchTerm.toLowerCase().trim();
                         filtered = filtered.filter(v => 
                             v.title?.toLowerCase().includes(term) ||
                             v.description?.toLowerCase().includes(term) ||
-                            v.museum?.name?.toLowerCase().includes(term)
+                            v.author?.username?.toLowerCase().includes(term) ||
+                            v.museum?.name?.toLowerCase().includes(term) ||
+                            v.museum?.museumId?.toLowerCase().includes(term) ||
+                            v.museumId?.toLowerCase().includes(term)
                         );
                     } 
                     
@@ -668,10 +689,17 @@
                     let filtered = [...this.items];
                     
                     if (this.searchTerm) {
-                        const term = this.searchTerm.toLowerCase();
+                        const term = this.searchTerm.toLowerCase().trim();
                         filtered = filtered.filter(i => 
                             i.title?.toLowerCase().includes(term) ||
-                            i.description?.toLowerCase().includes(term)
+                            i.description?.toLowerCase().includes(term) ||
+                            i.author?.toLowerCase().includes(term) ||
+                            i.style?.toLowerCase().includes(term) ||
+                            i.artworkId?.toLowerCase().includes(term) ||
+                            i.museum?.name?.toLowerCase().includes(term) ||
+                            i.museum?.museumId?.toLowerCase().includes(term) ||
+                            i.museumId?.toLowerCase().includes(term) ||
+                            i.creator?.toLowerCase().includes(term)
                         );
                     }
                     

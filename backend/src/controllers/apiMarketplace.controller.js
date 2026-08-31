@@ -232,7 +232,42 @@ const createMuseum = async (req, res) => {
         const lng = Number(museum.longitude) || 11.3533;
         const centerCoord = (mapData && Array.isArray(mapData.museumCenter)) ? mapData.museumCenter : [lat, lng];
 
-        // 2. Create Museum with Map Data
+        // 2. Compute dynamic facilities from planimetria
+        const pois = (mapData && Array.isArray(mapData.pois)) ? mapData.pois : [];
+        const areas = (mapData && Array.isArray(mapData.areas)) ? mapData.areas : [];
+        const accessibility = museum.accessibility && Array.isArray(museum.accessibility) ? museum.accessibility : ["Accessibile in sedia a rotelle", "Ascensori", "Servizi igienici"];
+        
+        const facilitiesList = [];
+        const seenFacilities = new Set();
+        pois.forEach(p => {
+            if (p.type === 'restaurant' && !seenFacilities.has('restaurant')) {
+                seenFacilities.add('restaurant');
+                facilitiesList.push({ name: p.name || 'Caffetteria & Ristoro', type: 'restaurant', icon: 'restaurant', desc: p.desc || 'Area ristoro e bevande' });
+            } else if (p.type === 'restroom' && !seenFacilities.has('restroom')) {
+                seenFacilities.add('restroom');
+                facilitiesList.push({ name: p.name || 'Servizi Igienici (WC)', type: 'restroom', icon: 'wc', desc: p.desc || 'Servizi igienici accessibili' });
+            } else if (p.type === 'exit' && !seenFacilities.has('exit')) {
+                seenFacilities.add('exit');
+                facilitiesList.push({ name: p.name || 'Uscita di Emergenza', type: 'emergency', icon: 'emergency', desc: p.desc || 'Vie di fuga segnalate' });
+            } else if ((p.type === 'stairs' || p.subType === 'elevator') && !seenFacilities.has('elevator')) {
+                seenFacilities.add('elevator');
+                facilitiesList.push({ name: p.name || 'Ascensori & Piani', type: 'accessible', icon: 'accessible', desc: p.desc || 'Accesso agevolato tra i piani' });
+            }
+        });
+        areas.forEach(a => {
+            if (a.type === 'restaurant' && !seenFacilities.has('restaurant')) {
+                seenFacilities.add('restaurant');
+                facilitiesList.push({ name: a.name || 'Area Ristoro & Bistrot', type: 'restaurant', icon: 'restaurant', desc: 'Area relax e consumazioni' });
+            } else if (a.type === 'restroom' && !seenFacilities.has('restroom')) {
+                seenFacilities.add('restroom');
+                facilitiesList.push({ name: a.name || 'Servizi Igienici (WC)', type: 'restroom', icon: 'wc', desc: 'Toilette presenti nella struttura' });
+            }
+        });
+        if (accessibility.length > 0 && !seenFacilities.has('accessible')) {
+            facilitiesList.push({ name: 'Accessibilità Garantita', type: 'accessible', icon: 'accessible', desc: accessibility.slice(0, 3).join(' • ') });
+        }
+
+        // 3. Create Museum with Map Data and Facilities
         const newMuseum = await Museum.create({
             name: museum.name,
             museumId: museum.code.toUpperCase(),
@@ -246,11 +281,12 @@ const createMuseum = async (req, res) => {
             museumCenter: centerCoord,
             layers: (mapData && Array.isArray(mapData.layers) && mapData.layers.length > 0) ? mapData.layers : [{ id: 1, name: 'Layer 1' }],
             lines: (mapData && Array.isArray(mapData.lines)) ? mapData.lines : [],
-            areas: (mapData && Array.isArray(mapData.areas)) ? mapData.areas : [],
-            pois: (mapData && Array.isArray(mapData.pois)) ? mapData.pois : []
+            areas: areas,
+            pois: pois,
+            facilities: facilitiesList
         });
 
-        // 3. Create museum's items (if any)  
+        // 4. Create museum's items and assign previewItems
         if (items && Array.isArray(items) && items.length > 0) {
             const itemsWithMuseumId = items.map(item => ({
                 title: item.title || item.subjectId || 'Opera d\'Arte',
@@ -270,10 +306,22 @@ const createMuseum = async (req, res) => {
                 creator: req.user?.username || 'Autore',
                 recognitionImage: item.image || item.recognitionImage || ''
             }));
-            await Item.insertMany(itemsWithMuseumId);
+            const createdItems = await Item.insertMany(itemsWithMuseumId);
+            
+            // Collect items marked for preview
+            let previewIds = createdItems
+                .filter((_, idx) => items[idx]?.showInPreview !== false)
+                .map(it => it._id);
+
+            if (previewIds.length === 0) {
+                previewIds = createdItems.slice(0, 5).map(it => it._id);
+            }
+
+            newMuseum.previewItems = previewIds;
+            await newMuseum.save();
         }
 
-        // 4. Add museum to user's managedMuseums & museumId
+        // 5. Add museum to user's managedMuseums & museumId
         await User.findByIdAndUpdate(userId, {
             $addToSet: { managedMuseums: newMuseum._id },
             $set: { museumId: newMuseum.museumId }

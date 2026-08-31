@@ -19,6 +19,20 @@ const MuseumSchema = new mongoose.Schema({
     wikidataId: { type: String }, // es. "Q1056588" per Pinacoteca Nazionale di Bologna
     creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     
+    // Items selezionati dal Creator per lo slider di anteprima nella pagina museo
+    previewItems: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Item'
+    }],
+
+    // Servizi e Facilities estratti o configurati dalla planimetria
+    facilities: [{
+        name: { type: String, required: true },
+        type: { type: String }, // 'restaurant', 'restroom', 'shop', 'info', 'accessible', 'emergency', etc.
+        icon: { type: String }, // material symbol icon name
+        desc: { type: String }
+    }],
+    
     pendingRequests: [{
         userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
         requestedAt: { type: Date, default: Date.now }

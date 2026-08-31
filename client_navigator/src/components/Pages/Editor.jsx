@@ -122,24 +122,12 @@ const calculateRectanglePoints = (pt1, pt2, pt3, zoom = 22) => {
   ];
 };
 
-const EXHIBIT_NAMES = [
-  "Ritratto di frate (Bedoli)",
-  "Estasi di Santa Cecilia (Raffaello)",
-  "Madonna di Santa Margherita (Parmigianino)",
-  "Assunzione della Vergine (A. Carracci)",
-  "Annunciazione (L. Carracci)",
-  "Strage degli innocenti (Reni)",
-  "San Sebastiano soccorso (Guercino)",
-  "San Giorgio e il drago (Vitale)",
-  "Polittico di Bologna (Giotto)",
-  "Madonna in trono (Perugino)",
-  "Mona Lisa",
-  "David"
-];
-
 export default function Editor() {
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Access Control & Auth State
+  const [authStatus, setAuthStatus] = useState({ checked: false, allowed: false, reason: null });
 
   // Museum and DB State
   const [museums, setMuseums] = useState([]);
@@ -150,6 +138,11 @@ export default function Editor() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
+
+  // Dynamic Items from DB
+  const [availableItems, setAvailableItems] = useState([]);
+  const [selectedExhibitName, setSelectedExhibitName] = useState('');
+  const [customItemInput, setCustomItemInput] = useState('');
 
   // Map Drawing State (Default fallback: 44.4975, 11.3533)
   const [center, setCenter] = useState([44.4975, 11.3533]);
@@ -167,42 +160,82 @@ export default function Editor() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Sub-type selections
-  const [selectedExhibitName, setSelectedExhibitName] = useState(EXHIBIT_NAMES[0]);
   const [selectedRestaurantType, setSelectedRestaurantType] = useState('restaurant');
   const [selectedExitType, setSelectedExitType] = useState('normal');
 
-  // Initialization: check URL query params and load museums from DB
+  // Initialization: check URL query params and verify creator permissions
   useEffect(() => {
     initEditor();
   }, []);
 
   const initEditor = async () => {
     setIsLoading(true);
+
+    const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
+    const userStr = localStorage.getItem('user') || localStorage.getItem('userData');
+    let user = null;
+    try {
+      if (userStr) user = JSON.parse(userStr);
+    } catch (e) {}
+
+    // Check 1: User authentication
+    if (!token || !user) {
+      setAuthStatus({ checked: true, allowed: false, reason: 'not_logged_in' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Check 2: Creator role requirement
+    if (user.role !== 'creator') {
+      setAuthStatus({ checked: true, allowed: false, reason: 'not_creator' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Check 3: Creator must own / manage at least 1 museum in DB
+    let managedMuseums = [];
+    try {
+      const res = await fetch('/api/v1/navigator/museums/myManaged', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const json = await res.json();
+        managedMuseums = json.museums || [];
+      } else {
+        const fbRes = await fetch('/api/v1/marketplace/museums/getManaged', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (fbRes.ok) {
+          const fbJson = await fbRes.json();
+          managedMuseums = fbJson.data || [];
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching creator museums:", err);
+    }
+
+    if (!managedMuseums || managedMuseums.length === 0) {
+      setAuthStatus({ checked: true, allowed: false, reason: 'no_museums' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Authorization passed!
+    setAuthStatus({ checked: true, allowed: true, reason: null });
+    setMuseums(managedMuseums);
+
     const searchParams = new URLSearchParams(window.location.search);
     const retUrl = searchParams.get('returnUrl');
     setReturnUrl(retUrl);
 
-    const isNew = searchParams.get('newMuseum') === 'true' || Boolean(retUrl);
+    const isNew = searchParams.get('newMuseum') === 'true';
     const queryLat = parseFloat(searchParams.get('lat'));
     const queryLng = parseFloat(searchParams.get('lng'));
     const queryId = searchParams.get('id');
     const queryCode = searchParams.get('museumId');
     const museumName = searchParams.get('museumName') || 'Nuovo Museo';
 
-    // 1. Fetch available museums in DB for switching between museums
-    let dbMuseums = [];
-    try {
-      const res = await fetch('/api/v1/navigator/museums/get');
-      if (res.ok) {
-        dbMuseums = await res.json();
-        setMuseums(dbMuseums);
-      }
-    } catch (e) {
-      console.error("Error fetching museums list:", e);
-    }
-
-    // 2. Flow: Registering a NEW museum (from newMuseum.html)
-    // MUST open on requested lat/lng with an EMPTY map, never another museum's layout!
+    // Flow: If drawing a new plan while creating a new museum
     if (isNew && !isNaN(queryLat) && !isNaN(queryLng)) {
       setIsNewMuseumMode(true);
       const newCenter = [queryLat, queryLng];
@@ -215,7 +248,6 @@ export default function Editor() {
         museumCenter: newCenter
       });
 
-      // If returning to edit a previously drafted plan in this session, restore it
       const savedDraft = sessionStorage.getItem('editorMapData');
       if (savedDraft) {
         try {
@@ -226,7 +258,6 @@ export default function Editor() {
           if (Array.isArray(parsed.pois)) setPois(parsed.pois);
         } catch (err) {}
       } else {
-        // Pure blank map
         setLayers([{ id: 1, name: 'Piano Terra (L1)' }, { id: 2, name: 'Primo Piano (L2)' }]);
         setActiveLayerId(1);
         setLines([]);
@@ -237,20 +268,20 @@ export default function Editor() {
       return;
     }
 
-    // 3. Flow: Standard Editor - load existing museum from DB
+    // Flow: Standard Editor - load one of the creator's museums
     setIsNewMuseumMode(false);
     let targetMuseum = null;
     if (queryId) {
-      targetMuseum = dbMuseums.find(m => m.id === queryId || m._id === queryId);
+      targetMuseum = managedMuseums.find(m => m.id === queryId || m._id === queryId);
     }
     if (!targetMuseum && queryCode) {
-      targetMuseum = dbMuseums.find(m => m.museumId?.toUpperCase() === queryCode.toUpperCase());
+      targetMuseum = managedMuseums.find(m => m.museumId?.toUpperCase() === queryCode.toUpperCase());
     }
     if (!targetMuseum && !isNaN(queryLat) && !isNaN(queryLng)) {
-      targetMuseum = dbMuseums.find(m => Math.abs(m.lat - queryLat) < 0.001 && Math.abs(m.lng - queryLng) < 0.001);
+      targetMuseum = managedMuseums.find(m => Math.abs(m.lat - queryLat) < 0.001 && Math.abs(m.lng - queryLng) < 0.001);
     }
-    if (!targetMuseum && dbMuseums.length > 0) {
-      targetMuseum = dbMuseums[0]; // Pinacoteca Nazionale di Bologna
+    if (!targetMuseum) {
+      targetMuseum = managedMuseums[0];
     }
 
     if (targetMuseum) {
@@ -259,6 +290,28 @@ export default function Editor() {
       await loadMuseumData(museumIdToLoad);
     } else {
       setIsLoading(false);
+    }
+  };
+
+  const loadMuseumItems = async (museumIdOrCode) => {
+    try {
+      if (!museumIdOrCode || museumIdOrCode === '__new__') {
+        setAvailableItems([]);
+        setSelectedExhibitName('__custom__');
+        return;
+      }
+      const res = await fetch(`/api/v1/navigator/museums/items?museumId=${museumIdOrCode}&id=${museumIdOrCode}`);
+      if (res.ok) {
+        const itemsData = await res.json();
+        setAvailableItems(itemsData);
+        if (Array.isArray(itemsData) && itemsData.length > 0) {
+          setSelectedExhibitName(itemsData[0].title);
+        } else {
+          setSelectedExhibitName('__custom__');
+        }
+      }
+    } catch (err) {
+      console.error("Error loading museum items from DB:", err);
     }
   };
 
@@ -280,6 +333,7 @@ export default function Editor() {
         setAreas(Array.isArray(data.areas) ? data.areas : []);
         setPois(Array.isArray(data.pois) ? data.pois : []);
       }
+      await loadMuseumItems(museumIdOrCode);
     } catch (err) {
       console.error("Error loading museum map data:", err);
     } finally {
@@ -303,6 +357,8 @@ export default function Editor() {
       setLines([]);
       setAreas([]);
       setPois([]);
+      setAvailableItems([]);
+      setSelectedExhibitName('__custom__');
       setMode('none');
       return;
     }
@@ -363,7 +419,11 @@ export default function Editor() {
       let name = null;
 
       if (type === 'exhibit') {
-        name = selectedExhibitName;
+        if (selectedExhibitName === '__custom__' || !selectedExhibitName) {
+          name = customItemInput.trim() || 'Opera d\'Arte';
+        } else {
+          name = selectedExhibitName;
+        }
       } else if (type === 'exit') {
         subType = selectedExitType;
       }
@@ -578,6 +638,92 @@ export default function Editor() {
     return (poi.type || 'Punto').toUpperCase();
   };
 
+  // 1. Loading check screen
+  if (!authStatus.checked && isLoading) {
+    return (
+      <div className="editor-blocked-screen">
+        <div className="editor-blocked-card">
+          <div className="editor-blocked-icon">
+            <Loader2 size={40} className="spin" />
+          </div>
+          <h2>Verifica Autorizzazioni...</h2>
+          <p className="editor-blocked-desc">Controllo strutture museali e permessi creator in corso.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Access Denied Screens (No museums, not creator, or not logged in)
+  if (authStatus.checked && !authStatus.allowed) {
+    if (authStatus.reason === 'no_museums') {
+      return (
+        <div className="editor-blocked-screen">
+          <div className="editor-blocked-card">
+            <div className="editor-blocked-icon">
+              <Building2 size={44} />
+            </div>
+            <h2>Prima crea un museo!</h2>
+            <p className="editor-blocked-desc">
+              Non hai ancora registrato nessun museo a tuo nome. Per poter accedere all'Editor e disegnare la planimetria 2D, devi prima creare la tua struttura museale nel Marketplace.
+            </p>
+            <div className="editor-blocked-actions">
+              <a href="/marketplace/homepage/newMuseum" className="editor-btn-primary">
+                <Plus size={18} /> Crea un Museo nel Marketplace
+              </a>
+              <a href="/marketplace/homepage" className="editor-btn-secondary">
+                <ArrowLeft size={16} /> Torna al Marketplace
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (authStatus.reason === 'not_creator') {
+      return (
+        <div className="editor-blocked-screen">
+          <div className="editor-blocked-card">
+            <div className="editor-blocked-icon warning">
+              <AlertCircle size={44} />
+            </div>
+            <h2>Accesso Riservato ai Creator</h2>
+            <p className="editor-blocked-desc">
+              L'Editor delle planimetrie 2D è accessibile esclusivamente agli utenti con ruolo <strong>Autore / Creator</strong>.
+            </p>
+            <div className="editor-blocked-actions">
+              <a href="/marketplace/homepage" className="editor-btn-primary">
+                Vai alla Dashboard Marketplace
+              </a>
+              <a href="/navigator" className="editor-btn-secondary">
+                <ArrowLeft size={16} /> Vai al Navigator Visite
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Default: not_logged_in
+    return (
+      <div className="editor-blocked-screen">
+        <div className="editor-blocked-card">
+          <div className="editor-blocked-icon warning">
+            <AlertCircle size={44} />
+          </div>
+          <h2>Autenticazione Richiesta</h2>
+          <p className="editor-blocked-desc">
+            Effettua il login con un account <strong>Creator</strong> per poter accedere all'Editor delle planimetrie.
+          </p>
+          <div className="editor-blocked-actions">
+            <a href="/marketplace" className="editor-btn-primary">
+              Accedi al Marketplace
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`editor-container ${mode === 'eraser' ? 'eraser-active' : ''}`}>
       {/* Mobile toggle button */}
@@ -704,12 +850,45 @@ export default function Editor() {
           </button>
           {mode === 'poi-exhibit' && (
             <div className="sub-tool-panel">
-              <label>Nome Opera / Capolavoro:</label>
-              <select value={selectedExhibitName} onChange={(e) => setSelectedExhibitName(e.target.value)}>
-                {EXHIBIT_NAMES.map(name => (
-                  <option key={name} value={name}>{name}</option>
-                ))}
-              </select>
+              <label>Seleziona Item / Opera dal Database:</label>
+              {availableItems.length > 0 ? (
+                <select
+                  value={selectedExhibitName}
+                  onChange={(e) => setSelectedExhibitName(e.target.value)}
+                  style={{ marginBottom: '6px' }}
+                >
+                  {availableItems.map((item) => (
+                    <option key={item._id || item.title} value={item.title}>
+                      🎨 {item.title} {item.author ? `— ${item.author}` : ''}
+                    </option>
+                  ))}
+                  <option value="__custom__">➕ Inserisci nome personalizzato...</option>
+                </select>
+              ) : (
+                <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
+                  Nessun item registrato per questa struttura. Inserisci il nome manualmente:
+                </p>
+              )}
+
+              {(selectedExhibitName === '__custom__' || availableItems.length === 0) && (
+                <div>
+                  <label style={{ fontSize: '11px', color: '#64748b' }}>Nome / Titolo Opera:</label>
+                  <input
+                    type="text"
+                    placeholder="Es. Estasi di Santa Cecilia"
+                    value={customItemInput}
+                    onChange={(e) => setCustomItemInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '0.45rem 0.6rem',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      fontSize: '0.85rem',
+                      outline: 'none'
+                    }}
+                  />
+                </div>
+              )}
             </div>
           )}
 

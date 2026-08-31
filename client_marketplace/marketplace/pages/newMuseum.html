@@ -212,6 +212,13 @@
                                 </select>
                             </div>
 
+                            <div class="md:col-span-3 flex items-center gap-2 mt-1 p-3 bg-purple-50 rounded-xl border border-purple-100">
+                                <input type="checkbox" id="showInPreview" x-model="tempItem.showInPreview" class="w-4 h-4 text-purple-600 rounded cursor-pointer">
+                                <label for="showInPreview" class="text-xs font-bold text-purple-900 cursor-pointer">
+                                    🌟 Mostra nello Slider di Anteprima (Presentazione Museo nel Navigator)
+                                </label>
+                            </div>
+
                         </div>
                         
                         <div class="mt-4 flex justify-end">
@@ -233,15 +240,26 @@
                                         <div class="font-bold text-gray-800 text-sm flex items-center">
                                             <i :class="itm.itemType === 'artwork' ? 'fas fa-palette text-purple-500 mr-2' : 'fas fa-info-circle text-blue-500 mr-2'"></i>
                                             <span x-text="itm.title"></span>
+                                            <template x-if="itm.showInPreview">
+                                                <span class="ml-2 px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full text-[10px] font-bold">
+                                                    🌟 Slider Anteprima
+                                                </span>
+                                            </template>
                                         </div>
                                         <div class="text-xs text-gray-500 mt-0.5">
                                             <span x-text="itm.length"></span> • <span class="capitalize" x-text="itm.languageLevel"></span> 
                                             <span x-show="itm.artworkId" class="ml-2 bg-gray-100 px-1.5 py-0.5 rounded text-gray-600" x-text="itm.artworkId"></span>
                                         </div>
                                     </div>
-                                    <button @click="removeItem(index)" class="text-red-400 hover:text-red-600 p-1.5">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                    <div class="flex items-center gap-3">
+                                        <label class="flex items-center gap-1.5 text-xs text-purple-700 bg-purple-50 px-2 py-1 rounded-lg border border-purple-200 cursor-pointer" title="Mostra o nascondi dallo slider">
+                                            <input type="checkbox" x-model="itm.showInPreview" class="rounded text-purple-600">
+                                            <span class="font-semibold text-[11px]">Slider</span>
+                                        </label>
+                                        <button @click="removeItem(index)" class="text-red-400 hover:text-red-600 p-1.5">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </template>
                         </div>
@@ -272,7 +290,7 @@
                 codeStatus: '', 
                 codeMessage: '',
                 
-                tempItem: { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' },
+                tempItem: { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '', showInPreview: true },
                 itemsList: [],
                 searchQuery: '',
                 results: [],
@@ -338,7 +356,7 @@
                         return alert("Inserisci i campi richiesti per registrare l'item!");
                     }
                     this.itemsList.push({ ...this.tempItem });
-                    this.tempItem = { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '' };
+                    this.tempItem = { title: '', description: '', price: 0, length: '15s', languageLevel: 'medio', itemType: 'artwork', artworkId: '', license: 'CC0', image: '', showInPreview: true };
                 },
 
                 removeItem(index) {
