@@ -55,5 +55,11 @@ apiMarketplaceRouter.post("/classrooms/join", authorization, apiMarketplaceContr
 apiMarketplaceRouter.get("/classrooms/joined", authorization, apiMarketplaceController.getJoinedClassrooms);
 apiMarketplaceRouter.delete("/classrooms/:id/leave", authorization, apiMarketplaceController.leaveClassroom);
 
+// --- GUIDED VISIT SESSIONS SECTION ---
+apiMarketplaceRouter.get("/guided-visits/:id", authorization, apiMarketplaceController.getGuidedVisitForTeacher);
+apiMarketplaceRouter.post("/guided-sessions", authorization, apiMarketplaceController.createGuidedVisitSession);
+apiMarketplaceRouter.get("/guided-sessions/available", authorization, apiMarketplaceController.getAvailableGuidedSessions);
+apiMarketplaceRouter.post("/guided-sessions/join", authorization, apiMarketplaceController.joinGuidedVisitSession);
+
 
 module.exports = apiMarketplaceRouter;

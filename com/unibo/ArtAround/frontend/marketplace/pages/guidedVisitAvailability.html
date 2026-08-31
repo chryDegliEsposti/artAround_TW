@@ -1,0 +1,246 @@
+<!doctype html>
+    <html lang="it">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Rendi disponibile visita guidata - ArtAround</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        </head>
+
+        <body class="min-h-screen bg-gray-50" x-data="guidedVisitAvailabilityApp()" x-init="init()">
+            <header class="bg-white border-b border-gray-100">
+                <div class="max-w-5xl mx-auto px-4 py-4 flex justify-between items-center">
+                <a href="/marketplace/homepage/myContent"
+                    class="text-amber-700 font-semibold hover:text-amber-800">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    I miei contenuti
+                </a>
+                <a href="/marketplace/homepage"
+                    class="text-sm text-gray-600 hover:text-amber-700">
+                    Dashboard
+                </a>
+                </div>
+            </header>
+
+            <main class="max-w-5xl mx-auto px-4 py-10">
+                <div x-show="loading" class="py-16 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl text-amber-600 mr-3"></i>
+                    Caricamento…
+                </div>
+
+                <div x-show="!loading" x-cloak>
+                    <div class="mb-8">
+                        <p class="text-sm font-semibold text-amber-700 uppercase tracking-wide">
+                            Area docente
+                        </p>
+                        <h1 class="text-3xl font-bold text-gray-800 mt-1">
+                            Rendi disponibile la visita
+                        </h1>
+                        <p class="text-gray-500 mt-2">
+                            Seleziona le classi autorizzate e crea una sessione per gli studenti.
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6">
+                        <p class="text-sm text-gray-500">Visita guidata selezionata</p>
+                        <h2 class="text-2xl font-bold text-gray-800 mt-1" x-text="visit?.title"></h2>
+                        <p class="text-gray-500 mt-2" x-text="visit?.description || 'Nessuna descrizione disponibile.'"></p>
+                        <p class="text-sm text-gray-500 mt-4">
+                            <i class="fas fa-list-ol mr-1"></i>
+                            <span x-text="(visit?.items || []).length"></span> contenuti
+                        </p>
+                    </div>
+
+                    <form @submit.prevent="createSession" class="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+                        <h2 class="font-bold text-xl text-gray-800">
+                            Classi autorizzate
+                        </h2>
+
+                        <p class="text-sm text-gray-500 mt-1">
+                            Solo gli studenti iscritti ad almeno una classe selezionata potranno entrare.
+                        </p>
+
+                        <div class="mt-5 space-y-3">
+                            <template x-if="classrooms.length === 0">
+                                <div class="border border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                <p class="text-gray-500">
+                                    Non hai ancora creato classi.
+                                </p>
+                                <a href="/marketplace/homepage/createClass"
+                                    class="inline-flex mt-4 bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-emerald-700">
+                                    Crea una classe
+                                </a>
+                                </div>
+                            </template>
+
+                            <template x-for="classroom in classrooms" :key="classroom._id">
+                                <label class="flex items-center gap-4 border border-gray-200 rounded-lg p-4 hover:bg-amber-50 cursor-pointer transition">
+                                <input type="checkbox"
+                                    :value="classroom._id"
+                                    x-model="selectedClassroomIds"
+                                    class="rounded border-gray-300 text-amber-600 focus:ring-amber-500">
+
+                                <span class="flex-1">
+                                    <span class="font-semibold text-gray-800 block" x-text="classroom.name"></span>
+                                    <span class="text-sm text-gray-500">
+                                        <span x-text="(classroom.students || []).length"></span>
+                                        studenti iscritti
+                                    </span>
+                                </span>
+                                </label>
+                            </template>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mt-8">
+                            <label class="block">
+                                <span class="font-semibold text-gray-700">
+                                    Codice della visita guidata
+                                </span>
+
+                                <input
+                                    x-model="sessionCode"
+                                    required
+                                    maxlength="30"
+                                    @input="sessionCode = sessionCode.toUpperCase().replace(/\s+/g, '-')"
+                                    placeholder="Es. RINASCIMENTO-3B"
+                                    class="w-full px-4 py-3 mt-2 border border-gray-300 rounded-lg uppercase focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition"
+                                >
+                            </label>
+
+                            <div>
+                                <span class="font-semibold text-gray-700 block mb-2">
+                                    Stato iniziale
+                                </span>
+
+                                <label class="flex items-center gap-3 mb-3 cursor-pointer">
+                                    <input type="radio" value="scheduled" x-model="status" class="text-amber-600 focus:ring-amber-500">
+                                    <span>Programma per dopo</span>
+                                </label>
+
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="radio" value="active" x-model="status" class="text-amber-600 focus:ring-amber-500">
+                                    <span>Attiva ora</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" :disabled="saving || selectedClassroomIds.length === 0 || !sessionCode" class="w-full mt-8 bg-amber-600 text-white py-3 rounded-lg font-bold hover:bg-amber-700 focus:ring-4 focus:ring-amber-200 disabled:bg-gray-300 disabled:cursor-not-allowed transition">
+                            <i class="fas fa-broadcast-tower mr-2"></i>
+                            <span x-text="saving ? 'Creazione sessione…' : 'Rendi disponibile la visita'"></span>
+                        </button>
+                    </form>
+                </div>
+            </main>
+
+            <script>
+                function guidedVisitAvailabilityApp() {
+                    return {
+                        loading: true,
+                        saving: false,
+
+                        visit: null,
+                        classrooms: [],
+
+                        selectedClassroomIds: [],
+                        sessionCode: '',
+                        status: 'scheduled',
+
+                        async init() {
+                            const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+                            if (user.role !== 'teacher') {
+                                alert('Questa pagina è riservata ai docenti.');
+                                window.location.href = '/marketplace/homepage';
+                                return;
+                            }
+
+                            const visitId = new URLSearchParams(window.location.search).get('visitId');
+
+                            if (!visitId) {
+                                alert('Visita guidata non specificata.');
+                                window.location.href = '/marketplace/homepage/myContent';
+                                return;
+                            }
+
+                            const token = localStorage.getItem('apiToken');
+
+                            try {
+                                const [visitResponse, classroomsResponse] = await Promise.all([
+                                    fetch(`/api/v1/marketplace/guided-visits/${visitId}`, {
+                                        headers: {
+                                            Authorization: `Bearer ${token}`
+                                        }
+                                    }),
+                                    fetch('/api/v1/marketplace/classrooms/mine', {
+                                        headers: {
+                                            Authorization: `Bearer ${token}`
+                                        }
+                                    })
+                                ]);
+
+                                const visitData = await visitResponse.json();
+                                const classroomsData = await classroomsResponse.json();
+
+                                if (!visitResponse.ok) {
+                                    throw new Error(
+                                        visitData.message || 'Visita guidata non trovata.'
+                                    );
+                                }
+
+                                if (!classroomsResponse.ok) {
+                                    throw new Error(
+                                        classroomsData.message || 'Impossibile recuperare le classi.'
+                                    );
+                                }
+                                
+                                this.visit = visitData.data.visit;
+                                this.classrooms = classroomsData.data.classrooms || [];
+
+                            } catch (error) {
+                                alert(error.message);
+                            } finally {
+                                this.loading = false;
+                            }
+                        },
+
+                        async createSession() {
+                            this.saving = true;
+
+                            try {
+                                const response = await fetch('/api/v1/marketplace/guided-sessions', {
+                                    method: 'POST',
+                                    headers: {
+                                    'Content-Type': 'application/json',
+                                        Authorization: `Bearer ${localStorage.getItem('apiToken')}`
+                                    },
+                                    body: JSON.stringify({
+                                        guidedVisitId: this.visit._id, 
+                                        classroomIds: this.selectedClassroomIds, 
+                                        sessionCode: this.sessionCode, 
+                                        status: this.status
+                                    })
+                                });
+
+                                const data = await response.json();
+                                if (!response.ok) {
+                                    throw new Error(
+                                        data.message || 'Impossibile creare la sessione.'
+                                    );
+                                }
+
+                                alert(`Sessione creata!\n\nCodice da comunicare agli studenti: ${data.data.session.sessionCode}`);
+                                window.location.href = '/marketplace/homepage/myContent';
+
+                            } catch (error) {
+                                alert(error.message);
+                            } finally {
+                                this.saving = false;
+                            }
+                        }
+                    }
+                }
+            </script>
+        </body>
+</html>

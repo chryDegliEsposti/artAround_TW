@@ -1,333 +1,290 @@
 <!doctype html>
     <html lang="it">
         <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-        <title>I miei contenuti - ArtAround</title>
-
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-        <link rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>I miei contenuti - ArtAround</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         </head>
 
-        <body class="min-h-screen bg-gray-50 text-gray-800"
-        x-data="myContentApp()"
-        x-init="init()">
-
-        <header class="bg-white border-b border-gray-100">
-            <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-            <a href="/marketplace/homepage"
-                class="flex items-center gap-3 text-emerald-600 hover:text-emerald-800">
-
-                <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
-                <i class="fas fa-folder-open"></i>
-                </span>
-
-                <span class="font-bold text-lg">ArtAround</span>
-            </a>
-
-            <div class="flex items-center gap-4">
-                <a href="/marketplace/homepage/createItems"
-                    class="hidden sm:inline-flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
-                    <i class="fas fa-feather-alt mr-2"></i>
-                    Crea Item
-                </a>
-
-                <a href="/marketplace/homepage/teacherVisits/create"
-                    class="hidden sm:inline-flex items-center text-sm font-semibold text-emerald-600 hover:text-emerald-800">
-                    <i class="fas fa-chalkboard-teacher mr-2"></i>
-                    Crea visita guidata
-                </a>
-
-                <a href="/marketplace/homepage"
-                    class="text-sm font-semibold text-gray-600 hover:text-emerald-600">
-                    <i class="fas fa-arrow-left mr-2"></i>
-                    Dashboard
-                </a>
-            </div>
-            </div>
-        </header>
-
-        <main class="max-w-7xl mx-auto px-4 py-10">
-            <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
-                <div>
-                    <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600">
-                        Area docente
-                    </p>
-
-                    <h1 class="text-3xl font-bold mt-1">
-                        I miei contenuti generati
-                    </h1>
-
-                    <p class="text-gray-500 mt-2">
-                        Gestisci gli Item creati e le visite guidate preparate per i tuoi studenti.
-                    </p>
-                </div>
-
-                <div class="flex gap-3">
-                    <a href="/marketplace/homepage/createItems"
-                        class="inline-flex items-center justify-center border border-blue-200 text-blue-700 bg-white px-4 py-2.5 rounded-xl font-semibold hover:bg-blue-50 transition">
-                        <i class="fas fa-plus mr-2"></i>
-                        Nuovo Item
+        <body class="min-h-screen bg-gray-50 text-gray-800" x-data="myContentApp()" x-init="init()">
+            <header class="bg-white border-b border-gray-100">
+                <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+                    <a href="/marketplace/homepage" class="flex items-center gap-3 text-emerald-600 hover:text-emerald-800">
+                        <span class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center">
+                            <i class="fas fa-folder-open"></i>
+                        </span>
+                        <span class="font-bold text-lg">ArtAround</span>
                     </a>
 
-                    <a href="/marketplace/homepage/teacherVisits/create"
-                        class="inline-flex items-center justify-center bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition">
-                        <i class="fas fa-plus mr-2"></i>
-                        Visita guidata
-                    </a>
-                </div>
-            </div>
-
-            <div x-show="loading" class="py-16 text-center text-gray-500">
-                <i class="fas fa-spinner fa-spin text-2xl text-emerald-600 mr-3"></i>
-                Caricamento dei tuoi contenuti…
-            </div>
-
-            <div x-show="!loading"
-            x-cloak
-            class="grid grid-cols-1 xl:grid-cols-2 gap-8">
-
-                <!-- ITEM CREATI -->
-                <section>
-                    <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-feather-alt text-blue-600 mr-2"></i>
-                        I miei Item
-                        </h2>
-
-                        <p class="text-sm text-gray-500 mt-1">
-                        Contenuti creati direttamente da te.
-                        </p>
-                    </div>
-
-                    <span class="text-sm bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full"
-                        x-text="items.length"></span>
-                    </div>
-
-                    <template x-if="items.length === 0">
-                    <div class="bg-white rounded-2xl p-8 border border-dashed border-gray-300 text-center">
-                        <i class="fas fa-feather-alt text-4xl text-gray-300 mb-4"></i>
-
-                        <h3 class="font-bold text-lg">Non hai ancora creato Item</h3>
-
-                        <p class="text-sm text-gray-500 mt-1">
-                        Crea il primo contenuto per iniziare a costruire le tue visite.
-                        </p>
-
-                        <a href="/marketplace/homepage/createItems"
-                        class="inline-flex mt-5 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
-                        <i class="fas fa-plus mr-2"></i>
-                        Crea Item
+                    <div class="flex items-center gap-4">
+                        <a href="/marketplace/homepage/createItems" class="hidden sm:inline-flex items-center text-sm font-semibold text-blue-600 hover:text-blue-800">
+                            <i class="fas fa-feather-alt mr-2"></i>
+                            Crea Item
                         </a>
-                    </div>
-                    </template>
-
-                    <div class="space-y-4">
-                        <template x-for="item in items" :key="item._id">
-                            <article class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                            <div class="flex items-start justify-between gap-4">
-                                <div>
-                                <h3 class="font-bold text-lg" x-text="item.title"></h3>
-
-                                <p class="text-sm text-gray-500 mt-2 line-clamp-2"
-                                    x-text="item.description"></p>
-                                </div>
-
-                                <span class="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-bold"
-                                x-text="item.itemType"></span>
-                            </div>
-
-                            <div class="flex flex-wrap gap-2 mt-4">
-                                <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-                                <i class="far fa-clock mr-1"></i>
-                                <span x-text="item.length"></span>
-                                </span>
-
-                                <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full"
-                                x-text="item.languageLevel"></span>
-
-                                <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full"
-                                x-text="item.museumId"></span>
-                            </div>
-
-                            <div class="flex gap-3 mt-5">
-                                <button @click="showItem(item)"
-                                class="flex-1 border border-blue-200 text-blue-700 py-2 rounded-xl font-semibold hover:bg-blue-50 transition">
-                                Visualizza
-                                </button>
-
-                                <button @click="editItem(item)"
-                                class="flex-1 border border-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-50 transition">
-                                <i class="fas fa-pen mr-1"></i>
-                                Modifica
-                                </button>
-                            </div>
-                            </article>
-                        </template>
-                    </div>
-                </section>
-
-                <!-- VISITE GUIDATE -->
-                <section>
-                    <div class="flex items-center justify-between mb-4">
-                    <div>
-                        <h2 class="text-2xl font-bold text-gray-800">
-                        <i class="fas fa-chalkboard-teacher text-emerald-600 mr-2"></i>
-                        Le mie visite guidate
-                        </h2>
-
-                        <p class="text-sm text-gray-500 mt-1">
-                        Visite private create per essere condivise con gli studenti.
-                        </p>
-                    </div>
-
-                    <span class="text-sm bg-emerald-100 text-emerald-700 font-bold px-3 py-1 rounded-full"
-                        x-text="guidedVisits.length"></span>
-                    </div>
-
-                    <template x-if="guidedVisits.length === 0">
-                    <div class="bg-white rounded-2xl p-8 border border-dashed border-gray-300 text-center">
-                        <i class="fas fa-chalkboard-teacher text-4xl text-gray-300 mb-4"></i>
-
-                        <h3 class="font-bold text-lg">Non hai ancora creato visite guidate</h3>
-
-                        <p class="text-sm text-gray-500 mt-1">
-                        Combina contenuti tuoi e acquistati per preparare una visita per gli studenti.
-                        </p>
 
                         <a href="/marketplace/homepage/teacherVisits/create"
-                        class="inline-flex mt-5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition">
-                        <i class="fas fa-plus mr-2"></i>
-                        Crea visita guidata
+                            class="hidden sm:inline-flex items-center text-sm font-semibold text-emerald-600 hover:text-emerald-800">
+                            <i class="fas fa-chalkboard-teacher mr-2"></i>
+                            Crea visita guidata
+                        </a>
+
+                        <a href="/marketplace/homepage"
+                            class="text-sm font-semibold text-gray-600 hover:text-emerald-600">
+                            <i class="fas fa-arrow-left mr-2"></i>
+                            Dashboard
                         </a>
                     </div>
-                    </template>
+                </div>
+            </header>
 
-                    <div class="space-y-4">
-                    <template x-for="visit in guidedVisits" :key="visit._id">
-                        <article class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                        <div class="flex items-start justify-between gap-4">
+            <main class="max-w-7xl mx-auto px-4 py-10">
+                <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-8">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-wide text-emerald-600">
+                            Area docente
+                        </p>
+
+                        <h1 class="text-3xl font-bold mt-1">
+                            I miei contenuti generati
+                        </h1>
+
+                        <p class="text-gray-500 mt-2">
+                            Gestisci gli Item creati e le visite guidate preparate per i tuoi studenti.
+                        </p>
+                    </div>
+
+                    <div class="flex gap-3">
+                        <a href="/marketplace/homepage/createItems"
+                            class="inline-flex items-center justify-center border border-blue-200 text-blue-700 bg-white px-4 py-2.5 rounded-xl font-semibold hover:bg-blue-50 transition">
+                            <i class="fas fa-plus mr-2"></i>
+                            Nuovo Item
+                        </a>
+
+                        <a href="/marketplace/homepage/teacherVisits/create"
+                            class="inline-flex items-center justify-center bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition">
+                            <i class="fas fa-plus mr-2"></i>
+                            Visita guidata
+                        </a>
+                    </div>
+                </div>
+
+                <div x-show="loading" class="py-16 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl text-emerald-600 mr-3"></i>
+                    Caricamento dei tuoi contenuti…
+                </div>
+
+                <div x-show="!loading" x-cloak class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <!-- ITEM CREATI -->
+                    <section>
+                        <div class="flex items-center justify-between mb-4">
                             <div>
-                            <h3 class="font-bold text-lg" x-text="visit.title"></h3>
+                                <h2 class="text-2xl font-bold text-gray-800">
+                                    <i class="fas fa-feather-alt text-blue-600 mr-2"></i>
+                                    I miei Item
+                                </h2>
 
-                            <p class="text-sm text-gray-500 mt-2 line-clamp-2"
-                                x-text="visit.description || 'Nessuna descrizione disponibile.'"></p>
+                                <p class="text-sm text-gray-500 mt-1">Contenuti creati direttamente da te.</p>
+                            </div>
+                            <span class="text-sm bg-blue-100 text-blue-700 font-bold px-3 py-1 rounded-full" x-text="items.length"></span>
+                        </div>
+
+                        <template x-if="items.length === 0">
+                            <div class="bg-white rounded-2xl p-8 border border-dashed border-gray-300 text-center">
+                                <i class="fas fa-feather-alt text-4xl text-gray-300 mb-4"></i>
+
+                                <h3 class="font-bold text-lg">Non hai ancora creato Item</h3>
+
+                                <p class="text-sm text-gray-500 mt-1">Crea il primo contenuto per iniziare a costruire le tue visite.</p>
+
+                                <a href="/marketplace/homepage/createItems" class="inline-flex mt-5 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Crea Item
+                                </a>
+                            </div>
+                        </template>
+
+                        <div class="space-y-4">
+                            <template x-for="item in items" :key="item._id">
+                                <article class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h3 class="font-bold text-lg" x-text="item.title"></h3>
+                                            <p class="text-sm text-gray-500 mt-2 line-clamp-2" x-text="item.description"></p>
+                                        </div>
+
+                                        <span class="text-xs bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full font-bold" x-text="item.itemType"></span>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2 mt-4">
+                                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                                            <i class="far fa-clock mr-1"></i>
+                                            <span x-text="item.length"></span>
+                                        </span>
+                                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full" x-text="item.languageLevel"></span>
+                                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full" x-text="item.museumId"></span>
+                                    </div>
+
+                                    <div class="flex gap-3 mt-5">
+                                        <button @click="showItem(item)" class="flex-1 border border-blue-200 text-blue-700 py-2 rounded-xl font-semibold hover:bg-blue-50 transition">
+                                            Visualizza
+                                        </button>
+
+                                        <button @click="editItem(item)" class="flex-1 border border-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-50 transition">
+                                            <i class="fas fa-pen mr-1"></i>
+                                            Modifica
+                                        </button>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </section>
+
+                    <!-- VISITE GUIDATE -->
+                    <section>
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 class="text-2xl font-bold text-gray-800">
+                                    <i class="fas fa-chalkboard-teacher text-emerald-600 mr-2"></i>
+                                    Le mie visite guidate
+                                </h2>
+
+                                <p class="text-sm text-gray-500 mt-1">
+                                Visite private create per essere condivise con gli studenti.
+                                </p>
                             </div>
 
-                            <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold">
-                            Guidata
-                            </span>
+                            <span class="text-sm bg-emerald-100 text-emerald-700 font-bold px-3 py-1 rounded-full" x-text="guidedVisits.length"></span>
                         </div>
 
-                        <div class="flex flex-wrap gap-2 mt-4">
-                            <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
-                            <i class="fas fa-list-ol mr-1"></i>
-                            <span x-text="(visit.items || []).length"></span> tappe
-                            </span>
+                        <template x-if="guidedVisits.length === 0">
+                            <div class="bg-white rounded-2xl p-8 border border-dashed border-gray-300 text-center">
+                                <i class="fas fa-chalkboard-teacher text-4xl text-gray-300 mb-4"></i>
 
-                            <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full"
-                            x-text="visit.museum"></span>
+                                <h3 class="font-bold text-lg">Non hai ancora creato visite guidate</h3>
 
-                            <span class="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">
-                            Privata
-                            </span>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    Combina contenuti tuoi e acquistati per preparare una visita per gli studenti.
+                                </p>
+
+                                <a href="/marketplace/homepage/teacherVisits/create" class="inline-flex mt-5 bg-emerald-600 text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-emerald-700 transition">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Crea visita guidata
+                                </a>
+                            </div>
+                        </template>
+
+                        <div class="space-y-4">
+                            <template x-for="visit in guidedVisits" :key="visit._id">
+                                <article class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                    <div class="flex items-start justify-between gap-4">
+                                        <div>
+                                            <h3 class="font-bold text-lg" x-text="visit.title"></h3>
+                                            <p class="text-sm text-gray-500 mt-2 line-clamp-2" x-text="visit.description || 'Nessuna descrizione disponibile.'"></p>
+                                        </div>
+
+                                        <span class="text-xs bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold">
+                                            Guidata
+                                        </span>
+                                    </div>
+
+                                    <div class="flex flex-wrap gap-2 mt-4">
+                                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full">
+                                            <i class="fas fa-list-ol mr-1"></i>
+                                            <span x-text="(visit.items || []).length"></span> tappe
+                                        </span>
+
+                                        <span class="text-xs bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full" x-text="visit.museum"></span>
+
+                                        <span class="text-xs bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full">Privata</span>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-3 mt-5">
+                                        <button @click="editGuidedVisit(visit)" class="border border-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-50 transition">
+                                            <i class="fas fa-pen mr-1"></i>Modifica
+                                        </button>
+
+                                        <button @click="makeAvailable(visit)" class="bg-emerald-600 text-white py-2 rounded-xl font-semibold hover:bg-emerald-700 transition">
+                                            <i class="fas fa-broadcast-tower mr-1"></i>Disponibilità
+                                        </button>
+                                    </div>
+                                </article>
+                            </template>
                         </div>
+                    </section>
+                </div>
+            </main>
 
-                        <div class="grid grid-cols-2 gap-3 mt-5">
-                            <button @click="editGuidedVisit(visit)"
-                            class="border border-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-50 transition">
-                            <i class="fas fa-pen mr-1"></i>
-                            Modifica
-                            </button>
+            <script>
+                function myContentApp() {
+                    return {
+                        loading: true,
+                        items: [],
+                        guidedVisits: [],
 
-                            <button @click="makeAvailable(visit)"
-                            class="bg-emerald-600 text-white py-2 rounded-xl font-semibold hover:bg-emerald-700 transition">
-                            <i class="fas fa-broadcast-tower mr-1"></i>
-                            Disponibilità
-                            </button>
-                        </div>
-                        </article>
-                    </template>
-                    </div>
-                </section>
-            </div>
-        </main>
+                        async init() {
+                        const token = localStorage.getItem('apiToken');
+                        const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-        <script>
-            function myContentApp() {
-                return {
-                    loading: true,
-                    items: [],
-                    guidedVisits: [],
-
-                    async init() {
-                    const token = localStorage.getItem('apiToken');
-                    const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-                    if (!token) {
-                        window.location.href = '/marketplace/login';
-                        return;
-                    }
-
-                    if (user.role !== 'teacher') {
-                        alert('Questa pagina è riservata ai docenti.');
-                        window.location.href = '/marketplace/homepage';
-                        return;
-                    }
-
-                    try {
-                        const response = await fetch(
-                            '/api/v1/marketplace/myContent',
-                            {
-                                headers: {
-                                    Authorization: `Bearer ${token}`
-                                }
-                            }
-                        );
-
-                        const data = await response.json();
-
-                        if (!response.ok) {
-                            throw new Error(
-                                data.message || 'Impossibile recuperare i contenuti.'
-                            );
+                        if (!token) {
+                            window.location.href = '/marketplace/login';
+                            return;
                         }
 
-                        this.items = data.data.items || [];
-                        this.guidedVisits = data.data.guidedVisits || [];
+                        if (user.role !== 'teacher') {
+                            alert('Questa pagina è riservata ai docenti.');
+                            window.location.href = '/marketplace/homepage';
+                            return;
+                        }
 
-                    } catch (error) {
-                        console.error(error);
-                        alert(error.message);
-                    } finally {
-                        this.loading = false;
-                    }
-                    },
+                        try {
+                            const response = await fetch(
+                                '/api/v1/marketplace/myContent',
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${token}`
+                                    }
+                                }
+                            );
 
-                    showItem(item) {
-                        alert(`${item.title}\n\n${item.description}`);
-                    },
+                            const data = await response.json();
 
-                    editItem(item) {
-                        alert(`Editor Item da realizzare per: ${item.title}`);
-                    },
+                            if (!response.ok) {
+                                throw new Error(
+                                    data.message || 'Impossibile recuperare i contenuti.'
+                                );
+                            }
 
-                    editGuidedVisit(visit) {
-                        alert(`Editor visita da realizzare per: ${visit.title}`);
-                    },
+                            this.items = data.data.items || [];
+                            this.guidedVisits = data.data.guidedVisits || [];
 
-                    makeAvailable(visit) {
-                        alert(
-                            `Qui aprirai la schermata per rendere disponibile "${visit.title}" alle classi.`
-                        );
+                        } catch (error) {
+                            console.error(error);
+                            alert(error.message);
+                        } finally {
+                            this.loading = false;
+                        }
+                        },
+
+                        showItem(item) {
+                            alert(`${item.title}\n\n${item.description}`);
+                        },
+
+                        editItem(item) {
+                            alert(`Editor Item da realizzare per: ${item.title}`);
+                        },
+
+                        editGuidedVisit(visit) {
+                            alert(`Editor visita da realizzare per: ${visit.title}`);
+                        },
+
+                        makeAvailable(visit) {
+                            window.location.href = `/marketplace/homepage/guidedVisits/availability?visitId=${visit._id}`;
+                        }
                     }
                 }
-            }
-        </script>
+            </script>
     </body>
 </html>

@@ -31,6 +31,7 @@ marketplaceRouter.get("/homepage/manageClasses", authorization, marketplaceContr
 marketplaceRouter.get("/homepage/joinClassroom", authorization, marketplaceController.getJoinClassroom);
 marketplaceRouter.get("/homepage/myClasses", authorization, marketplaceController.getMyClasses);
 
+marketplaceRouter.get("/homepage/guidedVisits/availability", authorization, marketplaceController.getGuidedVisitAvailability);
 
 
 module.exports = marketplaceRouter;

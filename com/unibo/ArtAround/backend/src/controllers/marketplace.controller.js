@@ -34,6 +34,9 @@ const getManageClasses = servePage("manageClasses");
 const getJoinClassroom = servePage("joinClassroom");
 const getMyClasses = servePage("myClasses");
 
+const getGuidedVisitAvailability = servePage("guidedVisitAvailability");
+
+
 module.exports = {
     getIndex,
     getSignup,
@@ -52,4 +55,6 @@ module.exports = {
     getManageClasses,
     getJoinClassroom,
     getMyClasses,
+    getGuidedVisitAvailability,
+
 };

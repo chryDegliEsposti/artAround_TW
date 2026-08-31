@@ -4,6 +4,7 @@ const User = require('../models/User'); //per aggiornare i dati di acquisto dell
 const Museum = require('../models/Museum'); //per check codice museo in createMuseum
 const Notification = require('../models/Notification'); //per creare notifiche in handleJoinReq
 const Classroom = require('../models/Classroom'); //per creare classroom per teachers
+const GuidedVisitSession = require('../models/GuidedVisitSession');
 
 
 // ----------------------------------- ITEMS HANDLERS ----------------------------------
@@ -1123,6 +1124,294 @@ const leaveClassroom = async (req, res) => {
     }
 };
 
+// ----------------------------------- GUIDED VISIT SESSION HANDLERS ----------------------------------
+const normalizeSessionCode = (code) => {
+    return code
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, '-');
+};
+
+
+// Il docente recupera una sua visita guidata per renderla disponibile
+const getGuidedVisitForTeacher = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Questa funzione è riservata ai docenti.'
+            });
+        }
+
+        const visit = await Visit.findOne({
+            _id: req.params.id,
+            author: req.user.id,
+            visitType: 'guided'
+        }).populate('items');
+
+        if (!visit) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Visita guidata non trovata.'
+            });
+        }
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                visit
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore recupero visita guidata:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile recuperare la visita guidata.'
+        });
+    }
+};
+
+// Il docente seleziona classi e crea una sessione
+const createGuidedVisitSession = async (req, res) => {
+    try {
+        if (req.user.role !== 'teacher') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo un docente può rendere disponibile una visita guidata.'
+            });
+        }
+        const {
+            guidedVisitId,
+            classroomIds,
+            sessionCode,
+            status = 'scheduled'
+        } = req.body;
+
+        if (!guidedVisitId || !Array.isArray(classroomIds) || classroomIds.length === 0 || !sessionCode) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Visita, almeno una classe e codice sessione sono obbligatori.'
+            });
+        }
+        if (!['scheduled', 'active'].includes(status)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Stato della sessione non valido.'
+            });
+        }
+
+        // Verifica che la visita guidata appartenga al docente
+        const guidedVisit = await Visit.findOne({
+            _id: guidedVisitId,
+            author: req.user.id,
+            visitType: 'guided'
+        });
+        if (!guidedVisit) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Visita guidata non trovata o non autorizzata.'
+            });
+        }
+
+        const uniqueClassroomIds = [...new Set(classroomIds)];
+
+        // Verifica che ogni classe selezionata sia del docente loggato
+        const classrooms = await Classroom.find({
+            _id: { $in: uniqueClassroomIds },
+            teacher: req.user.id
+        }).select('_id');
+
+        if (classrooms.length !== uniqueClassroomIds.length) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Una o più classi selezionate non ti appartengono.'
+            });
+        }
+
+        const normalizedCode = normalizeSessionCode(sessionCode);
+
+        const existingSession = await GuidedVisitSession.findOne({
+            sessionCode: normalizedCode
+        });
+
+        if (existingSession) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Questo codice sessione è già utilizzato.'
+            });
+        }
+
+        const session = await GuidedVisitSession.create({
+            guidedVisit: guidedVisit._id,
+            teacher: req.user.id,
+            classrooms: uniqueClassroomIds,
+            sessionCode: normalizedCode,
+            status,
+            startedAt: status === 'active' ? new Date() : undefined
+        });
+
+        await session.populate([
+            {
+                path: 'guidedVisit',
+                select: 'title description items'
+            },
+            {
+                path: 'classrooms',
+                select: 'name'
+            }
+        ]);
+
+        return res.status(201).json({
+            status: 'success',
+            message: 'Visita guidata resa disponibile alle classi selezionate.',
+            data: {
+                session
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore creazione sessione visita guidata:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile rendere disponibile la visita guidata.'
+        });
+    }
+};
+
+
+// Lo studente può vedere SOLO le sessioni attive delle sue classi
+const getAvailableGuidedSessions = async (req, res) => {
+    try {
+        if (req.user.role !== 'visitor') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Questa funzione è riservata agli studenti.'
+            });
+        }
+
+        const joinedClassrooms = await Classroom.find({
+            students: req.user.id
+        }).select('_id');
+
+        const classroomIds = joinedClassrooms.map(
+            classroom => classroom._id
+        );
+
+        const sessions = await GuidedVisitSession.find({
+            classrooms: { $in: classroomIds },
+            status: 'active'
+        })
+            .populate('guidedVisit', 'title description items')
+            .populate('teacher', 'username')
+            .populate('classrooms', 'name')
+            .sort({ startedAt: -1 });
+
+        return res.status(200).json({
+            status: 'success',
+            data: {
+                sessions
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore recupero sessioni disponibili:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile recuperare le visite guidate disponibili.'
+        });
+    }
+};
+
+// student joins a session => adds the student to the session participants if they belong to one of the authorized classrooms
+const joinGuidedVisitSession = async (req, res) => {
+    try {
+        if (req.user.role !== 'visitor') {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Solo gli studenti possono entrare in una visita guidata.'
+            });
+        }
+
+        const { sessionCode } = req.body;
+        if (!sessionCode || !sessionCode.trim()) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Inserisci il codice della visita guidata.'
+            });
+        }
+
+        const normalizedCode = normalizeSessionCode(sessionCode);
+
+        const session = await GuidedVisitSession.findOne({
+            sessionCode: normalizedCode,
+            status: 'active'
+        });
+        if (!session) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'Nessuna visita guidata attiva trovata con questo codice.'
+            });
+        }
+
+        // Verifica che lo studente appartenga ad almeno una classe autorizzata
+        const authorizedClassroom = await Classroom.findOne({
+            _id: { $in: session.classrooms },
+            students: req.user.id
+        });
+        if (!authorizedClassroom) {
+            return res.status(403).json({
+                status: 'error',
+                message: 'Non sei autorizzato a partecipare a questa visita guidata.'
+            });
+        }
+
+        const alreadyJoined = session.participants.some(
+            participant => participant.user.toString() === req.user.id.toString()
+        );
+        if (!alreadyJoined) {
+            session.participants.push({
+                user: req.user.id
+            });
+
+            await session.save();
+        }
+
+        await session.populate([
+            {
+                path: 'guidedVisit',
+                populate: {
+                    path: 'items'
+                }
+            },
+            {
+                path: 'teacher',
+                select: 'username'
+            }
+        ]);
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Accesso alla visita guidata effettuato.',
+            data: {
+                session
+            }
+        });
+
+    } catch (err) {
+        console.error('Errore ingresso visita guidata:', err);
+
+        return res.status(500).json({
+            status: 'error',
+            message: 'Impossibile entrare nella visita guidata.'
+        });
+    }
+};
+
+
 module.exports = {
     createItems,
     searchItemsForVisit,
@@ -1152,4 +1441,10 @@ module.exports = {
     joinClassroom,
     getJoinedClassrooms,
     leaveClassroom,
+
+    createGuidedVisitSession,
+    getGuidedVisitForTeacher,
+    getAvailableGuidedSessions,
+    joinGuidedVisitSession,
+          
 }
