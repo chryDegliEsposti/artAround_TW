@@ -61,11 +61,26 @@ const PORT = process.env.PORT || 3000;
 const frontendRoot = path.resolve(__dirname, "../../client_marketplace");
 app.use(express.static(frontendRoot));
 
+const fs = require('fs');
+
 // Serve navigator React build static files
 const navigatorRoot = path.resolve(__dirname, "../../client_navigator/dist");
 app.use('/navigator', express.static(navigatorRoot));
 app.get(/^\/navigator(\/.*)?$/, (req, res) => {
-    res.sendFile(path.join(navigatorRoot, 'index.html'));
+    const indexPath = path.join(navigatorRoot, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(503).send(`
+            <div style="font-family: sans-serif; padding: 2rem; max-width: 600px; margin: auto; text-align: center;">
+                <h2>Modulo Navigator non ancora compilato</h2>
+                <p>La build di React (<code>client_navigator/dist</code>) non &egrave; stata ancora generata.</p>
+                <p>Esegui <code>npm run build</code> all'interno della cartella <code>client_navigator</code>.</p>
+                <br/>
+                <a href="/marketplace" style="padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 6px;">Vai al Marketplace</a>
+            </div>
+        `);
+    }
 });
 
 console.log('Serving marketplace from:', frontendRoot);

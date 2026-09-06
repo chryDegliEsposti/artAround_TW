@@ -69,7 +69,7 @@ const seedDatabase = async () => {
 
         // 3. Creazione Geometria e Mappa 2D della Pinacoteca Nazionale di Bologna
         console.log('[Seed] Creazione museo reale: Pinacoteca Nazionale di Bologna...');
-        
+
         // Muri dell'edificio storico (Piano 1 e 2)
         const pinacotecaLines = [
             // Pareti esterne Piano 1
@@ -385,7 +385,7 @@ const seedDatabase = async () => {
 
         // 4. Creazione degli Item (con le varianti multi-livello e multi-durata)
         console.log('[Seed] Creazione Item multilivello e multilinguaggio...');
-        
+
         const itemsData = [
             // BEDOLI - RITRATTO DI FRATE (L'opera delle slide con tutte le 4 combinazioni complete)
             {
@@ -948,7 +948,7 @@ const seedDatabase = async () => {
 
         // 6. VISITA 4 (Sincronizzata con Quiz per il Modulo 18-27)
         console.log('[Seed] Creazione visita sincronizzata ("Fenice rossa") con Quiz per docenti...');
-        
+
         const syncVisit = await Visit.create({
             title: 'Visita Guidata Classe 4B - Liceo Artistico',
             description: 'Visita sincronizzata per gruppi scolastici e docenti con trasmissione audio condivisa negli auricolari e verifica finale delle competenze.',
