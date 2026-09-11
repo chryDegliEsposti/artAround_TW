@@ -264,6 +264,28 @@ export default function Editor() {
         setAreas([]);
         setPois([]);
       }
+
+      // Carica tutti e soli gli item inseriti nella prima parte della registrazione
+      const tempMuseumDataStr = sessionStorage.getItem('tempMuseumData');
+      if (tempMuseumDataStr) {
+        try {
+          const parsed = JSON.parse(tempMuseumDataStr);
+          if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+            setAvailableItems(parsed.items);
+            setSelectedExhibitName(parsed.items[0].title);
+          } else {
+            setAvailableItems([]);
+            setSelectedExhibitName('__custom__');
+          }
+        } catch (err) {
+          setAvailableItems([]);
+          setSelectedExhibitName('__custom__');
+        }
+      } else {
+        setAvailableItems([]);
+        setSelectedExhibitName('__custom__');
+      }
+
       setIsLoading(false);
       return;
     }
@@ -296,6 +318,17 @@ export default function Editor() {
   const loadMuseumItems = async (museumIdOrCode) => {
     try {
       if (!museumIdOrCode || museumIdOrCode === '__new__') {
+        const tempMuseumDataStr = sessionStorage.getItem('tempMuseumData');
+        if (tempMuseumDataStr) {
+          try {
+            const parsed = JSON.parse(tempMuseumDataStr);
+            if (Array.isArray(parsed.items) && parsed.items.length > 0) {
+              setAvailableItems(parsed.items);
+              setSelectedExhibitName(parsed.items[0].title);
+              return;
+            }
+          } catch(e) {}
+        }
         setAvailableItems([]);
         setSelectedExhibitName('__custom__');
         return;
@@ -417,12 +450,19 @@ export default function Editor() {
 
       let subType = null;
       let name = null;
+      let artworkId = undefined;
+      let desc = undefined;
 
       if (type === 'exhibit') {
         if (selectedExhibitName === '__custom__' || !selectedExhibitName) {
           name = customItemInput.trim() || 'Opera d\'Arte';
         } else {
           name = selectedExhibitName;
+          const matched = availableItems.find(it => it.title === name);
+          if (matched) {
+            artworkId = matched.artworkId;
+            desc = matched.description;
+          }
         }
       } else if (type === 'exit') {
         subType = selectedExitType;
@@ -433,6 +473,8 @@ export default function Editor() {
         type,
         subType,
         name,
+        desc,
+        artworkId,
         position: pt,
         layerId: activeLayerId
       }]);
@@ -526,10 +568,11 @@ export default function Editor() {
   const saveAndReturnToForm = () => {
     const data = generateJSON();
     sessionStorage.setItem('editorMapData', JSON.stringify(data));
+    sessionStorage.setItem('tempRegistrationStep', '2');
     if (returnUrl) {
       window.location.href = returnUrl;
     } else {
-      window.location.href = '/marketplace/homepage/newMuseum';
+      window.location.href = '/marketplace/homepage/newMuseum?step=2';
     }
   };
 
@@ -850,23 +893,32 @@ export default function Editor() {
           </button>
           {mode === 'poi-exhibit' && (
             <div className="sub-tool-panel">
-              <label>Seleziona Item / Opera dal Database:</label>
+              <label>Seleziona Item / Opera:</label>
               {availableItems.length > 0 ? (
-                <select
-                  value={selectedExhibitName}
-                  onChange={(e) => setSelectedExhibitName(e.target.value)}
-                  style={{ marginBottom: '6px' }}
-                >
-                  {availableItems.map((item) => (
-                    <option key={item._id || item.title} value={item.title}>
-                      🎨 {item.title} {item.author ? `— ${item.author}` : ''}
-                    </option>
-                  ))}
-                  <option value="__custom__">➕ Inserisci nome personalizzato...</option>
-                </select>
+                <>
+                  <select
+                    value={selectedExhibitName}
+                    onChange={(e) => setSelectedExhibitName(e.target.value)}
+                    style={{ marginBottom: '6px' }}
+                  >
+                    {availableItems.map((item, idx) => (
+                      <option key={item._id || item.artworkId || idx} value={item.title}>
+                        🎨 {item.title} {item.author ? `— ${item.author}` : (item.license ? `(${item.license})` : '')}
+                      </option>
+                    ))}
+                    <option value="__custom__">➕ Inserisci nome personalizzato...</option>
+                  </select>
+                  {isNewMuseumMode && (
+                    <p style={{ fontSize: '11px', color: '#16a34a', marginBottom: '6px', fontWeight: '500' }}>
+                      ✓ Mostrati tutti e soli i {availableItems.length} item aggiunti nella prima parte della registrazione.
+                    </p>
+                  )}
+                </>
               ) : (
                 <p style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px' }}>
-                  Nessun item registrato per questa struttura. Inserisci il nome manualmente:
+                  {isNewMuseumMode 
+                    ? 'Nessun item aggiunto nella prima parte della registrazione. Inserisci il nome manualmente:' 
+                    : 'Nessun item registrato per questa struttura. Inserisci il nome manualmente:'}
                 </p>
               )}
 
