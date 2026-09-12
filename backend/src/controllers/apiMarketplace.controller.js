@@ -317,6 +317,21 @@ const createMuseum = async (req, res) => {
                 previewIds = createdItems.slice(0, 5).map(it => it._id);
             }
 
+            // Link created items to exhibit POIs if names or artworkIds match
+            if (newMuseum.pois && newMuseum.pois.length > 0) {
+                newMuseum.pois.forEach(p => {
+                    if (p.type === 'exhibit') {
+                        const matched = createdItems.find(it => 
+                            (p.artworkId && it.artworkId && it.artworkId === p.artworkId) || 
+                            (p.name && it.title && p.name.trim().toLowerCase() === it.title.trim().toLowerCase())
+                        );
+                        if (matched) {
+                            p.itemRef = matched._id;
+                        }
+                    }
+                });
+            }
+
             newMuseum.previewItems = previewIds;
             await newMuseum.save();
         }

@@ -539,6 +539,10 @@
                     if (urlParams.get('step') === '2' || sessionStorage.getItem('tempRegistrationStep') === '2') {
                         this.currentStep = 2;
                     }
+
+                    if (this.museumData.code && this.museumData.code.trim().length >= 2) {
+                        this.checkCode();
+                    }
                 },
 
                 goToStep2() {
@@ -601,7 +605,7 @@
                     sessionStorage.setItem('tempRegistrationStep', '2');
 
                     const returnPath = encodeURIComponent('/marketplace/homepage/newMuseum?step=2');
-                    window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=${returnPath}&newMuseum=true&museumName=${encodeURIComponent(this.museumData.name || 'Nuovo Museo')}`;
+                    window.location.href = `/navigator/editor?lat=${this.museumData.latitude}&lng=${this.museumData.longitude}&returnUrl=${returnPath}&newMuseum=true&museumName=${encodeURIComponent(this.museumData.name || 'Nuovo Museo')}&museumId=${encodeURIComponent(this.museumData.code || 'NEW')}`;
                 },
 
                 async checkCode() {

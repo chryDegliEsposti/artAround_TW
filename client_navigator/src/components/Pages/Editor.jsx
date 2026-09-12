@@ -168,6 +168,30 @@ export default function Editor() {
     initEditor();
   }, []);
 
+  // Helper: start a blank plan for a new museum directly
+  const startNewMuseumPlan = () => {
+    setAuthStatus({ checked: true, allowed: true, reason: null });
+    setIsNewMuseumMode(true);
+    const fallbackCenter = [44.4975, 11.3533];
+    setCenter(fallbackCenter);
+    setSelectedMuseumId('__new__');
+    setCurrentMuseum({
+      id: '__new__',
+      museumId: 'NEW',
+      name: 'Nuovo Museo',
+      museumCenter: fallbackCenter
+    });
+    setReturnUrl('/marketplace/homepage/newMuseum?step=2');
+    setLayers([{ id: 1, name: 'Piano Terra (L1)' }, { id: 2, name: 'Primo Piano (L2)' }]);
+    setActiveLayerId(1);
+    setLines([]);
+    setAreas([]);
+    setPois([]);
+    setAvailableItems([]);
+    setSelectedExhibitName('__custom__');
+    setMode('none');
+  };
+
   const initEditor = async () => {
     setIsLoading(true);
 
@@ -192,7 +216,19 @@ export default function Editor() {
       return;
     }
 
-    // Check 3: Creator must own / manage at least 1 museum in DB
+    // Read URL search parameters early
+    const searchParams = new URLSearchParams(window.location.search);
+    const retUrl = searchParams.get('returnUrl');
+    setReturnUrl(retUrl);
+
+    const isNew = searchParams.get('newMuseum') === 'true' || searchParams.get('new') === 'true';
+    const queryLat = parseFloat(searchParams.get('lat'));
+    const queryLng = parseFloat(searchParams.get('lng'));
+    const queryId = searchParams.get('id');
+    const queryCode = searchParams.get('museumId');
+    const museumName = searchParams.get('museumName') || 'Nuovo Museo';
+
+    // Fetch managed museums for this creator
     let managedMuseums = [];
     try {
       const res = await fetch('/api/v1/navigator/museums/myManaged', {
@@ -213,37 +249,19 @@ export default function Editor() {
     } catch (err) {
       console.error("Error fetching creator museums:", err);
     }
-
-    if (!managedMuseums || managedMuseums.length === 0) {
-      setAuthStatus({ checked: true, allowed: false, reason: 'no_museums' });
-      setIsLoading(false);
-      return;
-    }
-
-    // Authorization passed!
-    setAuthStatus({ checked: true, allowed: true, reason: null });
     setMuseums(managedMuseums);
 
-    const searchParams = new URLSearchParams(window.location.search);
-    const retUrl = searchParams.get('returnUrl');
-    setReturnUrl(retUrl);
-
-    const isNew = searchParams.get('newMuseum') === 'true';
-    const queryLat = parseFloat(searchParams.get('lat'));
-    const queryLng = parseFloat(searchParams.get('lng'));
-    const queryId = searchParams.get('id');
-    const queryCode = searchParams.get('museumId');
-    const museumName = searchParams.get('museumName') || 'Nuovo Museo';
-
-    // Flow: If drawing a new plan while creating a new museum
-    if (isNew && !isNaN(queryLat) && !isNaN(queryLng)) {
+    // Flow 1: If drawing a new plan while creating a new museum (newMuseum=true)
+    if (isNew) {
+      setAuthStatus({ checked: true, allowed: true, reason: null });
       setIsNewMuseumMode(true);
-      const newCenter = [queryLat, queryLng];
+      const fallbackCenter = [44.4975, 11.3533];
+      const newCenter = (!isNaN(queryLat) && !isNaN(queryLng)) ? [queryLat, queryLng] : fallbackCenter;
       setCenter(newCenter);
       setSelectedMuseumId('__new__');
       setCurrentMuseum({
         id: '__new__',
-        museumId: 'NEW',
+        museumId: queryCode || 'NEW',
         name: decodeURIComponent(museumName),
         museumCenter: newCenter
       });
@@ -272,7 +290,7 @@ export default function Editor() {
           const parsed = JSON.parse(tempMuseumDataStr);
           if (Array.isArray(parsed.items) && parsed.items.length > 0) {
             setAvailableItems(parsed.items);
-            setSelectedExhibitName(parsed.items[0].title);
+            setSelectedExhibitName(parsed.items[0]?.title || '__custom__');
           } else {
             setAvailableItems([]);
             setSelectedExhibitName('__custom__');
@@ -290,7 +308,15 @@ export default function Editor() {
       return;
     }
 
-    // Flow: Standard Editor - load one of the creator's museums
+    // Flow 2: Creator has no museums in DB yet and is not in newMuseum mode
+    if (!managedMuseums || managedMuseums.length === 0) {
+      setAuthStatus({ checked: true, allowed: false, reason: 'no_museums' });
+      setIsLoading(false);
+      return;
+    }
+
+    // Flow 3: Standard Editor - load one of the creator's existing museums
+    setAuthStatus({ checked: true, allowed: true, reason: null });
     setIsNewMuseumMode(false);
     let targetMuseum = null;
     if (queryId) {
@@ -705,16 +731,24 @@ export default function Editor() {
             <div className="editor-blocked-icon">
               <Building2 size={44} />
             </div>
-            <h2>Prima crea un museo!</h2>
+            <h2>Nessun Museo nel Database</h2>
             <p className="editor-blocked-desc">
-              Non hai ancora registrato nessun museo a tuo nome. Per poter accedere all'Editor e disegnare la planimetria 2D, devi prima creare la tua struttura museale nel Marketplace.
+              Non hai ancora registrato nessun museo a tuo nome nel database. Puoi andare al modulo di registrazione nel Marketplace oppure iniziare subito a disegnare una nuova piantina da collegare al tuo nuovo museo.
             </p>
             <div className="editor-blocked-actions">
               <a href="/marketplace/homepage/newMuseum" className="editor-btn-primary">
-                <Plus size={18} /> Crea un Museo nel Marketplace
+                <Plus size={18} /> Registra Museo nel Marketplace
               </a>
+              <button 
+                type="button" 
+                onClick={startNewMuseumPlan} 
+                className="editor-btn-secondary" 
+                style={{ cursor: 'pointer', border: '1px solid #c7d2fe', background: '#eef2ff', color: '#4338ca' }}
+              >
+                <Layers size={16} /> Disegna Piantina da Zero
+              </button>
               <a href="/marketplace/homepage" className="editor-btn-secondary">
-                <ArrowLeft size={16} /> Torna al Marketplace
+                <ArrowLeft size={16} /> Torna alla Dashboard
               </a>
             </div>
           </div>
@@ -986,7 +1020,7 @@ export default function Editor() {
         <div className="tool-section">
           <h3>Salvataggio & Azioni</h3>
           
-          {returnUrl ? (
+          {returnUrl || isNewMuseumMode ? (
             <button 
               className="tool-btn save-db-btn" 
               onClick={saveAndReturnToForm}
