@@ -14,7 +14,8 @@ export default function BottomBar({
   progress = 0,
   showDescription,
   setShowDescription,
-  currentItem
+  currentItem,
+  museumName = 'Museo'
 }) {
   const dragStartY = useRef(null);
   const dragStartTarget = useRef(null);
@@ -65,42 +66,55 @@ export default function BottomBar({
   }, [showDescription, setShowDescription]);
 
   const defaultImage = "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=600";
-  const dummyText = "Un capolavoro della pittura conservato presso la Pinacoteca Nazionale di Bologna. L'opera si distingue per l'alta maestria compositiva, l'uso calibrato della luce e la ricchezza cromatica.";
 
-  const [liveData, setLiveData] = useState({ description: dummyText, style: 'Rinascimento', artist: 'Artista Pinacoteca' });
-  const originalDescRef = useRef(dummyText);
+  const [liveData, setLiveData] = useState({ 
+    description: '', 
+    style: '', 
+    artist: '', 
+    image: '' 
+  });
 
   useEffect(() => {
     if (!currentItem) return;
+
+    // Inizializza liveData con i valori arricchiti passati da currentItem
+    setLiveData({
+      description: currentItem.description || currentItem.desc || '',
+      style: currentItem.style || '',
+      artist: currentItem.artist || currentItem.author || '',
+      image: currentItem.image || currentItem.recognitionImage || ''
+    });
+
     const fetchDesc = async () => {
       try {
-        const response = await fetch(`/api/v1/navigator/museums/item/${currentItem.id}`);
+        const queryTarget = currentItem.itemRef || currentItem.artworkId || currentItem.id;
+        const nameQuery = encodeURIComponent(currentItem.name || currentItem.title || '');
+        const museumQuery = encodeURIComponent(currentItem.museumId || '');
+        const response = await fetch(`/api/v1/navigator/museums/item/${queryTarget}?name=${nameQuery}&museumId=${museumQuery}`);
+        if (!response.ok) return;
         const data = await response.json();
         if (data) {
-          const desc = data.description || currentItem.desc || dummyText;
-          originalDescRef.current = desc;
           setLiveData({
-            description: desc,
-            style: data.style || currentItem.style || 'Scuola Emiliana',
-            artist: data.artist || currentItem.artist || 'Artista Pinacoteca'
+            description: data.description || currentItem.description || currentItem.desc || '',
+            style: data.style || currentItem.style || '',
+            artist: data.artist || data.author || currentItem.artist || currentItem.author || '',
+            image: data.image || data.recognitionImage || currentItem.image || currentItem.recognitionImage || ''
           });
-          setSelectedLang('it');
-          setSelectedTone('medio');
         }
       } catch (error) {
-        const desc = currentItem.desc || dummyText;
-        originalDescRef.current = desc;
-        setLiveData({
-          description: desc,
-          style: currentItem.style || 'Scuola Emiliana',
-          artist: currentItem.artist || 'Artista Pinacoteca'
-        });
+        console.warn("Could not fetch additional details for item:", error);
       }
     };
     fetchDesc();
   }, [currentItem]);
 
 
+
+  const activeImage = liveData.image || currentItem?.image || currentItem?.recognitionImage || defaultImage;
+  const activeTitle = currentItem?.name || currentItem?.title || 'Opera d\'Arte';
+  const activeArtist = liveData.artist || currentItem?.artist || currentItem?.author || 'Autore non specificato';
+  const activeStyle = liveData.style || currentItem?.style || 'Arte e Cultura';
+  const activeDescription = liveData.description || currentItem?.description || currentItem?.desc || 'Descrizione non disponibile per questa opera.';
 
   return (
     <div
@@ -114,25 +128,25 @@ export default function BottomBar({
         <div className="mini-player-clickable">
           <div className="mini-player-info">
             <div className="mini-player-img-container">
-              <img src={currentItem?.image || defaultImage} alt={currentItem?.name || "Opera"} />
+              <img src={activeImage} alt={activeTitle} />
             </div>
             <div className="mini-player-text">
-              <span className="mini-player-title">{currentItem?.name || 'Caricamento...'}</span>
-              <span className="mini-player-subtitle">{currentItem?.artist || 'Pinacoteca di Bologna'}</span>
+              <span className="mini-player-title">{activeTitle}</span>
+              <span className="mini-player-subtitle">{activeArtist !== 'Autore non specificato' ? activeArtist : museumName}</span>
             </div>
           </div>
         </div>
         
         <div className="mini-player-controls">
-          <button className="icon-btn" onClick={onPrev} disabled={!hasPrev}>
+          <button className="icon-btn" onClick={onPrev} disabled={!hasPrev} title="Opera precedente">
             <span className="material-symbols-outlined">skip_previous</span>
           </button>
-          <button className="mini-play-btn" onClick={onPlayPause}>
+          <button className="mini-play-btn" onClick={onPlayPause} title={isPlaying ? 'Pausa' : 'Riproduci'}>
             <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>
               {isPlaying ? 'pause' : 'play_arrow'}
             </span>
           </button>
-          <button className="icon-btn" onClick={onNext} disabled={!hasNext}>
+          <button className="icon-btn" onClick={onNext} disabled={!hasNext} title="Prossima opera">
             <span className="material-symbols-outlined">skip_next</span>
           </button>
         </div>
@@ -154,17 +168,17 @@ export default function BottomBar({
 
         <main className="expanded-main no-scrollbar" ref={scrollRef}>
           <section className="hero-section">
-            <img src={currentItem?.image || defaultImage} className="hero-img" alt={currentItem?.name || "Opera"} />
+            <img src={activeImage} className="hero-img" alt={activeTitle} />
             <div className="hero-gradient"></div>
           </section>
 
           <div className="content-section">
             <div className="header-block">
-              <span className="room-label">Pinacoteca Nazionale di Bologna • Sala {currentItem?.layerId || 1}</span>
-              <h2 className="artwork-title">{currentItem?.name || 'Capolavoro'}</h2>
+              <span className="room-label">{museumName} • Sala {currentItem?.layerId || 1}</span>
+              <h2 className="artwork-title">{activeTitle}</h2>
               <div className="artist-row">
                 <div className="artist-line"></div>
-                <span className="artist-name">{currentItem?.artist || 'Autore Sconosciuto'}</span>
+                <span className="artist-name">{activeArtist}</span>
               </div>
             </div>
 
@@ -181,11 +195,11 @@ export default function BottomBar({
             <div className="bento-grid">
               <div className="bento-card">
                 <p className="bento-label">Stile / Periodo</p>
-                <p className="bento-value">{liveData.style || 'Pittura Emiliana'}</p>
+                <p className="bento-value">{activeStyle}</p>
               </div>
               <div className="bento-card">
                 <p className="bento-label">Collezione</p>
-                <p className="bento-value">Pinacoteca Bologna</p>
+                <p className="bento-value">{museumName}</p>
               </div>
             </div>
 
@@ -194,23 +208,23 @@ export default function BottomBar({
                 <h3 className="desc-heading">Descrizione dell'Opera</h3>
               </div>
               <p className="desc-body">
-                {liveData.description || currentItem?.desc || 'Descrizione non disponibile.'}
+                {activeDescription}
               </p>
             </article>
 
             <section className="tech-stats">
               <div className="stat-row">
-                <span className="stat-label">Accession Number</span>
-                <span className="stat-value">INV. 779</span>
+                <span className="stat-label">Identificativo Opera</span>
+                <span className="stat-value">{currentItem?.artworkId || currentItem?.id || 'N/D'}</span>
               </div>
               <div className="stat-row">
-                <span className="stat-label">Dimensions</span>
-                <span className="stat-value">77 cm × 53 cm</span>
+                <span className="stat-label">Piano / Sala</span>
+                <span className="stat-value">Sala {currentItem?.layerId || 1}</span>
               </div>
             </section>
 
             <button className="dismiss-btn" onClick={() => setShowDescription(false)}>
-              CLOSE DETAILS
+              CHIUDI DETTAGLI
             </button>
           </div>
         </main>

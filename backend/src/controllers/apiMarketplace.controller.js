@@ -18,7 +18,11 @@ const createItems = async (req, res) => {
             languageLevel, 
             museum, 
             license, 
-            price 
+            price,
+            recognitionImage,
+            image,
+            author,
+            style
         } = req.body;
 
         const userId = req.userId;
@@ -43,8 +47,10 @@ const createItems = async (req, res) => {
             artworkId: itemType === 'artwork' ? subjectId : undefined,
             title: title || 'Nuovo Item',
             description: description || '',
-            author: username,
+            author: author || username,
             creator: username,
+            style: style || undefined,
+            recognitionImage: recognitionImage || image || undefined,
             length: length || '15s',
             languageLevel: languageLevel || 'medio',
             museumId: museumIdCode,
@@ -877,7 +883,11 @@ const updateItem = async (req, res) => {
         if (languageLevel !== undefined) item.languageLevel = languageLevel;
         if (license !== undefined) item.license = license;
         if (price !== undefined) item.price = Number(price);
-        if (recognitionImage !== undefined || image !== undefined) item.recognitionImage = recognitionImage || image;
+        if (recognitionImage !== undefined) {
+            item.recognitionImage = recognitionImage;
+        } else if (image !== undefined) {
+            item.recognitionImage = image;
+        }
         if (itemType !== undefined) item.itemType = itemType;
 
         await item.save();

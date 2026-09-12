@@ -118,6 +118,17 @@ export default function ExploreMuseum() {
     }
   });
 
+  const handleStartTour = () => {
+    const targetMuseumParam = exploreData?.museumId || id || '';
+    navigate(`/tour?museumId=${encodeURIComponent(targetMuseumParam)}`, {
+      state: {
+        museumId: exploreData?.museumId,
+        id: exploreData?.id || id,
+        museum: exploreData
+      }
+    });
+  };
+
   return (
     <>
       <header className="explore-header-bar">
@@ -142,7 +153,7 @@ export default function ExploreMuseum() {
             <p className="museum-intro-desc">{exploreData.museumDescription}</p>
           )}
           <div className="museum-intro-actions">
-            <button className="explore-btn-primary" onClick={() => navigate('/tour')}>
+            <button className="explore-btn-primary" onClick={handleStartTour}>
               <Compass size={18} />
               <span>Avvia Navigazione Indoor</span>
             </button>
@@ -201,7 +212,7 @@ export default function ExploreMuseum() {
                     <p className="artwork-desc">{currentArtwork.desc}</p>
                   )}
                   <div className="slider-actions">
-                    <button className="artwork-cta-btn" onClick={() => navigate('/tour')}>
+                    <button className="artwork-cta-btn" onClick={handleStartTour}>
                       <span>Visualizza sulla Mappa</span>
                       <ChevronRight size={16} />
                     </button>

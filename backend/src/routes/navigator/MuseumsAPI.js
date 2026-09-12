@@ -302,11 +302,54 @@ router.get('/museumData', async (req, res) => {
         } else if (req.query.museumId) {
             museum = await Museum.findOne({ museumId: req.query.museumId.toUpperCase() });
         } else {
-            // Default to first museum in DB (Pinacoteca Nazionale di Bologna)
+            // Default to first museum in DB
             museum = await Museum.findOne();
         }
 
         if (museum) {
+            // Recupera tutti gli item associati a questo museo per arricchire i POI
+            const items = await Item.find({
+                $or: [
+                    { museum: museum._id },
+                    { museumId: museum.museumId },
+                    { museumId: museum.museumId ? museum.museumId.toUpperCase() : '' }
+                ]
+            });
+
+            const enrichedPois = (museum.pois || []).map(p => {
+                const poi = p.toObject ? p.toObject() : { ...p };
+
+                // Cerca l'item corrispondente tramite itemRef, artworkId, poiId o titolo
+                let matchedItem = null;
+                if (poi.itemRef) {
+                    matchedItem = items.find(it => it._id.toString() === poi.itemRef.toString());
+                }
+                if (!matchedItem && poi.artworkId) {
+                    matchedItem = items.find(it => it.artworkId === poi.artworkId);
+                }
+                if (!matchedItem && poi.id != null) {
+                    matchedItem = items.find(it => it.poiId === poi.id);
+                }
+                if (!matchedItem && poi.name) {
+                    const normPoiName = poi.name.trim().toLowerCase();
+                    matchedItem = items.find(it => it.title && it.title.trim().toLowerCase() === normPoiName);
+                }
+
+                if (matchedItem) {
+                    poi.itemRef = matchedItem._id;
+                    poi.artworkId = matchedItem.artworkId || poi.artworkId;
+                    poi.image = matchedItem.recognitionImage || poi.image || null;
+                    poi.recognitionImage = matchedItem.recognitionImage || poi.recognitionImage || null;
+                    poi.description = matchedItem.description || poi.desc || '';
+                    poi.desc = poi.desc || matchedItem.description || '';
+                    poi.artist = matchedItem.author || poi.artist || '';
+                    poi.author = matchedItem.author || poi.author || '';
+                    poi.style = matchedItem.style || poi.style || '';
+                }
+
+                return poi;
+            });
+
             return res.json({
                 id: museum._id,
                 museumId: museum.museumId,
@@ -315,7 +358,7 @@ router.get('/museumData', async (req, res) => {
                 layers: museum.layers && museum.layers.length > 0 ? museum.layers : [{ id: 1, name: 'Layer 1' }],
                 lines: museum.lines || [],
                 areas: museum.areas || [],
-                pois: museum.pois || []
+                pois: enrichedPois
             });
         }
 
@@ -496,47 +539,102 @@ router.get('/exploreData', async (req, res) => {
  */
 router.get('/item/:id', async (req, res) => {
     try {
-        const idParam = req.params.id;
+        const idParam = req.params.id ? req.params.id.trim() : '';
+        const nameParam = req.query.name || req.query.title;
+        const museumIdParam = req.query.museumId;
+        const itemRefParam = req.query.itemRef;
         let item = null;
 
-        // 1. Try finding by MongoDB ObjectId
-        if (idParam.match(/^[0-9a-fA-F]{24}$/)) {
+        // 1. Ricerca tramite ObjectId esplicito (idParam o itemRefParam)
+        if (idParam && idParam.match(/^[0-9a-fA-F]{24}$/)) {
             item = await Item.findById(idParam);
+        } else if (itemRefParam && itemRefParam.match(/^[0-9a-fA-F]{24}$/)) {
+            item = await Item.findById(itemRefParam);
         }
 
-        // 2. If not found, try by artworkId (Wikidata Q-ID es. Q126599960)
-        if (!item) {
+        // 2. Ricerca per artworkId (es. Wikidata Q-ID Q126599960)
+        if (!item && idParam && idParam.startsWith('Q')) {
             item = await Item.findOne({ artworkId: idParam });
         }
 
-        // 3. If not found, try by numeric POI ID
-        if (!item && !isNaN(Number(idParam))) {
+        // 3. Ricerca per poiId numerico esplicito salvato sull'Item
+        if (!item && idParam && !isNaN(Number(idParam))) {
             item = await Item.findOne({ poiId: Number(idParam) });
+        }
+
+        // 4. Se idParam è l'ID temporale/numerico di un POI, cerca nella planimetria dei musei per risalire all'Item
+        if (!item && idParam) {
+            let museumQuery = {};
+            if (museumIdParam) {
+                if (museumIdParam.match(/^[0-9a-fA-F]{24}$/)) {
+                    museumQuery._id = museumIdParam;
+                } else {
+                    museumQuery.museumId = museumIdParam.toUpperCase();
+                }
+            }
+            const candidateMuseums = museumIdParam ? await Museum.find(museumQuery) : await Museum.find();
+            for (const m of candidateMuseums) {
+                const foundPoi = (m.pois || []).find(p => String(p.id) === String(idParam));
+                if (foundPoi) {
+                    if (foundPoi.itemRef) {
+                        item = await Item.findById(foundPoi.itemRef);
+                        if (item) break;
+                    }
+                    if (foundPoi.artworkId) {
+                        item = await Item.findOne({ artworkId: foundPoi.artworkId });
+                        if (item) break;
+                    }
+                    if (foundPoi.name) {
+                        item = await Item.findOne({ 
+                            title: { $regex: new RegExp('^' + foundPoi.name.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') } 
+                        });
+                        if (item) break;
+                    }
+                }
+            }
+        }
+
+        // 5. Ricerca per nome/titolo (tramite query param ?name=... o idParam)
+        if (!item && (nameParam || idParam)) {
+            const searchTitle = (nameParam || idParam).trim();
+            if (searchTitle && searchTitle !== 'undefined' && searchTitle !== 'null') {
+                let titleQuery = {
+                    title: { $regex: new RegExp('^' + searchTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i') }
+                };
+                if (museumIdParam) {
+                    titleQuery.$or = [{ museumId: museumIdParam }, { museumId: museumIdParam.toUpperCase() }];
+                }
+                item = await Item.findOne(titleQuery);
+            }
         }
 
         if (item) {
             return res.json({
                 id: item._id,
+                _id: item._id,
                 title: item.title,
                 name: item.title,
-                artist: item.author,
-                style: item.style,
-                artworkId: item.artworkId,
-                authorId: item.authorId,
-                styleId: item.styleId,
-                description: item.description,
-                desc: item.description,
-                image: item.recognitionImage,
+                artist: item.author || '',
+                author: item.author || '',
+                style: item.style || '',
+                artworkId: item.artworkId || '',
+                authorId: item.authorId || '',
+                styleId: item.styleId || '',
+                description: item.description || '',
+                desc: item.description || '',
+                image: item.recognitionImage || '',
+                recognitionImage: item.recognitionImage || '',
                 length: item.length,
                 languageLevel: item.languageLevel,
-                license: item.license
+                license: item.license,
+                museumId: item.museumId
             });
         }
 
         res.json({ 
-            description: "Nessuna descrizione trovata per questa opera.",
-            title: "Opera d'Arte",
-            artist: "Artista Sconosciuto"
+            description: "",
+            title: nameParam || idParam || "Opera",
+            artist: ""
         });
     } catch (e) {
         console.error("Error in /item/:id:", e);

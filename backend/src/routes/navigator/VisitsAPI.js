@@ -155,10 +155,53 @@ router.get('/tourData/:visitId', async (req, res) => {
             });
         }
 
+        // Arricchisci i POI con i metadati completi degli item (immagini, descrizioni, autori, stili)
+        const Item = require('../../models/Item');
+        const museumItems = await Item.find({
+            $or: [
+                { museum: museum._id },
+                { museumId: museum.museumId },
+                { museumId: museum.museumId ? museum.museumId.toUpperCase() : '' }
+            ]
+        });
+
+        const allItems = [...(visit.items || []), ...museumItems];
+        const museumObj = museum.toObject ? museum.toObject() : { ...museum };
+        museumObj.pois = (museumObj.pois || []).map(p => {
+            const poi = { ...p };
+            let matchedItem = null;
+            if (poi.itemRef) {
+                matchedItem = allItems.find(it => (it._id || it.id)?.toString() === poi.itemRef.toString());
+            }
+            if (!matchedItem && poi.artworkId) {
+                matchedItem = allItems.find(it => it.artworkId === poi.artworkId);
+            }
+            if (!matchedItem && poi.id != null) {
+                matchedItem = allItems.find(it => it.poiId === poi.id);
+            }
+            if (!matchedItem && poi.name) {
+                const normPoiName = poi.name.trim().toLowerCase();
+                matchedItem = allItems.find(it => it.title && it.title.trim().toLowerCase() === normPoiName);
+            }
+
+            if (matchedItem) {
+                poi.itemRef = matchedItem._id || matchedItem.id;
+                poi.artworkId = matchedItem.artworkId || poi.artworkId;
+                poi.image = matchedItem.recognitionImage || poi.image || null;
+                poi.recognitionImage = matchedItem.recognitionImage || poi.recognitionImage || null;
+                poi.description = matchedItem.description || poi.desc || '';
+                poi.desc = poi.desc || matchedItem.description || '';
+                poi.artist = matchedItem.author || poi.artist || '';
+                poi.author = matchedItem.author || poi.author || '';
+                poi.style = matchedItem.style || poi.style || '';
+            }
+            return poi;
+        });
+
         res.json({
             success: true,
             visit: visit,
-            museum: museum
+            museum: museumObj
         });
     } catch (e) {
         console.error("Error in tourData:", e);

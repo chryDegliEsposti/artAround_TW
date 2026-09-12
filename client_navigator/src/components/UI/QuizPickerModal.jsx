@@ -17,8 +17,8 @@ import './QuizPickerModal.css';
 export default function QuizPickerModal({
   isOpen,
   onClose,
-  museumId = 'PIN-BO',
-  museumName = 'Pinacoteca Nazionale di Bologna',
+  museumId = '',
+  museumName = 'Museo',
   onSelectAndLaunchQuiz
 }) {
   const [quizzes, setQuizzes] = useState([]);
@@ -35,7 +35,8 @@ export default function QuizPickerModal({
       try {
         const token = localStorage.getItem('apiToken') || localStorage.getItem('token');
         const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-        const res = await fetch(`/api/v1/marketplace/quizzes/by-museum/${museumId}`, { headers });
+        const targetId = museumId || 'PIN-BO';
+        const res = await fetch(`/api/v1/marketplace/quizzes/by-museum/${targetId}`, { headers });
         if (res.ok) {
           const json = await res.json();
           setQuizzes(json.data || []);
@@ -56,9 +57,9 @@ export default function QuizPickerModal({
   if (!isOpen) return null;
 
   const defaultStandardQuiz = {
-    _id: 'standard-pinbo',
-    title: 'Quiz di Competenza: I Capolavori della Pinacoteca (Standard)',
-    description: 'Questionario ufficiale su Raffaello, Bedoli, Carracci e Guido Reni.',
+    _id: 'standard-museum',
+    title: `Quiz di Competenza: I Capolavori del museo ${museumName}`,
+    description: `Questionario ufficiale sulle opere e capolavori di ${museumName}.`,
     timeLimitMinutes: 10,
     questions: [
       {
