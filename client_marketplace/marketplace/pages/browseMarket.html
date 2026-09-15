@@ -73,13 +73,13 @@
                 <p class="text-purple-100 text-sm sm:text-base max-w-2xl">Acquista tour completi con percorsi ottimizzati o singoli approfondimenti tematici da ascoltare nel museo.</p>
             </div>
 
-            <!-- TABS SCELTA: Visite / Items / Le Mie Opere -->
+            <!-- TABS SCELTA: Visite / Items / Le Mie Opere / Preferiti -->
             <div class="mb-6 border-b border-gray-200 flex justify-between items-center">
-                <div class="flex space-x-6">
+                <div class="flex space-x-6 overflow-x-auto pb-1 sm:pb-0">
                     <button 
                         @click="activeTab = 'visits'" 
                         :class="activeTab === 'visits' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2">
+                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2 flex-shrink-0">
                         <i class="fas fa-route"></i>
                         <span>Percorsi Visita</span>
                         <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold" x-text="visits.length"></span>
@@ -87,7 +87,7 @@
                     <button 
                         @click="activeTab = 'items'" 
                         :class="activeTab === 'items' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2">
+                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2 flex-shrink-0">
                         <i class="fas fa-palette"></i>
                         <span>Singole Opere / Items</span>
                         <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold" x-text="items.length"></span>
@@ -95,10 +95,18 @@
                     <button 
                         @click="activeTab = 'my_items'" 
                         :class="activeTab === 'my_items' ? 'border-purple-600 text-purple-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
-                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2">
+                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2 flex-shrink-0">
                         <i class="fas fa-folder-open"></i>
                         <span>Le Mie Opere</span>
                         <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold" x-text="myPurchasedAndOwnedItems.length"></span>
+                    </button>
+                    <button 
+                        @click="activeTab = 'favorites'" 
+                        :class="activeTab === 'favorites' ? 'border-red-500 text-red-600 font-bold' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                        class="py-3 px-2 text-sm border-b-2 transition flex items-center gap-2 flex-shrink-0">
+                        <i class="fas fa-heart text-red-500"></i>
+                        <span>I Miei Preferiti</span>
+                        <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold" x-text="totalFavoritesCount"></span>
                     </button>
                 </div>
             </div>
@@ -118,7 +126,7 @@
                     </div>
                     
                     <!-- Filtro prezzo / durata -->
-                    <div x-show="activeTab === 'visits'">
+                    <div x-show="activeTab === 'visits' || activeTab === 'favorites'">
                         <select x-model="priceFilter" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500">
                             <option value="all">Tutti i prezzi</option>
                             <option value="free">Gratuiti</option>
@@ -127,7 +135,7 @@
                         </select>
                     </div>
                     
-                    <div x-show="activeTab === 'items' || activeTab === 'my_items'">
+                    <div x-show="activeTab === 'items' || activeTab === 'my_items' || activeTab === 'favorites'">
                         <select x-model="durationFilter" class="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-purple-500">
                             <option value="all">Tutte le durate</option>
                             <option value="short">Brevi (≤15s)</option>
@@ -409,6 +417,223 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ================= SEZIONE PREFERITI ================= -->
+            <div x-show="activeTab === 'favorites'">
+                <!-- Sezione Visite Preferite -->
+                <template x-if="filteredFavoriteVisits.length > 0">
+                    <div class="mb-10">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-extrabold text-gray-800 flex items-center gap-2.5">
+                                <span class="w-8 h-8 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-sm shadow-sm">
+                                    <i class="fas fa-route"></i>
+                                </span>
+                                <span>Percorsi Visita Preferiti</span>
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full font-bold" x-text="filteredFavoriteVisits.length"></span>
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <template x-for="visit in filteredFavoriteVisits" :key="visit._id">
+                                <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
+                                    <div>
+                                        <div class="h-48 relative bg-gray-200 overflow-hidden">
+                                            <img :src="visit.image || 'https://images.unsplash.com/photo-1544211152-bd450893375c?auto=format&fit=crop&q=80&w=400'" 
+                                                 alt="Immagine Visita" class="w-full h-full object-cover">
+                                            
+                                            <button 
+                                                @click.stop="toggleSave(visit._id, 'visit')" 
+                                                class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm bg-white text-red-500 shadow hover:scale-110"
+                                                title="Rimuovi dai preferiti">
+                                                <i class="fas fa-heart"></i>
+                                            </button>
+
+                                            <div class="absolute bottom-3 left-3 flex gap-2">
+                                                <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
+                                                    <i class="fas fa-clock mr-1"></i><span x-text="(visit.duration || 45) + ' min'"></span>
+                                                </span>
+                                                <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm">
+                                                    <i class="fas fa-cube mr-1"></i><span x-text="(visit.items?.length || 0) + ' opere'"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="p-5">
+                                            <div class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mb-1" x-text="visit.knowledgeLevel || 'Generale'"></div>
+                                            <h3 class="font-bold text-gray-800 text-lg mb-1.5 line-clamp-1" x-text="visit.title"></h3>
+                                            <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="visit.description"></p>
+                                            
+                                            <div class="flex items-center text-xs text-gray-400 gap-1.5 pt-3 border-t border-gray-100">
+                                                <i class="fas fa-university"></i>
+                                                <span class="truncate" x-text="visit.museum?.name || 'Pinacoteca Nazionale di Bologna'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-5 pt-0">
+                                        <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                            <div>
+                                                <template x-if="visit.price > 0">
+                                                    <span class="text-lg font-black text-gray-900">€<span x-text="visit.price.toFixed(2)"></span></span>
+                                                </template>
+                                                <template x-if="!visit.price || visit.price === 0">
+                                                    <span class="text-xs font-bold text-green-600">Gratuito</span>
+                                                </template>
+                                            </div>
+
+                                            <template x-if="ownedVisits.includes(visit._id) || (!visit.price || visit.price === 0)">
+                                                <a :href="'/navigator/tour?visitId=' + visit._id" 
+                                                   class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                                    <i class="fas fa-play"></i> Inizia Tour
+                                                </a>
+                                            </template>
+
+                                            <template x-if="!ownedVisits.includes(visit._id) && visit.price > 0">
+                                                <a :href="'/marketplace/checkout?visitId=' + visit._id" 
+                                                   class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                                    <i class="fas fa-shopping-cart"></i> Acquista
+                                                </a>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Sezione Opere / Items Preferiti -->
+                <template x-if="filteredFavoriteItems.length > 0">
+                    <div class="mb-8">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-xl font-extrabold text-gray-800 flex items-center gap-2.5">
+                                <span class="w-8 h-8 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-sm shadow-sm">
+                                    <i class="fas fa-palette"></i>
+                                </span>
+                                <span>Opere e Approfondimenti Preferiti</span>
+                                <span class="text-xs bg-indigo-100 text-indigo-700 px-2.5 py-0.5 rounded-full font-bold" x-text="filteredFavoriteItems.length"></span>
+                            </h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <template x-for="item in filteredFavoriteItems" :key="item._id">
+                                <div class="bg-white rounded-3xl shadow-sm hover:shadow-xl transition overflow-hidden border border-gray-100 flex flex-col justify-between">
+                                    <div>
+                                        <div class="h-44 relative bg-gray-200 overflow-hidden">
+                                            <img :src="item.recognitionImage || 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&q=80&w=400'" 
+                                                 alt="Immagine Item" class="w-full h-full object-cover">
+
+                                            <button 
+                                                @click.stop="toggleSave(item._id, 'item')" 
+                                                class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition backdrop-blur-sm bg-white text-red-500 shadow hover:scale-110"
+                                                title="Rimuovi dai preferiti">
+                                                <i class="fas fa-heart"></i>
+                                            </button>
+
+                                            <div class="absolute bottom-3 left-3">
+                                                <span class="bg-black/60 text-white text-xs px-2.5 py-1 rounded-full font-medium backdrop-blur-sm flex items-center gap-1">
+                                                    <i class="fas fa-headphones"></i> <span x-text="item.length || '15s'"></span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="p-5">
+                                            <div class="text-[11px] font-bold text-indigo-600 uppercase tracking-wider mb-1" x-text="item.itemType || 'Opera'"></div>
+                                            <h3 class="font-bold text-gray-800 text-base mb-1.5 line-clamp-1" x-text="item.title"></h3>
+                                            <p class="text-gray-500 text-xs mb-3 line-clamp-2" x-text="item.description || 'Approfondimento audio sull\'opera.'"></p>
+                                            
+                                            <div class="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                                                <span class="capitalize" x-text="'Livello: ' + (item.languageLevel || 'medio')"></span>
+                                                <span class="text-purple-600 font-semibold truncate max-w-[150px]" x-text="item.museum?.name || item.museumId || 'Pinacoteca'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="p-5 pt-0">
+                                        <div class="flex items-center justify-between mt-2 pt-3 border-t border-gray-100">
+                                            <div>
+                                                <template x-if="item.price > 0">
+                                                    <span class="text-base font-black text-gray-900">€<span x-text="item.price.toFixed(2)"></span></span>
+                                                </template>
+                                                <template x-if="!item.price || item.price === 0">
+                                                    <span class="text-xs font-bold text-green-600">Gratuito</span>
+                                                </template>
+                                            </div>
+
+                                            <div class="flex items-center gap-2">
+                                                <!-- Se è la propria opera (per i creatori) -->
+                                                <template x-if="isOwnItem(item)">
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1.5 rounded-xl border border-indigo-200 flex items-center gap-1">
+                                                            <i class="fas fa-palette"></i> Tua Opera
+                                                        </span>
+                                                        <a :href="'/marketplace/createItems?editId=' + item._id" 
+                                                           class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1">
+                                                            <i class="fas fa-edit"></i> Modifica
+                                                        </a>
+                                                    </div>
+                                                </template>
+
+                                                <!-- Se è già presente nella collezione -->
+                                                <template x-if="!isOwnItem(item) && isItemOwned(item)">
+                                                    <button 
+                                                        @click="openItemModal(item)"
+                                                        class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                                        <i class="fas fa-eye"></i> Dettagli
+                                                    </button>
+                                                </template>
+
+                                                <!-- Opera gratuita da acquisire -->
+                                                <template x-if="canAcquireFreeItem(item)">
+                                                    <button 
+                                                        type="button"
+                                                        @click.stop="acquireFreeItem(item)"
+                                                        :disabled="isItemLoading(item._id)"
+                                                        class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5 disabled:opacity-50 cursor-pointer">
+                                                        <i class="fas" :class="isItemLoading(item._id) ? 'fa-spinner fa-spin' : 'fa-plus'"></i>
+                                                        <span x-text="isItemLoading(item._id) ? 'Aggiunta...' : 'Ottieni Gratis'"></span>
+                                                    </button>
+                                                </template>
+
+                                                <!-- Opera a pagamento da acquistare con checkout -->
+                                                <template x-if="canPurchaseItem(item)">
+                                                    <a :href="'/marketplace/checkout?itemId=' + item._id" 
+                                                       class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow transition flex items-center gap-1.5">
+                                                        <i class="fas fa-shopping-cart"></i> Acquista
+                                                    </a>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Stato Vuoto Preferiti -->
+                <div x-show="filteredFavoriteVisits.length === 0 && filteredFavoriteItems.length === 0" class="col-span-full text-center py-16 bg-white rounded-3xl border border-gray-100 shadow-sm">
+                    <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-1">Nessun preferito trovato</h3>
+                    <p class="text-sm text-gray-500 max-w-md mx-auto mb-6">
+                        Clicca sull'icona a forma di cuore su qualsiasi visita o singola opera d'arte per salvarla nei tuoi preferiti e ritrovarla comodamente qui.
+                    </p>
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button 
+                            @click="activeTab = 'visits'" 
+                            class="px-5 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-sm rounded-xl transition shadow flex items-center gap-2">
+                            <i class="fas fa-route"></i> Sfoglia Percorsi
+                        </button>
+                        <button 
+                            @click="activeTab = 'items'" 
+                            class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition shadow flex items-center gap-2">
+                            <i class="fas fa-palette"></i> Sfoglia Singole Opere
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- ================= MODALE DETTAGLI / ASCOLTO OPERA ================= -->
@@ -512,7 +737,7 @@
                     const urlParams = new URLSearchParams(window.location.search);
                     if (urlParams.has('tab')) {
                         const tab = urlParams.get('tab');
-                        if (['visits', 'items', 'my_items'].includes(tab)) {
+                        if (['visits', 'items', 'my_items', 'favorites'].includes(tab)) {
                             this.activeTab = tab;
                         }
                     }
@@ -811,8 +1036,86 @@
                     this.isSpeaking = true;
                 },
 
+                get savedVisitsList() {
+                    return this.visits.filter(v => v && v._id && this.isSaved(v._id));
+                },
+
+                get savedItemsList() {
+                    return this.items.filter(i => i && i._id && this.isSaved(i._id));
+                },
+
+                get totalFavoritesCount() {
+                    return this.savedVisitsList.length + this.savedItemsList.length;
+                },
+
+                get filteredFavoriteVisits() {
+                    let list = [...this.savedVisitsList];
+                    if (this.searchTerm) {
+                        const term = this.searchTerm.toLowerCase().trim();
+                        list = list.filter(v => 
+                            v.title?.toLowerCase().includes(term) ||
+                            v.description?.toLowerCase().includes(term) ||
+                            v.author?.username?.toLowerCase().includes(term) ||
+                            v.museum?.name?.toLowerCase().includes(term) ||
+                            v.museum?.museumId?.toLowerCase().includes(term) ||
+                            v.museumId?.toLowerCase().includes(term)
+                        );
+                    }
+                    if (this.priceFilter === 'free') {
+                        list = list.filter(v => !v.price || v.price === 0);
+                    } else if (this.priceFilter === 'paid') {
+                        list = list.filter(v => v.price > 0);
+                    } else if (this.priceFilter === 'under10') {
+                        list = list.filter(v => v.price > 0 && v.price <= 10);
+                    }
+                    if (this.sortBy === 'recent') {
+                        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    } else if (this.sortBy === 'price_asc') {
+                        list.sort((a, b) => (a.price || 0) - (b.price || 0));
+                    } else if (this.sortBy === 'price_desc') {
+                        list.sort((a, b) => (b.price || 0) - (a.price || 0));
+                    }
+                    return list;
+                },
+
+                get filteredFavoriteItems() {
+                    let list = [...this.savedItemsList];
+                    if (this.searchTerm) {
+                        const term = this.searchTerm.toLowerCase().trim();
+                        list = list.filter(i => 
+                            i.title?.toLowerCase().includes(term) ||
+                            i.description?.toLowerCase().includes(term) ||
+                            i.author?.toLowerCase().includes(term) ||
+                            i.style?.toLowerCase().includes(term) ||
+                            i.artworkId?.toLowerCase().includes(term) ||
+                            i.museum?.name?.toLowerCase().includes(term) ||
+                            i.museum?.museumId?.toLowerCase().includes(term) ||
+                            i.museumId?.toLowerCase().includes(term) ||
+                            i.creator?.toLowerCase().includes(term)
+                        );
+                    }
+                    if (this.durationFilter === 'short') {
+                        list = list.filter(i => i.length === '15s' || i.length === '3s');
+                    } else if (this.durationFilter === 'medium') {
+                        list = list.filter(i => i.length === '1m' || i.length === '1min');
+                    } else if (this.durationFilter === 'long') {
+                        list = list.filter(i => i.length === '3m' || i.length === '4min');
+                    }
+                    if (this.sortBy === 'recent') {
+                        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                    } else if (this.sortBy === 'price_asc') {
+                        list.sort((a, b) => (a.price || 0) - (b.price || 0));
+                    } else if (this.sortBy === 'price_desc') {
+                        list.sort((a, b) => (b.price || 0) - (a.price || 0));
+                    }
+                    return list;
+                },
+
                 isSaved(targetId) {
-                    return this.favoriteVisits.includes(targetId) || this.favoriteItems.includes(targetId);
+                    if (!targetId) return false;
+                    const strId = targetId.toString();
+                    return (this.favoriteVisits || []).some(id => (id._id || id).toString() === strId) ||
+                           (this.favoriteItems || []).some(id => (id._id || id).toString() === strId);
                 },
 
                 async toggleSave(targetId, targetType) {
@@ -822,12 +1125,13 @@
                         return;
                     }
 
+                    const strId = targetId.toString();
                     const targetList = targetType === 'visit' ? this.favoriteVisits : this.favoriteItems;
-                    const index = targetList.indexOf(targetId);
+                    const index = targetList.findIndex(id => (id._id || id).toString() === strId);
                     if (index > -1) {
                         targetList.splice(index, 1);
                     } else {
-                        targetList.push(targetId);
+                        targetList.push(strId);
                     }
 
                     try {
@@ -837,7 +1141,7 @@
                                 'Content-Type': 'application/json', 
                                 'Authorization': `Bearer ${token}` 
                             },
-                            body: JSON.stringify({ targetId, targetType })
+                            body: JSON.stringify({ targetId: strId, targetType })
                         });
                     } catch (err) {
                         console.error("Errore toggle preferiti:", err);

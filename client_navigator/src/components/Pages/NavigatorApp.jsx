@@ -4,9 +4,6 @@ import {
   ArrowLeft,
   Map as MapIcon,
   Mic,
-  Droplets as ToiletIcon,
-  Utensils as RestaurantIcon,
-  MoreVertical,
   Plus,
   Minus,
   X,
@@ -1249,7 +1246,6 @@ export default function NavigatorApp() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showDescription, setShowDescription] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
-  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [notificationToast, setNotificationToast] = useState(null);
   const [aiResponse, setAiResponse] = useState(null);
   const [hasTriggeredCurrent, setHasTriggeredCurrent] = useState(false);
@@ -1323,8 +1319,26 @@ export default function NavigatorApp() {
   const lastPanRef = useRef({ x: 0, y: 0 });
 
   // User simulated position (started near the first exhibit)
-  const startPos = items?.length > 0 ? { x: items[0].x, y: items[0].y + 40 } : { x: 250, y: 250 };
+  const startPos = items?.length > 0 ? { x: items[0].x, y: items[0].y + 25 } : { x: 250, y: 250 };
   const [userPos, setUserPos] = useState(startPos);
+
+  // Sync user and camera position when items are loaded or tour starts
+  useEffect(() => {
+    if (items && items.length > 0) {
+      setUserPos(prev => {
+        if (prev.x === 250 && prev.y === 250) {
+          return { x: items[0].x, y: items[0].y + 25 };
+        }
+        return prev;
+      });
+      setCameraPos(prev => {
+        if (prev.x === 250 && prev.y === 250) {
+          return { x: items[0].x, y: items[0].y + 25 };
+        }
+        return prev;
+      });
+    }
+  }, [items]);
 
 
   useEffect(() => {
@@ -1401,9 +1415,11 @@ export default function NavigatorApp() {
       });
     }
 
-    // Draw Areas Interactively (if defined in JSON)
+    // Draw Areas Interactively (if defined in JSON) - Filter out service areas during tour
     if (museumData.areas) {
       museumData.areas.filter(a => a.layerId === activeLayerId).forEach(area => {
+        if (area.type === 'restaurant' || area.type === 'restroom') return; // Hide service areas during tour
+
         ctx.beginPath();
         area.points.forEach((pt, i) => {
           const cx = tx(pt.x);
@@ -1413,16 +1429,8 @@ export default function NavigatorApp() {
         ctx.closePath();
 
         ctx.save();
-        if (area.type === 'restaurant') {
-          ctx.fillStyle = 'rgba(245, 158, 11, 0.15)'; // Beautiful translucent Amber
-          ctx.strokeStyle = 'rgba(245, 158, 11, 0.6)';
-        } else if (area.type === 'restroom') {
-          ctx.fillStyle = 'rgba(14, 165, 233, 0.15)'; // Beautiful translucent Sky Blue
-          ctx.strokeStyle = 'rgba(14, 165, 233, 0.6)';
-        } else {
-          ctx.fillStyle = 'rgba(148, 163, 184, 0.15)';
-          ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
-        }
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.15)';
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
 
         ctx.lineWidth = 1.5 / mapZoom;
         ctx.fill();
@@ -1463,10 +1471,11 @@ export default function NavigatorApp() {
       });
     }
 
-    // Draw POIs (Non-exhibits) from JSON
+    // Draw POIs (Non-exhibits) from JSON - Filter out toilet/restaurant during tour
     if (museumData.pois) {
       museumData.pois.filter(p => p.layerId === activeLayerId).forEach(poi => {
         if (poi.type === 'exhibit' || !poi.position) return; // Handled below in tour items
+        if (poi.type === 'restaurant' || poi.type === 'restroom') return; // Hide toilet and restaurant points during tour
 
         const cx = tx(poi.position.x);
         const cy = ty(poi.position.y);
@@ -1478,12 +1487,6 @@ export default function NavigatorApp() {
         if (poi.type === 'exit') {
           label = poi.subType === 'emergency' ? 'SOS' : 'Exit';
           bgColor = poi.subType === 'emergency' ? '#ef4444' : '#10b981';
-        } else if (poi.type === 'restaurant') {
-          label = poi.subType === 'bar' ? 'Bar' : poi.subType === 'restaurant-bar' ? 'R&B' : 'Café';
-          bgColor = '#f59e0b';
-        } else if (poi.type === 'restroom') {
-          label = 'WC';
-          bgColor = '#0ea5e9';
         }
 
         ctx.save();
@@ -1594,33 +1597,68 @@ export default function NavigatorApp() {
     stopSpeaking(); 
   }, [currentIndex, stopSpeaking]);
 
-  // Controller Logic
-  const moveUser = (dx, dy) => {
+  // Controller Logic - Fluid Responsive Movement with Wall Collision & Sliding
+  const moveUser = useCallback((dx, dy) => {
     setUserPos(prev => {
-      const step = 4;
-      // Convert abstract direction to dynamic relative size (optional: could stay static 4px)
+      const step = 8;
       const nx = prev.x + dx * step;
       const ny = prev.y + dy * step;
 
+      // Keep within canvas/museum bounds
+      const clampedX = Math.max(15, Math.min(485, nx));
+      const clampedY = Math.max(15, Math.min(485, ny));
 
-      if (!collisionGrid) return { x: nx, y: ny };
-
-      const c = Math.floor(nx / collisionGrid.gridSize);
-      const r = Math.floor(ny / collisionGrid.gridSize);
-
-      if (c >= 0 && c < collisionGrid.cols && r >= 0 && r < collisionGrid.rows && collisionGrid.grid[r][c] === 0) {
-        return { x: nx, y: ny };
+      if (!collisionGrid || !collisionGrid.grid) {
+        return { x: clampedX, y: clampedY };
       }
+
+      const c = Math.floor(clampedX / collisionGrid.gridSize);
+      const r = Math.floor(clampedY / collisionGrid.gridSize);
+
+      // 1. Direct unobstructed move
+      if (c >= 0 && c < collisionGrid.cols && r >= 0 && r < collisionGrid.rows) {
+        if (collisionGrid.grid[r][c] === 0) {
+          return { x: clampedX, y: clampedY };
+        }
+        // If avatar was already in a collision cell, allow moving to escape it
+        const prevC = Math.floor(prev.x / collisionGrid.gridSize);
+        const prevR = Math.floor(prev.y / collisionGrid.gridSize);
+        if (prevR >= 0 && prevR < collisionGrid.rows && prevC >= 0 && prevC < collisionGrid.cols) {
+          if (collisionGrid.grid[prevR][prevC] === 1) {
+            return { x: clampedX, y: clampedY };
+          }
+        }
+      }
+
+      // 2. Sliding along X-axis
+      const cX = Math.floor(clampedX / collisionGrid.gridSize);
+      const rY = Math.floor(prev.y / collisionGrid.gridSize);
+      if (dx !== 0 && cX >= 0 && cX < collisionGrid.cols && rY >= 0 && rY < collisionGrid.rows && collisionGrid.grid[rY][cX] === 0) {
+        return { x: clampedX, y: prev.y };
+      }
+
+      // 3. Sliding along Y-axis
+      const cY = Math.floor(prev.x / collisionGrid.gridSize);
+      const rX = Math.floor(clampedY / collisionGrid.gridSize);
+      if (dy !== 0 && cY >= 0 && cY < collisionGrid.cols && rX >= 0 && rX < collisionGrid.rows && collisionGrid.grid[rX][cY] === 0) {
+        return { x: prev.x, y: clampedY };
+      }
+
       return prev;
     });
-  };
+  }, [collisionGrid]);
 
   const startMove = (dx, dy) => {
-    if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
+    if (moveIntervalRef.current) {
+      clearInterval(moveIntervalRef.current);
+      moveIntervalRef.current = null;
+    }
     setIsPlaying(false);
-    setIsTrackingUser(true); // Snap camera back to user when moving!
+    setIsTrackingUser(true); // Snap camera back to user when moving
     moveUser(dx, dy);
-    moveIntervalRef.current = setInterval(() => moveUser(dx, dy), 50);
+    moveIntervalRef.current = setInterval(() => {
+      moveUser(dx, dy);
+    }, 60);
   };
 
   const stopMove = () => {
@@ -1629,6 +1667,63 @@ export default function NavigatorApp() {
       moveIntervalRef.current = null;
     }
   };
+
+  // Keyboard navigation support (Arrow keys and WASD)
+  useEffect(() => {
+    const activeKeys = new Set();
+    let keyInterval = null;
+
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      const key = e.key.toLowerCase();
+      let handled = false;
+      let dx = 0;
+      let dy = 0;
+
+      if (key === 'arrowup' || key === 'w') { dy -= 1; handled = true; }
+      if (key === 'arrowdown' || key === 's') { dy += 1; handled = true; }
+      if (key === 'arrowleft' || key === 'a') { dx -= 1; handled = true; }
+      if (key === 'arrowright' || key === 'd') { dx += 1; handled = true; }
+
+      if (handled) {
+        e.preventDefault();
+        activeKeys.add(key);
+        setIsTrackingUser(true);
+        setIsPlaying(false);
+
+        if (!keyInterval) {
+          moveUser(dx, dy);
+          keyInterval = setInterval(() => {
+            let kdx = 0;
+            let kdy = 0;
+            if (activeKeys.has('arrowup') || activeKeys.has('w')) kdy -= 1;
+            if (activeKeys.has('arrowdown') || activeKeys.has('s')) kdy += 1;
+            if (activeKeys.has('arrowleft') || activeKeys.has('a')) kdx -= 1;
+            if (activeKeys.has('arrowright') || activeKeys.has('d')) kdx += 1;
+            if (kdx !== 0 || kdy !== 0) moveUser(kdx, kdy);
+          }, 60);
+        }
+      }
+    };
+
+    const handleKeyUp = (e) => {
+      const key = e.key.toLowerCase();
+      activeKeys.delete(key);
+      if (activeKeys.size === 0 && keyInterval) {
+        clearInterval(keyInterval);
+        keyInterval = null;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+      if (keyInterval) clearInterval(keyInterval);
+    };
+  }, [moveUser]);
 
   // Canvas Panning Controls
   const handlePointerDown = (e) => {
@@ -2248,41 +2343,60 @@ export default function NavigatorApp() {
             <button className="util-btn zoom-btn" onClick={() => setMapZoom(prev => Math.min(prev + 0.5, 15))} title="Zoom In"><Plus size={20} /></button>
             <button className="util-btn zoom-btn" onClick={() => setMapZoom(prev => Math.max(prev - 0.5, 1))} title="Zoom Out"><Minus size={20} /></button>
           </div>
-
-          <div className="more-menu-wrapper">
-            <button
-              className="util-btn"
-              onClick={() => setShowMoreMenu(!showMoreMenu)}
-              title="More Options"
-            >
-              {showMoreMenu ? <X size={24} /> : <MoreVertical size={24} />}
-            </button>
-
-            {showMoreMenu && (
-              <div className="more-menu slide-in-top">
-                <button className="menu-item" title="Find Toliet">
-                  <ToiletIcon size={20} /> Toilet
-                </button>
-                <button className="menu-item" title="Find Restaurant">
-                  <RestaurantIcon size={20} /> Restaurant
-                </button>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* D-Pad Controller for manual touring */}
         <div className="dpad-controller">
           <div className="dpad-row">
-            <button onPointerDown={() => startMove(0, -1)} onPointerUp={stopMove} onPointerLeave={stopMove} onContextMenu={(e) => e.preventDefault()} className="dpad-btn up"><ChevronUp size={28} /></button>
+            <button
+              onPointerDown={(e) => { e.preventDefault(); startMove(0, -1); }}
+              onPointerUp={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerLeave={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerCancel={(e) => { e.preventDefault(); stopMove(); }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="dpad-btn up"
+              title="Muoviti in Alto (W / Freccia Su)"
+            >
+              <ChevronUp size={28} />
+            </button>
           </div>
           <div className="dpad-row middle">
-            <button onPointerDown={() => startMove(-1, 0)} onPointerUp={stopMove} onPointerLeave={stopMove} onContextMenu={(e) => e.preventDefault()} className="dpad-btn left"><ChevronLeft size={28} /></button>
+            <button
+              onPointerDown={(e) => { e.preventDefault(); startMove(-1, 0); }}
+              onPointerUp={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerLeave={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerCancel={(e) => { e.preventDefault(); stopMove(); }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="dpad-btn left"
+              title="Muoviti a Sinistra (A / Freccia Sinistra)"
+            >
+              <ChevronLeft size={28} />
+            </button>
             <div className="dpad-center"></div>
-            <button onPointerDown={() => startMove(1, 0)} onPointerUp={stopMove} onPointerLeave={stopMove} onContextMenu={(e) => e.preventDefault()} className="dpad-btn right"><ChevronRight size={28} /></button>
+            <button
+              onPointerDown={(e) => { e.preventDefault(); startMove(1, 0); }}
+              onPointerUp={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerLeave={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerCancel={(e) => { e.preventDefault(); stopMove(); }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="dpad-btn right"
+              title="Muoviti a Destra (D / Freccia Destra)"
+            >
+              <ChevronRight size={28} />
+            </button>
           </div>
           <div className="dpad-row">
-            <button onPointerDown={() => startMove(0, 1)} onPointerUp={stopMove} onPointerLeave={stopMove} onContextMenu={(e) => e.preventDefault()} className="dpad-btn down"><ChevronDown size={28} /></button>
+            <button
+              onPointerDown={(e) => { e.preventDefault(); startMove(0, 1); }}
+              onPointerUp={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerLeave={(e) => { e.preventDefault(); stopMove(); }}
+              onPointerCancel={(e) => { e.preventDefault(); stopMove(); }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="dpad-btn down"
+              title="Muoviti in Basso (S / Freccia Giù)"
+            >
+              <ChevronDown size={28} />
+            </button>
           </div>
         </div>
       </div>
