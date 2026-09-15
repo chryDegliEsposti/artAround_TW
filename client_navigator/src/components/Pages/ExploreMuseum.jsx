@@ -7,7 +7,6 @@ import {
   MapPin, 
   Sparkles, 
   ShoppingBag, 
-  Compass, 
   ExternalLink,
   Utensils,
   Accessibility,
@@ -153,11 +152,7 @@ export default function ExploreMuseum() {
             <p className="museum-intro-desc">{exploreData.museumDescription}</p>
           )}
           <div className="museum-intro-actions">
-            <button className="explore-btn-primary" onClick={handleStartTour}>
-              <Compass size={18} />
-              <span>Avvia Navigazione Indoor</span>
-            </button>
-            <button className="explore-btn-secondary" onClick={goToMarketplaceVisits}>
+            <button className="explore-btn-primary" onClick={goToMarketplaceVisits}>
               <ExternalLink size={18} />
               <span>Percorsi nel Marketplace</span>
             </button>
